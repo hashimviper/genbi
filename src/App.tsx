@@ -7,7 +7,9 @@ import Index from "./pages/Index";
 import DataSourcesPage from "./pages/DataSourcesPage";
 import DashboardsPage from "./pages/DashboardsPage";
 import DashboardBuilderPage from "./pages/DashboardBuilderPage";
+import DashboardOutputPage from "./pages/DashboardOutputPage";
 import AdminPanelPage from "./pages/AdminPanelPage";
+import TemplatesPage from "./pages/TemplatesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,7 +25,9 @@ const App = () => (
           <Route path="/data" element={<DataSourcesPage />} />
           <Route path="/dashboards" element={<DashboardsPage />} />
           <Route path="/builder" element={<DashboardBuilderPage />} />
+          <Route path="/view/:id" element={<DashboardOutputPage />} />
           <Route path="/admin" element={<AdminPanelPage />} />
+          <Route path="/templates" element={<TemplatesPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -12,19 +12,20 @@ import { KPICard } from '@/components/charts/KPICard';
 import { DataTableWidget } from '@/components/charts/DataTableWidget';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
+import { isChartConfig, isKPIConfig, DashboardWidget } from '@/types/dashboard';
 
 export default function DashboardBuilderPage() {
   const [searchParams] = useSearchParams();
   const dashboardId = searchParams.get('id');
   
-  const { dashboards, datasets, currentDashboard, setCurrentDashboard, removeWidget, updateDashboard } = useDashboardStore();
+  const { dashboards, datasets, currentDashboard, setCurrentDashboard, removeWidget } = useDashboardStore();
 
   useEffect(() => {
     if (dashboardId) {
       const dashboard = dashboards.find((d) => d.id === dashboardId);
       if (dashboard) setCurrentDashboard(dashboard);
     }
-  }, [dashboardId, dashboards]);
+  }, [dashboardId, dashboards, setCurrentDashboard]);
 
   const getDatasetData = (datasetId: string) => {
     return datasets.find((d) => d.id === datasetId)?.data || [];
@@ -37,6 +38,8 @@ export default function DashboardBuilderPage() {
   const calculateKPIValue = (datasetId: string, field: string, aggregation: string) => {
     const data = getDatasetData(datasetId);
     const values = data.map((row) => Number(row[field]) || 0);
+    
+    if (values.length === 0) return 0;
     
     switch (aggregation) {
       case 'sum': return values.reduce((a, b) => a + b, 0);
@@ -52,27 +55,42 @@ export default function DashboardBuilderPage() {
     toast({ title: 'Dashboard saved', description: 'Your changes have been saved locally.' });
   };
 
-  const renderWidget = (widget: typeof currentDashboard.widgets[0]) => {
+  const renderWidget = (widget: DashboardWidget) => {
     const config = widget.config;
     const data = getDatasetData(config.datasetId);
 
-    switch (widget.type) {
-      case 'bar':
-        return <BarChartWidget data={data} xAxis={config.xAxis || ''} yAxis={config.yAxis || ''} />;
-      case 'line':
-        return <LineChartWidget data={data} xAxis={config.xAxis || ''} yAxis={config.yAxis || ''} />;
-      case 'pie':
-        return <PieChartWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
-      case 'area':
-        return <AreaChartWidget data={data} xAxis={config.xAxis || ''} yAxis={config.yAxis || ''} />;
-      case 'kpi':
-        const value = calculateKPIValue(config.datasetId, config.valueField || '', config.aggregation || 'sum');
-        return <KPICard title={config.title} value={value} prefix={config.prefix} suffix={config.suffix} trend="up" trendValue="+12.5%" />;
-      case 'table':
-        return <DataTableWidget data={data} columns={getDatasetColumns(config.datasetId)} />;
-      default:
-        return <div>Unknown widget type</div>;
+    if (isKPIConfig(config)) {
+      const value = calculateKPIValue(config.datasetId, config.valueField, config.aggregation);
+      return (
+        <KPICard 
+          title={config.title} 
+          value={value} 
+          prefix={config.prefix} 
+          suffix={config.suffix} 
+          trend="up" 
+          trendValue="+12.5%" 
+        />
+      );
     }
+
+    if (isChartConfig(config)) {
+      switch (widget.type) {
+        case 'bar':
+          return <BarChartWidget data={data} xAxis={config.xAxis || ''} yAxis={config.yAxis || ''} />;
+        case 'line':
+          return <LineChartWidget data={data} xAxis={config.xAxis || ''} yAxis={config.yAxis || ''} />;
+        case 'pie':
+          return <PieChartWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
+        case 'area':
+          return <AreaChartWidget data={data} xAxis={config.xAxis || ''} yAxis={config.yAxis || ''} />;
+        case 'table':
+          return <DataTableWidget data={data} columns={getDatasetColumns(config.datasetId)} />;
+        default:
+          return <div className="text-muted-foreground">Unknown widget type</div>;
+      }
+    }
+
+    return <div className="text-muted-foreground">Invalid configuration</div>;
   };
 
   if (!currentDashboard) {

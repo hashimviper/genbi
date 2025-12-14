@@ -13,38 +13,37 @@ export interface DataSet {
   createdAt: Date;
 }
 
-export interface ChartConfig {
+export interface BaseWidgetConfig {
   id: string;
-  type: ChartType;
   title: string;
+  datasetId: string;
+  width: number;
+  height: number;
+  position: { x: number; y: number };
+}
+
+export interface ChartConfig extends BaseWidgetConfig {
+  type: Exclude<ChartType, 'kpi'>;
   xAxis?: string;
   yAxis?: string;
   valueField?: string;
   labelField?: string;
-  datasetId: string;
-  width: number;
-  height: number;
-  position: { x: number; y: number };
 }
 
-export interface KPIConfig {
-  id: string;
+export interface KPIConfig extends BaseWidgetConfig {
   type: 'kpi';
-  title: string;
   valueField: string;
   aggregation: 'sum' | 'avg' | 'count' | 'min' | 'max';
-  datasetId: string;
   prefix?: string;
   suffix?: string;
-  width: number;
-  height: number;
-  position: { x: number; y: number };
 }
+
+export type WidgetConfig = ChartConfig | KPIConfig;
 
 export interface DashboardWidget {
   id: string;
   type: ChartType;
-  config: ChartConfig | KPIConfig;
+  config: WidgetConfig;
   gridPosition: {
     x: number;
     y: number;
@@ -66,6 +65,20 @@ export interface DashboardTemplate {
   id: string;
   name: string;
   description: string;
-  thumbnail: string;
+  category: string;
+  icon: string;
+  color: string;
   widgets: Omit<DashboardWidget, 'id'>[];
+  sampleData?: Record<string, unknown>[];
+  sampleColumns?: DataColumn[];
+}
+
+// Type guard to check if config is ChartConfig
+export function isChartConfig(config: WidgetConfig): config is ChartConfig {
+  return config.type !== 'kpi';
+}
+
+// Type guard to check if config is KPIConfig
+export function isKPIConfig(config: WidgetConfig): config is KPIConfig {
+  return config.type === 'kpi';
 }

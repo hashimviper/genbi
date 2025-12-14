@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -13,6 +13,8 @@ import {
   ShoppingCart,
   ClipboardList,
   Search,
+  Sparkles,
+  ArrowRight,
 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { dashboardTemplates } from '@/data/templates';
@@ -44,6 +46,20 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   DollarSign,
   ShoppingCart,
   ClipboardList,
+};
+
+const categoryColors: Record<string, string> = {
+  'Human Resources': 'badge-primary',
+  'Digital Marketing': 'badge-info',
+  'Sales': 'badge-success',
+  'Healthcare': 'badge-accent',
+  'Manufacturing': 'badge-warning',
+  'Global': 'badge-info',
+  'Environment': 'badge-success',
+  'General': 'badge-primary',
+  'Finance': 'badge-success',
+  'E-commerce': 'badge-warning',
+  'Project Management': 'badge-info',
 };
 
 export default function TemplatesPage() {
@@ -88,8 +104,8 @@ export default function TemplatesPage() {
     });
 
     toast({
-      title: 'Dashboard created',
-      description: `${dashboardName} has been created from the ${selectedTemplate.name} template.`,
+      title: 'Dashboard created!',
+      description: `${dashboardName} is ready to use.`,
     });
 
     setSelectedTemplate(null);
@@ -100,59 +116,83 @@ export default function TemplatesPage() {
     <MainLayout>
       <div className="flex h-full flex-col p-6">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Dashboard Templates</h1>
-          <p className="mt-1 text-muted-foreground">
-            Choose a pre-built template to get started quickly
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-bg shadow-lg">
+              <Sparkles className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <h1 className="text-3xl font-bold text-foreground">Dashboard Templates</h1>
+          </div>
+          <p className="mt-2 text-muted-foreground">
+            Choose a pre-built template to get started quickly with professional dashboards
           </p>
         </div>
 
         {/* Search */}
-        <div className="relative mb-6 max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <div className="relative mb-8 max-w-md">
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search templates..."
+            placeholder="Search templates by name or category..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-11 h-12 bg-background border-2 focus:border-primary transition-colors"
           />
         </div>
 
         {/* Templates by Category */}
-        <div className="flex-1 space-y-8 overflow-auto">
+        <div className="flex-1 space-y-10 overflow-auto">
           {categories.map((category) => {
             const categoryTemplates = filteredTemplates.filter((t) => t.category === category);
             if (categoryTemplates.length === 0) return null;
 
             return (
-              <section key={category}>
-                <h2 className="mb-4 text-lg font-semibold text-foreground">{category}</h2>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <section key={category} className="animate-fade-in">
+                <div className="flex items-center gap-3 mb-5">
+                  <h2 className="text-xl font-bold text-foreground">{category}</h2>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${categoryColors[category] || 'badge-primary'}`}>
+                    {categoryTemplates.length} templates
+                  </span>
+                </div>
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {categoryTemplates.map((template, index) => {
                     const IconComponent = iconMap[template.icon] || FileBarChart;
                     return (
                       <button
                         key={template.id}
                         onClick={() => handleSelectTemplate(template)}
-                        className="glass-card group animate-fade-in rounded-xl p-5 text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
-                        style={{ animationDelay: `${index * 50}ms` }}
+                        className="glass-card-hover group rounded-xl overflow-hidden text-left animate-fade-in"
+                        style={{ animationDelay: `${index * 60}ms` }}
                       >
-                        <div
-                          className="flex h-12 w-12 items-center justify-center rounded-lg transition-colors"
-                          style={{ backgroundColor: `${template.color}20` }}
+                        {/* Gradient Header */}
+                        <div 
+                          className="h-24 relative overflow-hidden"
+                          style={{ background: `linear-gradient(135deg, ${template.color}, ${template.color}dd)` }}
                         >
-                          <IconComponent className="h-6 w-6" style={{ color: template.color }} />
+                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.2),transparent_60%)]" />
+                          <div className="absolute bottom-4 left-5">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm shadow-lg">
+                              <IconComponent className="h-6 w-6 text-white" />
+                            </div>
+                          </div>
+                          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+                              <ArrowRight className="h-4 w-4 text-white" />
+                            </div>
+                          </div>
                         </div>
-                        <h3 className="mt-4 font-semibold text-foreground group-hover:text-primary">
-                          {template.name}
-                        </h3>
-                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                          {template.description}
-                        </p>
-                        <div className="mt-3 flex items-center gap-2">
-                          <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
-                            {template.widgets.length} widgets
-                          </span>
+
+                        <div className="p-5">
+                          <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                            {template.name}
+                          </h3>
+                          <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                            {template.description}
+                          </p>
+                          <div className="mt-4 flex items-center gap-2">
+                            <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                              {template.widgets.length} widgets
+                            </span>
+                          </div>
                         </div>
                       </button>
                     );
@@ -163,19 +203,23 @@ export default function TemplatesPage() {
           })}
 
           {filteredTemplates.length === 0 && (
-            <div className="flex h-40 items-center justify-center text-muted-foreground">
-              No templates found matching "{searchQuery}"
+            <div className="flex h-60 flex-col items-center justify-center text-center">
+              <Search className="h-12 w-12 text-muted-foreground/30" />
+              <p className="mt-4 text-lg font-medium text-muted-foreground">No templates found</p>
+              <p className="text-sm text-muted-foreground">Try searching for something else</p>
             </div>
           )}
         </div>
 
         {/* Create Dialog */}
         <Dialog open={!!selectedTemplate} onOpenChange={() => setSelectedTemplate(null)}>
-          <DialogContent>
+          <DialogContent className="bg-card border-border">
             <DialogHeader>
-              <DialogTitle>Create from Template</DialogTitle>
+              <DialogTitle>
+                Create from {selectedTemplate?.name}
+              </DialogTitle>
               <DialogDescription>
-                Customize your dashboard before creating it from the {selectedTemplate?.name} template.
+                Customize your dashboard before creating it
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -186,6 +230,7 @@ export default function TemplatesPage() {
                   value={dashboardName}
                   onChange={(e) => setDashboardName(e.target.value)}
                   placeholder="My Dashboard"
+                  className="bg-background"
                 />
               </div>
               {datasets.length > 0 && (
@@ -195,7 +240,7 @@ export default function TemplatesPage() {
                     id="dataset"
                     value={selectedDataset}
                     onChange={(e) => setSelectedDataset(e.target.value)}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="">No dataset linked</option>
                     {datasets.map((ds) => (
@@ -207,17 +252,22 @@ export default function TemplatesPage() {
                 </div>
               )}
               {datasets.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  No datasets available. You can upload data after creating the dashboard.
-                </p>
+                <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
+                  <p className="font-medium">No datasets available</p>
+                  <p className="mt-1">You can upload data after creating the dashboard.</p>
+                </div>
               )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setSelectedTemplate(null)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateFromTemplate} disabled={!dashboardName.trim()}>
-                Create Dashboard
+              <Button 
+                onClick={handleCreateFromTemplate} 
+                disabled={!dashboardName.trim()} 
+                className="gap-2 gradient-bg hover:opacity-90"
+              >
+                Create Dashboard <ArrowRight className="h-4 w-4" />
               </Button>
             </DialogFooter>
           </DialogContent>

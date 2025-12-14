@@ -9,6 +9,8 @@ import {
   ChevronLeft,
   ChevronRight,
   BarChart3,
+  FileText,
+  Eye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -20,6 +22,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  { icon: FileText, label: 'Templates', href: '/templates' },
   { icon: LayoutDashboard, label: 'Dashboard Builder', href: '/builder' },
   { icon: FolderOpen, label: 'My Dashboards', href: '/dashboards' },
   { icon: Database, label: 'Data Sources', href: '/data' },
@@ -33,19 +36,19 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        'relative flex flex-col border-r border-border/50 bg-sidebar transition-all duration-300',
-        collapsed ? 'w-16' : 'w-64'
+        'relative flex flex-col border-r border-border bg-sidebar transition-all duration-300',
+        collapsed ? 'w-16' : 'w-60'
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center gap-3 border-b border-border/50 px-4">
+      <Link to="/" className="flex h-16 items-center gap-3 border-b border-border px-4 hover:bg-sidebar-accent/50 transition-colors">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
           <BarChart3 className="h-5 w-5 text-primary" />
         </div>
         {!collapsed && (
-          <span className="font-semibold text-foreground">DataViz Pro</span>
+          <span className="font-bold text-foreground">GenBI</span>
         )}
-      </div>
+      </Link>
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-3">
@@ -59,7 +62,7 @@ export function AppSidebar() {
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
                 isActive
                   ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
               )}
             >
               <item.icon className="h-5 w-5 shrink-0" />
@@ -71,8 +74,8 @@ export function AppSidebar() {
 
       {/* Quick Actions */}
       {!collapsed && (
-        <div className="border-t border-border/50 p-3">
-          <Link to="/builder">
+        <div className="border-t border-border p-3">
+          <Link to="/templates">
             <Button className="w-full gap-2" size="sm">
               <Plus className="h-4 w-4" />
               New Dashboard

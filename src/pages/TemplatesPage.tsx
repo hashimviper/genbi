@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -15,9 +15,11 @@ import {
   Search,
   Sparkles,
   ArrowRight,
+  Database,
 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { dashboardTemplates } from '@/data/templates';
+import { sampleDatasets, getDatasetForTemplate, templateDatasetMap } from '@/data/sampleDatasets';
 import { useDashboardStore } from '@/stores/dashboardStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,11 +66,12 @@ const categoryColors: Record<string, string> = {
 
 export default function TemplatesPage() {
   const navigate = useNavigate();
-  const { createDashboard, addWidget, datasets } = useDashboardStore();
+  const { createDashboard, addWidget, datasets, addDataset } = useDashboardStore();
   const [selectedTemplate, setSelectedTemplate] = useState<DashboardTemplate | null>(null);
   const [dashboardName, setDashboardName] = useState('');
   const [selectedDataset, setSelectedDataset] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [useSampleData, setUseSampleData] = useState(true);
 
   const filteredTemplates = dashboardTemplates.filter(
     (template) =>
@@ -82,22 +85,48 @@ export default function TemplatesPage() {
   const handleSelectTemplate = (template: DashboardTemplate) => {
     setSelectedTemplate(template);
     setDashboardName(`${template.name} Dashboard`);
-    setSelectedDataset(datasets[0]?.id || '');
+    // Check if this template has sample data
+    const hasSampleData = templateDatasetMap[template.id] !== undefined;
+    setUseSampleData(hasSampleData);
+    setSelectedDataset(hasSampleData ? templateDatasetMap[template.id] : (datasets[0]?.id || ''));
   };
 
   const handleCreateFromTemplate = () => {
     if (!selectedTemplate || !dashboardName.trim()) return;
 
+    let datasetId = selectedDataset;
+
+    // If using sample data and dataset doesn't exist in store, add it
+    if (useSampleData && templateDatasetMap[selectedTemplate.id]) {
+      const sampleDataset = getDatasetForTemplate(selectedTemplate.id);
+      if (sampleDataset) {
+        // Check if dataset already exists in store
+        const existingDataset = datasets.find(ds => ds.id === sampleDataset.id);
+        if (!existingDataset) {
+          addDataset({
+            name: sampleDataset.name,
+            columns: sampleDataset.columns,
+            data: sampleDataset.data,
+          });
+          // The addDataset generates a new ID, so we need to find it
+          // For simplicity, we'll use the sample dataset ID directly
+          datasetId = sampleDataset.id;
+        } else {
+          datasetId = existingDataset.id;
+        }
+      }
+    }
+
     const dashboard = createDashboard(dashboardName.trim(), selectedTemplate.description);
 
-    // Add widgets from template
+    // Add widgets from template with the dataset linked
     selectedTemplate.widgets.forEach((widget) => {
       const newWidget = {
         ...widget,
         config: {
           ...widget.config,
           id: uuidv4(),
-          datasetId: selectedDataset || '',
+          datasetId: datasetId || '',
         },
       };
       addWidget(dashboard.id, newWidget);
@@ -105,7 +134,7 @@ export default function TemplatesPage() {
 
     toast({
       title: 'Dashboard created!',
-      description: `${dashboardName} is ready to use.`,
+      description: `${dashboardName} is ready with ${useSampleData ? 'sample data' : 'your data'}.`,
     });
 
     setSelectedTemplate(null);
@@ -233,9 +262,32 @@ export default function TemplatesPage() {
                   className="bg-background"
                 />
               </div>
-              {datasets.length > 0 && (
+              
+              {/* Sample Data Toggle */}
+              {selectedTemplate && templateDatasetMap[selectedTemplate.id] && (
+                <div className="rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 p-4 border border-primary/20">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Database className="h-5 w-5 text-primary" />
+                    <span className="font-medium text-foreground">Sample Data Available</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    This template includes pre-built sample data so you can see the charts in action immediately.
+                  </p>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useSampleData}
+                      onChange={(e) => setUseSampleData(e.target.checked)}
+                      className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm font-medium">Use sample data</span>
+                  </label>
+                </div>
+              )}
+
+              {!useSampleData && datasets.length > 0 && (
                 <div className="space-y-2">
-                  <Label htmlFor="dataset">Link Dataset (optional)</Label>
+                  <Label htmlFor="dataset">Link Your Dataset</Label>
                   <select
                     id="dataset"
                     value={selectedDataset}
@@ -251,7 +303,7 @@ export default function TemplatesPage() {
                   </select>
                 </div>
               )}
-              {datasets.length === 0 && (
+              {!useSampleData && datasets.length === 0 && (
                 <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
                   <p className="font-medium">No datasets available</p>
                   <p className="mt-1">You can upload data after creating the dashboard.</p>

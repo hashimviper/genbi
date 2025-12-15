@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { dashboardTemplates } from '@/data/templates';
-import { sampleDatasets, getDatasetForTemplate, templateDatasetMap } from '@/data/sampleDatasets';
+// Sample data is now embedded directly in templates
 import { useDashboardStore } from '@/stores/dashboardStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -85,10 +85,10 @@ export default function TemplatesPage() {
   const handleSelectTemplate = (template: DashboardTemplate) => {
     setSelectedTemplate(template);
     setDashboardName(`${template.name} Dashboard`);
-    // Check if this template has sample data
-    const hasSampleData = templateDatasetMap[template.id] !== undefined;
+    // Check if this template has embedded sample data
+    const hasSampleData = template.sampleData && template.sampleData.length > 0;
     setUseSampleData(hasSampleData);
-    setSelectedDataset(hasSampleData ? templateDatasetMap[template.id] : (datasets[0]?.id || ''));
+    setSelectedDataset(datasets[0]?.id || '');
   };
 
   const handleCreateFromTemplate = () => {
@@ -96,25 +96,14 @@ export default function TemplatesPage() {
 
     let datasetId = selectedDataset;
 
-    // If using sample data and dataset doesn't exist in store, add it
-    if (useSampleData && templateDatasetMap[selectedTemplate.id]) {
-      const sampleDataset = getDatasetForTemplate(selectedTemplate.id);
-      if (sampleDataset) {
-        // Check if dataset already exists in store
-        const existingDataset = datasets.find(ds => ds.id === sampleDataset.id);
-        if (!existingDataset) {
-          addDataset({
-            name: sampleDataset.name,
-            columns: sampleDataset.columns,
-            data: sampleDataset.data,
-          });
-          // The addDataset generates a new ID, so we need to find it
-          // For simplicity, we'll use the sample dataset ID directly
-          datasetId = sampleDataset.id;
-        } else {
-          datasetId = existingDataset.id;
-        }
-      }
+    // If using sample data from template, create the dataset
+    if (useSampleData && selectedTemplate.sampleData && selectedTemplate.sampleColumns) {
+      const newDataset = addDataset({
+        name: `${selectedTemplate.name} Sample Data`,
+        columns: selectedTemplate.sampleColumns,
+        data: selectedTemplate.sampleData,
+      });
+      datasetId = newDataset.id;
     }
 
     const dashboard = createDashboard(dashboardName.trim(), selectedTemplate.description);
@@ -264,7 +253,7 @@ export default function TemplatesPage() {
               </div>
               
               {/* Sample Data Toggle */}
-              {selectedTemplate && templateDatasetMap[selectedTemplate.id] && (
+              {selectedTemplate && selectedTemplate.sampleData && selectedTemplate.sampleData.length > 0 && (
                 <div className="rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 p-4 border border-primary/20">
                   <div className="flex items-center gap-3 mb-2">
                     <Database className="h-5 w-5 text-primary" />

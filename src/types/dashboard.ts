@@ -1,4 +1,21 @@
-export type ChartType = 'bar' | 'line' | 'pie' | 'area' | 'scatter' | 'kpi' | 'table';
+export type ChartType = 
+  | 'bar' 
+  | 'line' 
+  | 'pie' 
+  | 'area' 
+  | 'scatter' 
+  | 'kpi' 
+  | 'table'
+  | 'gauge'
+  | 'radar'
+  | 'treemap'
+  | 'funnel'
+  | 'combo'
+  | 'waterfall'
+  | 'stackedBar'
+  | 'donut'
+  | 'sparkline'
+  | 'horizontalBar';
 
 export interface DataColumn {
   name: string;

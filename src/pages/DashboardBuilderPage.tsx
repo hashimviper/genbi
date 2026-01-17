@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Save, Undo, GripVertical } from 'lucide-react';
+import { Plus, Save, Undo, GripVertical, Database, RotateCcw } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useDashboardStore } from '@/stores/dashboardStore';
@@ -22,17 +22,25 @@ import { WaterfallChartWidget } from '@/components/charts/WaterfallChartWidget';
 import { ScatterPlotWidget } from '@/components/charts/ScatterPlotWidget';
 import { WidgetEditDialog } from '@/components/dashboard/WidgetEditDialog';
 import { ExportMenu } from '@/components/dashboard/ExportMenu';
+import { GlobalFilterBar, FilterConfig, applyFilters } from '@/components/dashboard/GlobalFilterBar';
+import { DatasetSwitcher } from '@/components/dashboard/DatasetSwitcher';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { isChartConfig, isKPIConfig, DashboardWidget } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
+import { sampleDatasets } from '@/data/sampleDatasets';
 
 export default function DashboardBuilderPage() {
   const [searchParams] = useSearchParams();
   const dashboardId = searchParams.get('id');
   const [editingWidget, setEditingWidget] = useState<DashboardWidget | null>(null);
+  const [filters, setFilters] = useState<FilterConfig[]>([]);
+  const [showDatasetSwitcher, setShowDatasetSwitcher] = useState(false);
   
   const { dashboards, datasets, currentDashboard, setCurrentDashboard, removeWidget, updateWidget, updateDashboard } = useDashboardStore();
+  
+  // Combine user datasets with sample datasets
+  const allDatasets = [...datasets, ...sampleDatasets];
 
   useEffect(() => {
     if (dashboardId) {
@@ -42,11 +50,23 @@ export default function DashboardBuilderPage() {
   }, [dashboardId, dashboards, setCurrentDashboard]);
 
   const getDatasetData = (datasetId: string) => {
-    return datasets.find((d) => d.id === datasetId)?.data || [];
+    const dataset = allDatasets.find((d) => d.id === datasetId);
+    const rawData = dataset?.data || [];
+    return applyFilters(rawData, filters);
+  };
+
+  const getRawDatasetData = (datasetId: string) => {
+    return allDatasets.find((d) => d.id === datasetId)?.data || [];
   };
 
   const getDatasetColumns = (datasetId: string) => {
-    return datasets.find((d) => d.id === datasetId)?.columns || [];
+    return allDatasets.find((d) => d.id === datasetId)?.columns || [];
+  };
+  
+  const getCurrentDataset = () => {
+    if (!currentDashboard?.widgets.length) return null;
+    const datasetId = currentDashboard.widgets[0]?.config.datasetId;
+    return allDatasets.find(d => d.id === datasetId) || null;
   };
 
   const calculateKPIValue = (datasetId: string, field: string, aggregation: string) => {
@@ -135,6 +155,12 @@ export default function DashboardBuilderPage() {
             <p className="text-sm text-muted-foreground">{currentDashboard.widgets.length} widgets • Drag to reorder</p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowDatasetSwitcher(true)}>
+              <Database className="h-4 w-4" /> Switch Dataset
+            </Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setFilters([])}>
+              <RotateCcw className="h-4 w-4" /> Reset Filters
+            </Button>
             <ExportMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardData={currentDashboard} />
             <Button variant="outline" size="sm" className="gap-2"><Undo className="h-4 w-4" /> Undo</Button>
             <Button size="sm" className="gap-2" onClick={handleSave}><Save className="h-4 w-4" /> Save</Button>
@@ -142,6 +168,15 @@ export default function DashboardBuilderPage() {
         </div>
 
         <div id="dashboard-canvas" className="flex-1 overflow-auto p-6">
+          {getCurrentDataset() && (
+            <GlobalFilterBar
+              columns={getCurrentDataset()?.columns || []}
+              data={getRawDatasetData(getCurrentDataset()?.id || '')}
+              filters={filters}
+              onFiltersChange={setFilters}
+              className="mb-6"
+            />
+          )}
           {currentDashboard.widgets.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <Plus className="h-12 w-12 text-muted-foreground/30" />
@@ -213,8 +248,22 @@ export default function DashboardBuilderPage() {
         onOpenChange={(open) => !open && setEditingWidget(null)}
         widget={editingWidget}
         columns={editingWidget ? getDatasetColumns(editingWidget.config.datasetId) : []}
-        data={editingWidget ? getDatasetData(editingWidget.config.datasetId) : []}
+        data={editingWidget ? getRawDatasetData(editingWidget.config.datasetId) : []}
         onSave={handleWidgetSave}
+      />
+      
+      <DatasetSwitcher
+        open={showDatasetSwitcher}
+        onOpenChange={setShowDatasetSwitcher}
+        currentDataset={getCurrentDataset()}
+        availableDatasets={allDatasets}
+        widgets={currentDashboard?.widgets || []}
+        onSwitch={(newDatasetId, remappedWidgets) => {
+          if (currentDashboard) {
+            updateDashboard(currentDashboard.id, { widgets: remappedWidgets });
+            toast({ title: 'Dataset switched', description: 'Fields have been automatically remapped.' });
+          }
+        }}
       />
     </MainLayout>
   );

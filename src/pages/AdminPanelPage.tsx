@@ -10,6 +10,14 @@ import {
   Settings2,
   Save,
   GripVertical,
+  Gauge,
+  Circle,
+  GitBranch,
+  Layers,
+  TrendingUp,
+  ArrowDownUp,
+  Activity,
+  Target,
 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useDashboardStore } from '@/stores/dashboardStore';
@@ -26,15 +34,28 @@ import {
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { sampleDatasets } from '@/data/sampleDatasets';
+import { autoConfigureWidget, generateSmartTitle } from '@/lib/fieldMapping';
 
-const chartTypes: { type: ChartType; icon: React.ComponentType<{ className?: string }>; label: string }[] = [
-  { type: 'bar', icon: BarChart3, label: 'Bar Chart' },
-  { type: 'line', icon: LineChart, label: 'Line Chart' },
-  { type: 'pie', icon: PieChart, label: 'Pie Chart' },
-  { type: 'area', icon: AreaChart, label: 'Area Chart' },
-  { type: 'scatter', icon: ScatterChart, label: 'Scatter Plot' },
-  { type: 'table', icon: Table2, label: 'Data Table' },
-  { type: 'kpi', icon: Hash, label: 'KPI Card' },
+const chartTypes: { type: ChartType; icon: React.ComponentType<{ className?: string }>; label: string; category: string }[] = [
+  // Standard Charts
+  { type: 'bar', icon: BarChart3, label: 'Bar Chart', category: 'Standard' },
+  { type: 'line', icon: LineChart, label: 'Line Chart', category: 'Standard' },
+  { type: 'pie', icon: PieChart, label: 'Pie Chart', category: 'Standard' },
+  { type: 'area', icon: AreaChart, label: 'Area Chart', category: 'Standard' },
+  { type: 'scatter', icon: ScatterChart, label: 'Scatter Plot', category: 'Standard' },
+  { type: 'table', icon: Table2, label: 'Data Table', category: 'Standard' },
+  // KPI & Metrics
+  { type: 'kpi', icon: Hash, label: 'KPI Card', category: 'Metrics' },
+  { type: 'gauge', icon: Gauge, label: 'Gauge', category: 'Metrics' },
+  // Advanced Charts
+  { type: 'donut', icon: Circle, label: 'Donut Chart', category: 'Advanced' },
+  { type: 'horizontalBar', icon: ArrowDownUp, label: 'Horizontal Bar', category: 'Advanced' },
+  { type: 'funnel', icon: GitBranch, label: 'Funnel Chart', category: 'Advanced' },
+  { type: 'treemap', icon: Layers, label: 'Treemap', category: 'Advanced' },
+  { type: 'radar', icon: Target, label: 'Radar Chart', category: 'Advanced' },
+  { type: 'combo', icon: TrendingUp, label: 'Combo Chart', category: 'Advanced' },
+  { type: 'waterfall', icon: Activity, label: 'Waterfall', category: 'Advanced' },
 ];
 
 const aggregations = [
@@ -62,19 +83,28 @@ export default function AdminPanelPage() {
   const { datasets, dashboards, addWidget, currentDashboard, setCurrentDashboard } = useDashboardStore();
   const [selectedDashboard, setSelectedDashboard] = useState<string>('');
   const [configs, setConfigs] = useState<ChartConfiguration[]>([]);
+  
+  // Combine user datasets with sample datasets
+  const allDatasets = [...datasets, ...sampleDatasets];
 
   const handleAddConfig = (type: ChartType) => {
+    const defaultDataset = allDatasets[0];
+    const columns = defaultDataset?.columns || [];
+    
+    // Auto-configure fields based on chart type
+    const autoConfig = autoConfigureWidget(type, columns, defaultDataset?.data || []);
+    
     setConfigs((prev) => [
       ...prev,
       {
         type,
         title: '',
-        datasetId: datasets[0]?.id || '',
-        xAxis: '',
-        yAxis: '',
-        labelField: '',
-        valueField: '',
-        aggregation: 'sum',
+        datasetId: defaultDataset?.id || '',
+        xAxis: (autoConfig.xAxis as string) || '',
+        yAxis: (autoConfig.yAxis as string) || '',
+        labelField: (autoConfig.labelField as string) || '',
+        valueField: (autoConfig.valueField as string) || '',
+        aggregation: (autoConfig.aggregation as 'sum' | 'avg' | 'count' | 'min' | 'max') || 'sum',
         prefix: '',
         suffix: '',
       },
@@ -92,7 +122,24 @@ export default function AdminPanelPage() {
   };
 
   const getDatasetColumns = (datasetId: string) => {
-    return datasets.find((d) => d.id === datasetId)?.columns || [];
+    return allDatasets.find((d) => d.id === datasetId)?.columns || [];
+  };
+  
+  // When dataset changes, auto-remap fields
+  const handleDatasetChange = (index: number, newDatasetId: string) => {
+    const config = configs[index];
+    const newDataset = allDatasets.find(d => d.id === newDatasetId);
+    if (!newDataset) return;
+    
+    const autoConfig = autoConfigureWidget(config.type, newDataset.columns, newDataset.data);
+    
+    updateConfig(index, {
+      datasetId: newDatasetId,
+      xAxis: (autoConfig.xAxis as string) || '',
+      yAxis: (autoConfig.yAxis as string) || '',
+      labelField: (autoConfig.labelField as string) || '',
+      valueField: (autoConfig.valueField as string) || '',
+    });
   };
 
   const handleSaveConfigurations = () => {
@@ -106,12 +153,15 @@ export default function AdminPanelPage() {
     }
 
     configs.forEach((config, index) => {
+      const isKpiType = config.type === 'kpi' || config.type === 'gauge';
+      const isSmallWidget = isKpiType;
+      
       const widget: Omit<DashboardWidget, 'id'> = {
         type: config.type,
         config: {
           id: '',
           type: config.type,
-          title: config.title || `Widget ${index + 1}`,
+          title: config.title || generateSmartTitle(config.type, config.xAxis, config.yAxis, config.labelField, config.valueField),
           datasetId: config.datasetId,
           xAxis: config.xAxis,
           yAxis: config.yAxis,
@@ -127,8 +177,8 @@ export default function AdminPanelPage() {
         gridPosition: {
           x: (index % 2) * 6,
           y: Math.floor(index / 2) * 4,
-          w: config.type === 'kpi' ? 3 : 6,
-          h: config.type === 'kpi' ? 2 : 4,
+          w: isSmallWidget ? 3 : 6,
+          h: isSmallWidget ? 2 : 4,
         },
       };
       addWidget(selectedDashboard, widget);
@@ -161,19 +211,56 @@ export default function AdminPanelPage() {
                 <Settings2 className="h-5 w-5" />
                 Widget Types
               </h2>
-              <div className="grid grid-cols-2 gap-2">
-                {chartTypes.map(({ type, icon: Icon, label }) => (
-                  <button
-                    key={type}
-                    onClick={() => handleAddConfig(type)}
-                    className="flex flex-col items-center gap-2 rounded-lg border border-border/50 p-4 transition-all hover:border-primary/50 hover:bg-primary/5"
-                  >
-                    <Icon className="h-6 w-6 text-primary" />
-                    <span className="text-xs font-medium text-foreground">
-                      {label}
-                    </span>
-                  </button>
-                ))}
+              
+              {/* Standard Charts */}
+              <div className="mb-4">
+                <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Standard</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {chartTypes.filter(c => c.category === 'Standard').map(({ type, icon: Icon, label }) => (
+                    <button
+                      key={type}
+                      onClick={() => handleAddConfig(type)}
+                      className="flex flex-col items-center gap-2 rounded-lg border border-border/50 p-3 transition-all hover:border-primary/50 hover:bg-primary/5"
+                    >
+                      <Icon className="h-5 w-5 text-primary" />
+                      <span className="text-xs font-medium text-foreground">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Metrics */}
+              <div className="mb-4">
+                <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Metrics</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {chartTypes.filter(c => c.category === 'Metrics').map(({ type, icon: Icon, label }) => (
+                    <button
+                      key={type}
+                      onClick={() => handleAddConfig(type)}
+                      className="flex flex-col items-center gap-2 rounded-lg border border-border/50 p-3 transition-all hover:border-primary/50 hover:bg-primary/5"
+                    >
+                      <Icon className="h-5 w-5 text-chart-5" />
+                      <span className="text-xs font-medium text-foreground">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Advanced Charts */}
+              <div className="mb-4">
+                <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Advanced</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {chartTypes.filter(c => c.category === 'Advanced').map(({ type, icon: Icon, label }) => (
+                    <button
+                      key={type}
+                      onClick={() => handleAddConfig(type)}
+                      className="flex flex-col items-center gap-2 rounded-lg border border-border/50 p-3 transition-all hover:border-primary/50 hover:bg-primary/5"
+                    >
+                      <Icon className="h-5 w-5 text-chart-3" />
+                      <span className="text-xs font-medium text-foreground">{label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="mt-6 border-t border-border/50 pt-4">
@@ -222,8 +309,10 @@ export default function AdminPanelPage() {
                   </div>
                 ) : (
                   configs.map((config, index) => {
-                    const columns = getDatasetColumns(config.datasetId);
+                      const columns = getDatasetColumns(config.datasetId);
                     const numericColumns = columns.filter((c) => c.type === 'number');
+                    const isLabelValueChart = ['pie', 'donut', 'treemap', 'funnel', 'horizontalBar', 'radar', 'waterfall'].includes(config.type);
+                    const isKpiChart = ['kpi', 'gauge'].includes(config.type);
                     const ChartIcon = chartTypes.find((c) => c.type === config.type)?.icon || BarChart3;
 
                     return (
@@ -263,15 +352,13 @@ export default function AdminPanelPage() {
                             <Label>Dataset</Label>
                             <Select
                               value={config.datasetId}
-                              onValueChange={(v) =>
-                                updateConfig(index, { datasetId: v })
-                              }
+                              onValueChange={(v) => handleDatasetChange(index, v)}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select dataset" />
                               </SelectTrigger>
                               <SelectContent>
-                                {datasets.map((d) => (
+                                {allDatasets.map((d) => (
                                   <SelectItem key={d.id} value={d.id}>
                                     {d.name}
                                   </SelectItem>
@@ -280,16 +367,16 @@ export default function AdminPanelPage() {
                             </Select>
                           </div>
 
-                          {config.type !== 'kpi' && config.type !== 'table' && (
+                          {!isKpiChart && config.type !== 'table' && (
                             <>
                               <div className="space-y-2">
                                 <Label>
-                                  {config.type === 'pie' ? 'Label Field' : 'X Axis'}
+                                  {isLabelValueChart ? 'Label Field' : 'X Axis'}
                                 </Label>
                                 <Select
-                                  value={config.type === 'pie' ? config.labelField : config.xAxis}
+                                  value={isLabelValueChart ? config.labelField : config.xAxis}
                                   onValueChange={(v) =>
-                                    updateConfig(index, config.type === 'pie' ? { labelField: v } : { xAxis: v })
+                                    updateConfig(index, isLabelValueChart ? { labelField: v } : { xAxis: v })
                                   }
                                 >
                                   <SelectTrigger>
@@ -307,12 +394,12 @@ export default function AdminPanelPage() {
 
                               <div className="space-y-2">
                                 <Label>
-                                  {config.type === 'pie' ? 'Value Field' : 'Y Axis'}
+                                  {isLabelValueChart ? 'Value Field' : 'Y Axis'}
                                 </Label>
                                 <Select
-                                  value={config.type === 'pie' ? config.valueField : config.yAxis}
+                                  value={isLabelValueChart ? config.valueField : config.yAxis}
                                   onValueChange={(v) =>
-                                    updateConfig(index, config.type === 'pie' ? { valueField: v } : { yAxis: v })
+                                    updateConfig(index, isLabelValueChart ? { valueField: v } : { yAxis: v })
                                   }
                                 >
                                   <SelectTrigger>
@@ -330,7 +417,7 @@ export default function AdminPanelPage() {
                             </>
                           )}
 
-                          {config.type === 'kpi' && (
+                          {isKpiChart && (
                             <>
                               <div className="space-y-2">
                                 <Label>Value Field</Label>
@@ -374,27 +461,31 @@ export default function AdminPanelPage() {
                                 </Select>
                               </div>
 
-                              <div className="space-y-2">
-                                <Label>Prefix</Label>
-                                <Input
-                                  value={config.prefix}
-                                  onChange={(e) =>
-                                    updateConfig(index, { prefix: e.target.value })
-                                  }
-                                  placeholder="$"
-                                />
-                              </div>
+                              {config.type === 'kpi' && (
+                                <>
+                                  <div className="space-y-2">
+                                    <Label>Prefix</Label>
+                                    <Input
+                                      value={config.prefix}
+                                      onChange={(e) =>
+                                        updateConfig(index, { prefix: e.target.value })
+                                      }
+                                      placeholder="$"
+                                    />
+                                  </div>
 
-                              <div className="space-y-2">
-                                <Label>Suffix</Label>
-                                <Input
-                                  value={config.suffix}
-                                  onChange={(e) =>
-                                    updateConfig(index, { suffix: e.target.value })
-                                  }
-                                  placeholder="%"
-                                />
-                              </div>
+                                  <div className="space-y-2">
+                                    <Label>Suffix</Label>
+                                    <Input
+                                      value={config.suffix}
+                                      onChange={(e) =>
+                                        updateConfig(index, { suffix: e.target.value })
+                                      }
+                                      placeholder="%"
+                                    />
+                                  </div>
+                                </>
+                              )}
                             </>
                           )}
                         </div>

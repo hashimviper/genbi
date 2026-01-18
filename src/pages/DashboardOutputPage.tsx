@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Download, Share2, Maximize2 } from 'lucide-react';
+import { ArrowLeft, Download, Share2, Maximize2, Minimize2 } from 'lucide-react';
 import { useDashboardStore } from '@/stores/dashboardStore';
 import { ChartCard } from '@/components/charts/ChartCard';
 import { BarChartWidget } from '@/components/charts/BarChartWidget';
@@ -9,12 +9,27 @@ import { PieChartWidget } from '@/components/charts/PieChartWidget';
 import { AreaChartWidget } from '@/components/charts/AreaChartWidget';
 import { KPICard } from '@/components/charts/KPICard';
 import { DataTableWidget } from '@/components/charts/DataTableWidget';
+import { GaugeChartWidget } from '@/components/charts/GaugeChartWidget';
+import { RadarChartWidget } from '@/components/charts/RadarChartWidget';
+import { TreemapWidget } from '@/components/charts/TreemapWidget';
+import { FunnelChartWidget } from '@/components/charts/FunnelChartWidget';
+import { ComboChartWidget } from '@/components/charts/ComboChartWidget';
+import { DonutChartWidget } from '@/components/charts/DonutChartWidget';
+import { HorizontalBarWidget } from '@/components/charts/HorizontalBarWidget';
+import { WaterfallChartWidget } from '@/components/charts/WaterfallChartWidget';
+import { ScatterPlotWidget } from '@/components/charts/ScatterPlotWidget';
+import { ExportMenu } from '@/components/dashboard/ExportMenu';
 import { Button } from '@/components/ui/button';
 import { isChartConfig, isKPIConfig, DashboardWidget } from '@/types/dashboard';
+import { sampleDatasets } from '@/data/sampleDatasets';
 
 export default function DashboardOutputPage() {
   const { id } = useParams<{ id: string }>();
   const { dashboards, datasets, currentDashboard, setCurrentDashboard } = useDashboardStore();
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  
+  // Combine user datasets with sample datasets
+  const allDatasets = [...datasets, ...sampleDatasets];
 
   useEffect(() => {
     if (id) {
@@ -23,12 +38,39 @@ export default function DashboardOutputPage() {
     }
   }, [id, dashboards, setCurrentDashboard]);
 
+  // Handle fullscreen toggle
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+      }).catch(() => {
+        // Fallback for browsers that don't support fullscreen
+        setIsFullscreen(true);
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+      }).catch(() => {
+        setIsFullscreen(false);
+      });
+    }
+  };
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
   const getDatasetData = (datasetId: string) => {
-    return datasets.find((d) => d.id === datasetId)?.data || [];
+    return allDatasets.find((d) => d.id === datasetId)?.data || [];
   };
 
   const getDatasetColumns = (datasetId: string) => {
-    return datasets.find((d) => d.id === datasetId)?.columns.map((c) => c.name) || [];
+    return allDatasets.find((d) => d.id === datasetId)?.columns.map((c) => c.name) || [];
   };
 
   const calculateKPIValue = (datasetId: string, field: string, aggregation: string) => {
@@ -77,6 +119,24 @@ export default function DashboardOutputPage() {
           return <AreaChartWidget data={data} xAxis={config.xAxis || ''} yAxis={config.yAxis || ''} />;
         case 'table':
           return <DataTableWidget data={data} columns={getDatasetColumns(config.datasetId)} />;
+        case 'gauge':
+          return <GaugeChartWidget value={calculateKPIValue(config.datasetId, config.valueField || '', 'avg')} />;
+        case 'radar':
+          return <RadarChartWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
+        case 'treemap':
+          return <TreemapWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
+        case 'funnel':
+          return <FunnelChartWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
+        case 'combo':
+          return <ComboChartWidget data={data} xAxis={config.xAxis || ''} barField={config.yAxis || ''} lineField={config.valueField || config.yAxis || ''} />;
+        case 'donut':
+          return <DonutChartWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
+        case 'horizontalBar':
+          return <HorizontalBarWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
+        case 'waterfall':
+          return <WaterfallChartWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
+        case 'scatter':
+          return <ScatterPlotWidget data={data} xAxis={config.xAxis || ''} yAxis={config.yAxis || ''} />;
         default:
           return <div className="text-muted-foreground">Unknown widget type</div>;
       }
@@ -118,18 +178,33 @@ export default function DashboardOutputPage() {
             <Button variant="outline" size="sm" className="gap-2">
               <Share2 className="h-4 w-4" /> Share
             </Button>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Download className="h-4 w-4" /> Export
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Maximize2 className="h-4 w-4" /> Fullscreen
+            <ExportMenu 
+              elementId="dashboard-output-canvas" 
+              dashboardName={currentDashboard.name} 
+              dashboardData={currentDashboard} 
+            />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2"
+              onClick={toggleFullscreen}
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize2 className="h-4 w-4" /> Exit Fullscreen
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="h-4 w-4" /> Fullscreen
+                </>
+              )}
             </Button>
           </div>
         </div>
       </header>
 
       {/* Dashboard Content */}
-      <main className="p-6">
+      <main id="dashboard-output-canvas" className="p-6">
         {currentDashboard.widgets.length === 0 ? (
           <div className="flex h-[60vh] flex-col items-center justify-center text-center">
             <p className="text-lg font-medium text-muted-foreground">No widgets in this dashboard</p>

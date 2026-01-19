@@ -12,7 +12,7 @@ import {
   Cpu
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { VyzionLogo } from '@/components/VyzionLogo';
+import { NexaBILogo } from '@/components/NexaBILogo';
 
 const features = [
   { 
@@ -72,9 +72,9 @@ export default function Index() {
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shadow-lg group-hover:shadow-xl transition-shadow">
-              <VyzionLogo size={40} />
+              <NexaBILogo size={40} />
             </div>
-            <span className="text-xl font-bold text-foreground">Vyzion</span>
+            <span className="text-xl font-bold text-foreground">NexaBI</span>
           </Link>
           <div className="flex items-center gap-6">
             <Link to="/templates" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors link-underline">
@@ -104,7 +104,7 @@ export default function Index() {
           </h1>
           <p className="mx-auto mt-8 max-w-2xl text-lg md:text-xl text-muted-foreground animate-fade-in-up" style={{ animationDelay: '200ms' }}>
             Create stunning dashboards in minutes. Import your data, pick a template, 
-            and watch Vyzion generate beautiful visualizations—all processed locally.
+            and watch NexaBI generate beautiful visualizations—all processed locally.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-4 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
             <Link to="/templates">
@@ -211,9 +211,9 @@ export default function Index() {
         <div className="mx-auto flex max-w-6xl flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg overflow-hidden">
-              <VyzionLogo size={36} />
+              <NexaBILogo size={36} />
             </div>
-            <span className="font-bold text-foreground">Vyzion</span>
+            <span className="font-bold text-foreground">NexaBI</span>
           </div>
           <p className="text-sm text-muted-foreground text-center">
             All data processed locally. Your data never leaves your browser.

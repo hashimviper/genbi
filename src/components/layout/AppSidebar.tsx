@@ -51,7 +51,7 @@ export function AppSidebar() {
           <BarChart3 className="h-5 w-5 text-primary-foreground" />
         </div>
         {!collapsed && (
-          <span className="font-bold text-lg text-foreground">GenBI</span>
+          <span className="font-bold text-lg text-foreground">Vyzion</span>
         )}
       </Link>
 

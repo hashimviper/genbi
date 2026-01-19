@@ -74,7 +74,7 @@ export default function Index() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-bg shadow-lg group-hover:shadow-xl transition-shadow">
               <BarChart3 className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-foreground">GenBI</span>
+            <span className="text-xl font-bold text-foreground">Vyzion</span>
           </Link>
           <div className="flex items-center gap-6">
             <Link to="/templates" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors link-underline">
@@ -104,7 +104,7 @@ export default function Index() {
           </h1>
           <p className="mx-auto mt-8 max-w-2xl text-lg md:text-xl text-muted-foreground animate-fade-in-up" style={{ animationDelay: '200ms' }}>
             Create stunning dashboards in minutes. Import your data, pick a template, 
-            and watch GenBI generate beautiful visualizations—all processed locally.
+            and watch Vyzion generate beautiful visualizations—all processed locally.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-4 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
             <Link to="/templates">
@@ -213,7 +213,7 @@ export default function Index() {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-bg">
               <BarChart3 className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-bold text-foreground">GenBI</span>
+            <span className="font-bold text-foreground">Vyzion</span>
           </div>
           <p className="text-sm text-muted-foreground text-center">
             All data processed locally. Your data never leaves your browser.

@@ -8,12 +8,12 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
-  BarChart3,
   FileText,
   Home,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { VyzionLogo } from '@/components/VyzionLogo';
 
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -47,8 +47,8 @@ export function AppSidebar() {
         to="/" 
         className="flex h-16 items-center gap-3 border-b border-border px-4 hover:bg-sidebar-accent/50 transition-all group"
       >
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-bg shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all">
-          <BarChart3 className="h-5 w-5 text-primary-foreground" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all">
+          <VyzionLogo size={40} />
         </div>
         {!collapsed && (
           <span className="font-bold text-lg text-foreground">Vyzion</span>

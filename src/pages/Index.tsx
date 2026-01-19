@@ -5,7 +5,6 @@ import {
   Settings, 
   ArrowRight, 
   Sparkles, 
-  BarChart3,
   FileText,
   Zap,
   TrendingUp,
@@ -13,6 +12,7 @@ import {
   Cpu
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { VyzionLogo } from '@/components/VyzionLogo';
 
 const features = [
   { 
@@ -71,8 +71,8 @@ export default function Index() {
       <nav className="border-b border-border/50 bg-background/80 backdrop-blur-lg px-6 py-4 sticky top-0 z-50">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-bg shadow-lg group-hover:shadow-xl transition-shadow">
-              <BarChart3 className="h-5 w-5 text-primary-foreground" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shadow-lg group-hover:shadow-xl transition-shadow">
+              <VyzionLogo size={40} />
             </div>
             <span className="text-xl font-bold text-foreground">Vyzion</span>
           </Link>
@@ -210,8 +210,8 @@ export default function Index() {
       <footer className="mt-auto border-t border-border/50 bg-card/50 px-6 py-10">
         <div className="mx-auto flex max-w-6xl flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-bg">
-              <BarChart3 className="h-4 w-4 text-primary-foreground" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg overflow-hidden">
+              <VyzionLogo size={36} />
             </div>
             <span className="font-bold text-foreground">Vyzion</span>
           </div>

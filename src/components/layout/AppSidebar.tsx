@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { AnalytixBILogo } from '@/components/AnalytixBILogo';
+import { VisoryBILogo } from '@/components/VisoryBILogo';
 
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -48,10 +48,10 @@ export function AppSidebar() {
         className="flex h-16 items-center gap-3 border-b border-border px-4 hover:bg-sidebar-accent/50 transition-all group"
       >
         <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all">
-          <AnalytixBILogo size={40} />
+          <VisoryBILogo size={40} />
         </div>
         {!collapsed && (
-          <span className="font-bold text-lg text-foreground">AnalytixBI</span>
+          <span className="font-bold text-lg text-foreground">VisoryBI</span>
         )}
       </Link>
 

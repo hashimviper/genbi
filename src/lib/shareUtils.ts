@@ -1,6 +1,52 @@
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
+function getThemeBackgroundColor(): string {
+  const bg = getComputedStyle(document.documentElement)
+    .getPropertyValue('--background')
+    .trim();
+  return bg ? `hsl(${bg})` : '#ffffff';
+}
+
+function getOpenDialogElement(): HTMLElement | null {
+  const dialogs = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"][data-state="open"], [role="dialog"]'))
+    .filter((el) => {
+      const style = window.getComputedStyle(el);
+      return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+    });
+  if (dialogs.length === 0) return null;
+  return dialogs[dialogs.length - 1] ?? null;
+}
+
+async function captureElementToCanvas(element: HTMLElement): Promise<HTMLCanvasElement> {
+  const previous = {
+    overflow: element.style.overflow,
+    overflowX: element.style.overflowX,
+    overflowY: element.style.overflowY,
+  };
+
+  element.style.overflow = 'visible';
+  element.style.overflowX = 'visible';
+  element.style.overflowY = 'visible';
+
+  try {
+    return await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: getThemeBackgroundColor(),
+      width: Math.max(element.scrollWidth, element.clientWidth),
+      height: Math.max(element.scrollHeight, element.clientHeight),
+      windowWidth: document.documentElement.clientWidth,
+      windowHeight: document.documentElement.clientHeight,
+    });
+  } finally {
+    element.style.overflow = previous.overflow;
+    element.style.overflowX = previous.overflowX;
+    element.style.overflowY = previous.overflowY;
+  }
+}
+
 export interface ShareOptions {
   format: 'png' | 'pdf';
   elementId: string;
@@ -9,18 +55,13 @@ export interface ShareOptions {
 
 export async function shareElement(options: ShareOptions): Promise<void> {
   const { format, elementId, filename } = options;
-  const element = document.getElementById(elementId);
+  const element = getOpenDialogElement() ?? document.getElementById(elementId);
   
   if (!element) {
     throw new Error('Element not found for sharing');
   }
 
-  const canvas = await html2canvas(element, {
-    scale: 2,
-    useCORS: true,
-    logging: false,
-    backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--background').trim() || '#ffffff',
-  });
+  const canvas = await captureElementToCanvas(element);
 
   if (format === 'png') {
     await sharePNG(canvas, filename);
@@ -107,23 +148,13 @@ async function sharePDF(canvas: HTMLCanvasElement, filename: string): Promise<vo
 }
 
 export async function shareChartAsPNG(chartElement: HTMLElement, title: string): Promise<void> {
-  const canvas = await html2canvas(chartElement, {
-    scale: 2,
-    useCORS: true,
-    logging: false,
-    backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--background').trim() || '#ffffff',
-  });
+  const canvas = await captureElementToCanvas(chartElement);
 
   await sharePNG(canvas, title.replace(/[^a-z0-9]/gi, '-').toLowerCase());
 }
 
 export async function shareChartAsPDF(chartElement: HTMLElement, title: string): Promise<void> {
-  const canvas = await html2canvas(chartElement, {
-    scale: 2,
-    useCORS: true,
-    logging: false,
-    backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--background').trim() || '#ffffff',
-  });
+  const canvas = await captureElementToCanvas(chartElement);
 
   await sharePDF(canvas, title.replace(/[^a-z0-9]/gi, '-').toLowerCase());
 }

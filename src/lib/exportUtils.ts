@@ -1,5 +1,5 @@
 import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 
 export async function exportToPNG(elementId: string, filename: string = 'dashboard'): Promise<void> {
   const element = document.getElementById(elementId);

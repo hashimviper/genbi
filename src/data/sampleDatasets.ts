@@ -387,10 +387,14 @@ export const templateDatasetMap: Record<string, string> = {
   'weather-analytics': 'weather-analytics-dataset',
   'ecommerce-analytics': 'ecommerce-analytics-dataset',
   'project-management': 'project-management-dataset',
+  'blank-canvas': '',
+  'finance-dashboard': 'finance-expenses-dataset',
+  'general-report': 'executive-kpi-dataset',
 };
 
 export const getDatasetForTemplate = (templateId: string): DataSet | undefined => {
   const datasetId = templateDatasetMap[templateId];
+  if (!datasetId) return undefined;
   return sampleDatasets.find(ds => ds.id === datasetId);
 };
 

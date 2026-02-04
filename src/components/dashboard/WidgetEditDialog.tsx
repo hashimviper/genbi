@@ -109,7 +109,40 @@ export function WidgetEditDialog({
 
               {isChartConfig(editedWidget.config) && editedWidget.type !== 'table' && (
                 <>
-                  {['pie', 'donut', 'treemap', 'funnel', 'horizontalBar'].includes(editedWidget.type) ? (
+                  {/* Chart type selector */}
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label>Chart Type</Label>
+                    <Select
+                      value={editedWidget.type}
+                      onValueChange={(v) => {
+                        setEditedWidget({
+                          ...editedWidget,
+                          type: v as any,
+                          config: { ...editedWidget.config, type: v as any },
+                        });
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bar">Bar Chart</SelectItem>
+                        <SelectItem value="line">Line Chart</SelectItem>
+                        <SelectItem value="area">Area Chart</SelectItem>
+                        <SelectItem value="pie">Pie Chart</SelectItem>
+                        <SelectItem value="donut">Donut Chart</SelectItem>
+                        <SelectItem value="horizontalBar">Horizontal Bar</SelectItem>
+                        <SelectItem value="scatter">Scatter Plot</SelectItem>
+                        <SelectItem value="radar">Radar Chart</SelectItem>
+                        <SelectItem value="treemap">Treemap</SelectItem>
+                        <SelectItem value="funnel">Funnel Chart</SelectItem>
+                        <SelectItem value="waterfall">Waterfall</SelectItem>
+                        <SelectItem value="gauge">Gauge</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {['pie', 'donut', 'treemap', 'funnel', 'horizontalBar', 'radar', 'waterfall'].includes(editedWidget.type) ? (
                     <>
                       <div className="space-y-2">
                         <Label>Label Field</Label>
@@ -129,6 +162,27 @@ export function WidgetEditDialog({
                           </SelectContent>
                         </Select>
                       </div>
+                      <div className="space-y-2">
+                        <Label>Value Field</Label>
+                        <Select
+                          value={editedWidget.config.valueField || ''}
+                          onValueChange={(v) => updateConfig({ valueField: v })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select field" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {numericColumns.map((c) => (
+                              <SelectItem key={c.name} value={c.name}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  ) : editedWidget.type === 'gauge' ? (
+                    <>
                       <div className="space-y-2">
                         <Label>Value Field</Label>
                         <Select

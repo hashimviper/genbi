@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Database, RefreshCw, AlertCircle, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Database, RefreshCw, AlertCircle, Check, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,7 +19,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { DataSet, DashboardWidget, DataColumn } from '@/types/dashboard';
-import { remapWidgetFields, analyzeDatasetFields } from '@/lib/fieldMapping';
+import { remapWidgetFields, analyzeDatasetFields, validateWidgetConfig } from '@/lib/fieldMapping';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface DatasetSwitcherProps {
@@ -40,7 +40,12 @@ export function DatasetSwitcher({
   onSwitch,
 }: DatasetSwitcherProps) {
   const [selectedDatasetId, setSelectedDatasetId] = useState<string>(currentDataset?.id || '');
-  const [preview, setPreview] = useState<{ widget: DashboardWidget; newConfig: Record<string, unknown> }[]>([]);
+  const [preview, setPreview] = useState<{ 
+    widget: DashboardWidget; 
+    newConfig: Record<string, unknown>;
+    isValid?: boolean;
+    missingFields?: string[];
+  }[]>([]);
 
   const selectedDataset = availableDatasets.find(d => d.id === selectedDatasetId);
 
@@ -53,7 +58,7 @@ export function DatasetSwitcher({
       return;
     }
 
-    // Preview field remapping
+    // Preview field remapping with validation
     const previewMappings = widgets.map(widget => {
       const configAsRecord = JSON.parse(JSON.stringify(widget.config)) as Record<string, unknown>;
       const newConfig = remapWidgetFields(
@@ -62,7 +67,16 @@ export function DatasetSwitcher({
         newDataset.columns,
         newDataset.data
       );
-      return { widget, newConfig };
+      
+      // Validate the new configuration
+      const validation = validateWidgetConfig(newConfig, widget.type, newDataset.columns);
+      
+      return { 
+        widget, 
+        newConfig,
+        isValid: validation.isValid,
+        missingFields: validation.missingFields 
+      };
     });
 
     setPreview(previewMappings);
@@ -168,13 +182,19 @@ export function DatasetSwitcher({
                 <label className="text-sm font-medium">Field Mapping Preview</label>
                 <ScrollArea className="h-48 rounded-md border p-3">
                   <div className="space-y-3">
-                    {preview.map(({ widget, newConfig }) => {
+                    {preview.map(({ widget, newConfig, isValid, missingFields }) => {
                       const changes = renderFieldChange(widget, newConfig);
                       return (
-                        <div key={widget.id} className="rounded border p-2">
+                        <div key={widget.id} className={`rounded border p-2 ${!isValid ? 'border-amber-500/50 bg-amber-500/5' : ''}`}>
                           <div className="flex items-center gap-2 mb-2">
                             <span className="font-medium text-sm">{widget.config.title}</span>
                             <Badge variant="secondary" className="text-xs">{widget.type}</Badge>
+                            {!isValid && (
+                              <Badge variant="outline" className="text-xs text-amber-600 border-amber-500/50">
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                Needs Review
+                              </Badge>
+                            )}
                           </div>
                           {changes.length > 0 ? (
                             <div className="space-y-1">
@@ -189,7 +209,7 @@ export function DatasetSwitcher({
                             </div>
                           ) : (
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Check className="h-3 w-3 text-green-500" />
+                              <Check className="h-3 w-3 text-emerald-500" />
                               No changes needed
                             </div>
                           )}

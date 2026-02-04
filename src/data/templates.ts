@@ -1,6 +1,8 @@
 import { DashboardTemplate, DataColumn } from '@/types/dashboard';
+import { advancedTemplates } from './advancedTemplates';
 
-export const dashboardTemplates: DashboardTemplate[] = [
+// Base dashboard templates array
+const baseDashboardTemplates: DashboardTemplate[] = [
   // HR Analysis - Fully furnished with sample data
   {
     id: 'hr-analysis',
@@ -1886,4 +1888,10 @@ export const dashboardTemplates: DashboardTemplate[] = [
       },
     ],
   },
+];
+
+// Export combined templates (base + advanced)
+export const dashboardTemplates: DashboardTemplate[] = [
+  ...advancedTemplates,
+  ...baseDashboardTemplates,
 ];

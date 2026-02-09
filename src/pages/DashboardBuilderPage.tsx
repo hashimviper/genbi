@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Save, Undo, Redo, GripVertical, Database, RotateCcw, Maximize2, Minimize2 } from 'lucide-react';
+import { Plus, Save, Undo, Redo, GripVertical, Database, RotateCcw, Maximize2, Minimize2, ChevronRight, ChevronLeft, Home } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useDashboardStore } from '@/stores/dashboardStore';
 import { useUndoStore } from '@/stores/undoStore';
+import { useDrillStore } from '@/stores/drillStore';
 import { ChartCard } from '@/components/charts/ChartCard';
 import { BarChartWidget } from '@/components/charts/BarChartWidget';
 import { LineChartWidget } from '@/components/charts/LineChartWidget';
@@ -29,10 +30,12 @@ import { ShareMenu } from '@/components/dashboard/ShareMenu';
 import { GlobalFilterBar, FilterConfig, applyFilters } from '@/components/dashboard/GlobalFilterBar';
 import { DatasetSwitcher } from '@/components/dashboard/DatasetSwitcher';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { isChartConfig, isKPIConfig, DashboardWidget, Dashboard } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
 import { sampleDatasets } from '@/data/sampleDatasets';
+import { deriveHierarchies, applyDrillFilters, getCurrentDrillField, canDrillDown, canDrillUp, aggregateForDrillLevel } from '@/lib/drillDown';
 
 export default function DashboardBuilderPage() {
   const [searchParams] = useSearchParams();
@@ -48,6 +51,9 @@ export default function DashboardBuilderPage() {
   
   // Combine user datasets with sample datasets
   const allDatasets = [...datasets, ...sampleDatasets];
+  
+  // Drill-down store
+  const { drillStates, crossFilters, initDrill, drillDown, drillUp, resetDrill, clearAllCrossFilters } = useDrillStore();
 
   useEffect(() => {
     if (dashboardId) {
@@ -55,6 +61,18 @@ export default function DashboardBuilderPage() {
       if (dashboard) {
         setCurrentDashboard(dashboard);
         clearUndoHistory();
+        
+        // Initialize drill hierarchies for each widget
+        dashboard.widgets.forEach(widget => {
+          const datasetId = widget.config.datasetId;
+          const columns = allDatasets.find(d => d.id === datasetId)?.columns || [];
+          if (columns.length > 0) {
+            const hierarchies = deriveHierarchies(columns);
+            if (hierarchies.length > 0 && !drillStates[widget.id]) {
+              initDrill(widget.id, hierarchies[0]);
+            }
+          }
+        });
       }
     }
   }, [dashboardId, dashboards, setCurrentDashboard, clearUndoHistory]);
@@ -114,10 +132,29 @@ export default function DashboardBuilderPage() {
     }
   }, [currentDashboard, canRedo, redo, updateDashboard]);
 
-  const getDatasetData = (datasetId: string) => {
+  const getDatasetData = (datasetId: string, widgetId?: string) => {
     const dataset = allDatasets.find((d) => d.id === datasetId);
-    const rawData = dataset?.data || [];
-    return applyFilters(rawData, filters);
+    let rawData = dataset?.data || [];
+    
+    // Apply global filters
+    rawData = applyFilters(rawData, filters);
+    
+    // Apply cross-filters from drill actions
+    if (Object.keys(crossFilters).length > 0) {
+      rawData = rawData.filter(row => {
+        return Object.entries(crossFilters).every(([field, value]) => {
+          if (row[field] === undefined) return true; // Field doesn't exist in this dataset
+          return row[field] === value;
+        });
+      });
+    }
+    
+    // Apply widget-specific drill filters
+    if (widgetId && drillStates[widgetId]) {
+      rawData = applyDrillFilters(rawData, drillStates[widgetId]);
+    }
+    
+    return rawData;
   };
 
   const getRawDatasetData = (datasetId: string) => {
@@ -134,8 +171,30 @@ export default function DashboardBuilderPage() {
     return allDatasets.find(d => d.id === datasetId) || null;
   };
 
-  const calculateKPIValue = (datasetId: string, field: string, aggregation: string) => {
-    const data = getDatasetData(datasetId);
+  // Handle drill-down click on chart elements
+  const handleDrillClick = useCallback((widgetId: string, value: unknown) => {
+    const drillState = drillStates[widgetId];
+    if (!drillState || !canDrillDown(drillState)) {
+      toast({ title: 'Drill-down unavailable', description: 'No deeper hierarchy level available.' });
+      return;
+    }
+    drillDown(widgetId, value);
+    toast({ title: 'Drilled down', description: `Showing details for: ${String(value)}` });
+  }, [drillStates, drillDown]);
+
+  const handleDrillUp = useCallback((widgetId: string) => {
+    drillUp(widgetId);
+    toast({ title: 'Drilled up', description: 'Returned to previous level.' });
+  }, [drillUp]);
+
+  const handleDrillReset = useCallback((widgetId: string) => {
+    resetDrill(widgetId);
+    clearAllCrossFilters();
+    toast({ title: 'Drill reset', description: 'Returned to top level.' });
+  }, [resetDrill, clearAllCrossFilters]);
+
+  const calculateKPIValue = (datasetId: string, field: string, aggregation: string, widgetId?: string) => {
+    const data = getDatasetData(datasetId, widgetId);
     if (!field || !data.length) return 0;
     const values = data.map((row) => Number(row[field]) || 0);
     if (values.length === 0) return 0;
@@ -189,7 +248,11 @@ export default function DashboardBuilderPage() {
   const renderWidget = (widget: DashboardWidget) => {
     const config = widget.config;
     const datasetId = config.datasetId;
-    const data = getDatasetData(datasetId);
+    const data = getDatasetData(datasetId, widget.id);
+    
+    // Get drill state for this widget to potentially override axis fields
+    const drillState = drillStates[widget.id];
+    const currentDrillField = drillState ? getCurrentDrillField(drillState) : null;
 
     // Validate that data exists
     if (!data || data.length === 0) {
@@ -197,38 +260,58 @@ export default function DashboardBuilderPage() {
     }
 
     if (isKPIConfig(config)) {
-      const value = calculateKPIValue(datasetId, config.valueField, config.aggregation);
+      const value = calculateKPIValue(datasetId, config.valueField, config.aggregation, widget.id);
       return <KPICard title={config.title} value={value} prefix={config.prefix} suffix={config.suffix} trend="up" trendValue="+12.5%" />;
     }
 
     if (isChartConfig(config)) {
+      // Use drill field as xAxis/labelField override if drilling
+      const effectiveXAxis = currentDrillField || config.xAxis || '';
+      const effectiveLabelField = currentDrillField || config.labelField || '';
+      
+      // For drilled data, aggregate by the current drill field
+      let chartData = data;
+      if (currentDrillField && drillState && drillState.currentLevel > 0) {
+        const numericCols = getDatasetColumns(datasetId).filter(c => c.type === 'number').map(c => c.name);
+        chartData = aggregateForDrillLevel(data, currentDrillField, numericCols);
+      }
+      
+      // Create drill-enabled click handler
+      const onChartClick = (clickData: unknown) => {
+        if (clickData && typeof clickData === 'object') {
+          const payload = clickData as Record<string, unknown>;
+          const clickedValue = payload.name || payload[effectiveXAxis] || payload[effectiveLabelField];
+          if (clickedValue) {
+            handleDrillClick(widget.id, clickedValue);
+          }
+        }
+      };
+
       switch (widget.type) {
-        case 'bar': return <BarChartWidget data={data} xAxis={config.xAxis || ''} yAxis={config.yAxis || ''} />;
-        case 'line': return <LineChartWidget data={data} xAxis={config.xAxis || ''} yAxis={config.yAxis || ''} />;
-        case 'pie': return <PieChartWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
-        case 'area': return <AreaChartWidget data={data} xAxis={config.xAxis || ''} yAxis={config.yAxis || ''} />;
-        case 'table': return <DataTableWidget data={data} columns={getDatasetColumns(datasetId).map(c => c.name)} />;
+        case 'bar': return <BarChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} />;
+        case 'line': return <LineChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} />;
+        case 'pie': return <PieChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
+        case 'area': return <AreaChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} />;
+        case 'table': return <DataTableWidget data={chartData} columns={getDatasetColumns(datasetId).map(c => c.name)} />;
         case 'gauge': {
-          const gaugeValue = calculateKPIValue(datasetId, config.valueField || '', 'avg');
+          const gaugeValue = calculateKPIValue(datasetId, config.valueField || '', 'avg', widget.id);
           return <GaugeChartWidget value={gaugeValue} title={config.title} />;
         }
-        case 'radar': return <RadarChartWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
-        case 'treemap': return <TreemapWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
-        case 'funnel': return <FunnelChartWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
-        case 'combo': return <ComboChartWidget data={data} xAxis={config.xAxis || ''} barField={config.yAxis || ''} lineField={config.valueField || config.yAxis || ''} />;
-        case 'donut': return <DonutChartWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
-        case 'horizontalBar': return <HorizontalBarWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
-        case 'waterfall': return <WaterfallChartWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
-        case 'scatter': return <ScatterPlotWidget data={data} xAxis={config.xAxis || ''} yAxis={config.yAxis || ''} />;
+        case 'radar': return <RadarChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
+        case 'treemap': return <TreemapWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
+        case 'funnel': return <FunnelChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
+        case 'combo': return <ComboChartWidget data={chartData} xAxis={effectiveXAxis} barField={config.yAxis || ''} lineField={config.valueField || config.yAxis || ''} />;
+        case 'donut': return <DonutChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
+        case 'horizontalBar': return <HorizontalBarWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
+        case 'waterfall': return <WaterfallChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
+        case 'scatter': return <ScatterPlotWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} />;
         case 'stackedBar': {
-          // StackedBar requires stackFields array - use yAxis field as the single stack field
           const stackFields = config.yAxis ? [config.yAxis] : [];
-          return <StackedBarChartWidget data={data} xAxis={config.xAxis || ''} stackFields={stackFields} />;
+          return <StackedBarChartWidget data={chartData} xAxis={effectiveXAxis} stackFields={stackFields} />;
         }
         case 'sparkline': {
-          // Sparkline needs title and value
-          const sparkValue = calculateKPIValue(datasetId, config.valueField || '', 'sum');
-          return <SparklineWidget data={data} valueField={config.valueField || ''} title={config.title} value={sparkValue} />;
+          const sparkValue = calculateKPIValue(datasetId, config.valueField || '', 'sum', widget.id);
+          return <SparklineWidget data={chartData} valueField={config.valueField || ''} title={config.title} value={sparkValue} />;
         }
         default: return <div className="text-muted-foreground">Unknown widget type: {widget.type}</div>;
       }
@@ -355,7 +438,12 @@ export default function DashboardBuilderPage() {
                     <div ref={provided.innerRef} {...provided.droppableProps} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                       {chartWidgets.map((widget, index) => (
                         <Draggable key={widget.id} draggableId={widget.id} index={kpiWidgets.length + index}>
-                          {(provided, snapshot) => (
+                          {(provided, snapshot) => {
+                            const widgetDrillState = drillStates[widget.id];
+                            const drillBreadcrumb = widgetDrillState?.breadcrumb || [];
+                            const canDrillUpWidget = widgetDrillState ? canDrillUp(widgetDrillState) : false;
+                            const canDrillDownWidget = widgetDrillState ? canDrillDown(widgetDrillState) : false;
+                            return (
                             <div ref={provided.innerRef} {...provided.draggableProps} className={cn('relative', snapshot.isDragging && 'z-50')}>
                               <ChartCard
                                 title={widget.config.title}
@@ -363,6 +451,11 @@ export default function DashboardBuilderPage() {
                                 isDragging={snapshot.isDragging}
                                 onDelete={() => handleDeleteWidget(widget.id)}
                                 onConfigure={() => setEditingWidget(widget)}
+                                drillBreadcrumb={drillBreadcrumb}
+                                canDrillUp={canDrillUpWidget}
+                                canDrillDown={canDrillDownWidget}
+                                onDrillUp={() => handleDrillUp(widget.id)}
+                                onDrillReset={() => handleDrillReset(widget.id)}
                               >
                                 <div {...provided.dragHandleProps} className="absolute left-2 top-2 z-10 opacity-0 group-hover:opacity-100 cursor-grab">
                                   <GripVertical className="h-5 w-5 text-muted-foreground" />
@@ -370,7 +463,8 @@ export default function DashboardBuilderPage() {
                                 {renderWidget(widget)}
                               </ChartCard>
                             </div>
-                          )}
+                            );
+                          }}
                         </Draggable>
                       ))}
                       {provided.placeholder}

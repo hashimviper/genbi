@@ -138,6 +138,9 @@ export function WidgetEditDialog({
                         <SelectItem value="funnel">Funnel Chart</SelectItem>
                         <SelectItem value="waterfall">Waterfall</SelectItem>
                         <SelectItem value="gauge">Gauge</SelectItem>
+                        <SelectItem value="combo">Combo Chart</SelectItem>
+                        <SelectItem value="stackedBar">Stacked Bar</SelectItem>
+                        <SelectItem value="sparkline">Sparkline</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

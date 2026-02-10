@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Share2, FileImage, FileText, Copy, Check } from 'lucide-react';
+import { Share2, FileImage, FileText, Copy, Check, Link as LinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,9 +15,10 @@ import { toast } from '@/hooks/use-toast';
 interface ShareMenuProps {
   elementId: string;
   dashboardName: string;
+  dashboardId?: string;
 }
 
-export function ShareMenu({ elementId, dashboardName }: ShareMenuProps) {
+export function ShareMenu({ elementId, dashboardName, dashboardId }: ShareMenuProps) {
   const [copied, setCopied] = useState(false);
 
   const handleSharePNG = async () => {
@@ -60,13 +61,21 @@ export function ShareMenu({ elementId, dashboardName }: ShareMenuProps) {
     }
   };
 
-  const handleCopyLink = async () => {
+  const handleCopyViewLink = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      // Generate a /view/ link that preserves dashboard state
+      let shareUrl = window.location.href;
+      
+      if (dashboardId) {
+        const baseUrl = window.location.origin;
+        shareUrl = `${baseUrl}/view/${dashboardId}`;
+      }
+      
+      await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       toast({
         title: 'Link copied',
-        description: 'Dashboard link copied to clipboard.',
+        description: 'Dashboard view link copied to clipboard.',
       });
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
@@ -98,13 +107,13 @@ export function ShareMenu({ elementId, dashboardName }: ShareMenuProps) {
           Share as PDF
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleCopyLink}>
+        <DropdownMenuItem onClick={handleCopyViewLink}>
           {copied ? (
             <Check className="mr-2 h-4 w-4 text-primary" />
           ) : (
-            <Copy className="mr-2 h-4 w-4" />
+            <LinkIcon className="mr-2 h-4 w-4" />
           )}
-          Copy Link
+          Copy View Link
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -48,6 +48,7 @@ const chartTypes: { type: ChartType; icon: React.ComponentType<{ className?: str
   // KPI & Metrics
   { type: 'kpi', icon: Hash, label: 'KPI Card', category: 'Metrics' },
   { type: 'gauge', icon: Gauge, label: 'Gauge', category: 'Metrics' },
+  { type: 'sparkline', icon: Activity, label: 'Sparkline', category: 'Metrics' },
   // Advanced Charts
   { type: 'donut', icon: Circle, label: 'Donut Chart', category: 'Advanced' },
   { type: 'horizontalBar', icon: ArrowDownUp, label: 'Horizontal Bar', category: 'Advanced' },
@@ -56,6 +57,7 @@ const chartTypes: { type: ChartType; icon: React.ComponentType<{ className?: str
   { type: 'radar', icon: Target, label: 'Radar Chart', category: 'Advanced' },
   { type: 'combo', icon: TrendingUp, label: 'Combo Chart', category: 'Advanced' },
   { type: 'waterfall', icon: Activity, label: 'Waterfall', category: 'Advanced' },
+  { type: 'stackedBar', icon: BarChart3, label: 'Stacked Bar', category: 'Advanced' },
 ];
 
 const aggregations = [
@@ -153,7 +155,7 @@ export default function AdminPanelPage() {
     }
 
     configs.forEach((config, index) => {
-      const isKpiType = config.type === 'kpi' || config.type === 'gauge';
+      const isKpiType = config.type === 'kpi' || config.type === 'gauge' || config.type === 'sparkline';
       const isSmallWidget = isKpiType;
       
       const widget: Omit<DashboardWidget, 'id'> = {
@@ -312,7 +314,7 @@ export default function AdminPanelPage() {
                       const columns = getDatasetColumns(config.datasetId);
                     const numericColumns = columns.filter((c) => c.type === 'number');
                     const isLabelValueChart = ['pie', 'donut', 'treemap', 'funnel', 'horizontalBar', 'radar', 'waterfall'].includes(config.type);
-                    const isKpiChart = ['kpi', 'gauge'].includes(config.type);
+                    const isKpiChart = ['kpi', 'gauge', 'sparkline'].includes(config.type);
                     const ChartIcon = chartTypes.find((c) => c.type === config.type)?.icon || BarChart3;
 
                     return (

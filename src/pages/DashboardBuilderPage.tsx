@@ -347,7 +347,7 @@ export default function DashboardBuilderPage() {
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setFilters([])}>
               <RotateCcw className="h-4 w-4" /> Reset Filters
             </Button>
-            <ShareMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} />
+            <ShareMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardId={currentDashboard.id} />
             <ExportMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardData={currentDashboard} />
             <Button 
               variant="outline" 

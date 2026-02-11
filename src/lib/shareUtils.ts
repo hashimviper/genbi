@@ -158,3 +158,31 @@ export async function shareChartAsPDF(chartElement: HTMLElement, title: string):
 
   await sharePDF(canvas, title.replace(/[^a-z0-9]/gi, '-').toLowerCase());
 }
+
+// Share state encoding/decoding for share-by-link feature
+export interface DashboardShareState {
+  dashboardId?: string;
+  datasetId?: string;
+  filters?: Record<string, unknown>;
+  drillState?: Record<string, unknown>;
+}
+
+export function encodeShareState(state: DashboardShareState): string {
+  try {
+    const json = JSON.stringify(state);
+    return btoa(encodeURIComponent(json));
+  } catch (error) {
+    console.error('Failed to encode share state:', error);
+    return '';
+  }
+}
+
+export function decodeShareState(encoded: string): DashboardShareState | null {
+  try {
+    const json = decodeURIComponent(atob(encoded));
+    return JSON.parse(json);
+  } catch (error) {
+    console.error('Failed to decode share state:', error);
+    return null;
+  }
+}

@@ -9,16 +9,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
-import { shareElement } from '@/lib/shareUtils';
+import { shareElement, encodeShareState, DashboardShareState } from '@/lib/shareUtils';
 import { toast } from '@/hooks/use-toast';
 
 interface ShareMenuProps {
   elementId: string;
   dashboardName: string;
   dashboardId?: string;
+  datasetId?: string;
+  filters?: Record<string, unknown>;
+  drillState?: Record<string, unknown>;
 }
 
-export function ShareMenu({ elementId, dashboardName, dashboardId }: ShareMenuProps) {
+export function ShareMenu({ elementId, dashboardName, dashboardId, datasetId, filters, drillState }: ShareMenuProps) {
   const [copied, setCopied] = useState(false);
 
   const handleSharePNG = async () => {
@@ -63,19 +66,23 @@ export function ShareMenu({ elementId, dashboardName, dashboardId }: ShareMenuPr
 
   const handleCopyViewLink = async () => {
     try {
-      // Generate a /view/ link that preserves dashboard state
-      let shareUrl = window.location.href;
+      // Encode dashboard state (filters, drill-down, dataset) into the URL
+      const shareState: DashboardShareState = {
+        dashboardId,
+        datasetId,
+        filters: filters || {},
+        drillState: drillState || {},
+      };
       
-      if (dashboardId) {
-        const baseUrl = window.location.origin;
-        shareUrl = `${baseUrl}/view/${dashboardId}`;
-      }
+      const encoded = encodeShareState(shareState);
+      const baseUrl = window.location.origin;
+      const shareUrl = `${baseUrl}/view/${dashboardId}?state=${encoded}`;
       
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       toast({
         title: 'Link copied',
-        description: 'Dashboard view link copied to clipboard.',
+        description: 'Dashboard view link with state copied to clipboard.',
       });
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {

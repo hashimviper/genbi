@@ -347,7 +347,14 @@ export default function DashboardBuilderPage() {
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setFilters([])}>
               <RotateCcw className="h-4 w-4" /> Reset Filters
             </Button>
-            <ShareMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardId={currentDashboard.id} />
+            <ShareMenu 
+              elementId="dashboard-canvas" 
+              dashboardName={currentDashboard.name} 
+              dashboardId={currentDashboard.id}
+              datasetId={getCurrentDataset()?.id}
+              filters={Object.fromEntries(filters.map(f => [f.field, f.values]))}
+              drillState={drillStates}
+            />
             <ExportMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardData={currentDashboard} />
             <Button 
               variant="outline" 

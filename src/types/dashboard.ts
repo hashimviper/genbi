@@ -37,6 +37,17 @@ export interface BaseWidgetConfig {
   width: number;
   height: number;
   position: { x: number; y: number };
+  ranking?: {
+    enabled: boolean;
+    field?: string;
+    direction?: 'asc' | 'desc';
+    limit?: number;
+  };
+  summaryMetrics?: {
+    enabled: boolean;
+    metrics?: Array<'total' | 'average' | 'min' | 'max' | 'count' | 'percentContribution'>;
+    valueField?: string;
+  };
 }
 
 export interface ChartConfig extends BaseWidgetConfig {

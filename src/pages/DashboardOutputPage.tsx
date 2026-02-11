@@ -26,6 +26,7 @@ import { GlobalFilterBar, FilterConfig, applyFilters } from '@/components/dashbo
 import { Button } from '@/components/ui/button';
 import { isChartConfig, isKPIConfig, DashboardWidget } from '@/types/dashboard';
 import { sampleDatasets } from '@/data/sampleDatasets';
+import { decodeShareState, DashboardShareState } from '@/lib/shareUtils';
 
 export default function DashboardOutputPage() {
   const { id } = useParams<{ id: string }>();
@@ -33,6 +34,7 @@ export default function DashboardOutputPage() {
   const { dashboards, datasets, currentDashboard, setCurrentDashboard } = useDashboardStore();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [filters, setFilters] = useState<FilterConfig[]>([]);
+  const [sharedState, setSharedState] = useState<DashboardShareState | null>(null);
   
   // Combine user datasets with sample datasets
   const allDatasets = [...datasets, ...sampleDatasets];
@@ -43,6 +45,26 @@ export default function DashboardOutputPage() {
       if (dashboard) setCurrentDashboard(dashboard);
     }
   }, [id, dashboards, setCurrentDashboard]);
+
+  // Decode shared state from URL params
+  useEffect(() => {
+    const stateParam = searchParams.get('state');
+    if (stateParam) {
+      const decoded = decodeShareState(stateParam);
+      if (decoded) {
+        setSharedState(decoded);
+        // Apply filters from shared state
+        if (decoded.filters && typeof decoded.filters === 'object') {
+          const filterArray: FilterConfig[] = Object.entries(decoded.filters).map(([field, values]) => ({
+            field,
+            type: 'multiSelect' as const,
+            values: Array.isArray(values) ? values as (string | number)[] : [values as string | number],
+          }));
+          setFilters(filterArray);
+        }
+      }
+    }
+  }, [searchParams]);
 
   // Parse filter state from URL params on mount
   useEffect(() => {

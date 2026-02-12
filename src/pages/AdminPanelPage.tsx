@@ -265,6 +265,23 @@ export default function AdminPanelPage() {
                 </div>
               </div>
 
+              {/* 3D Chart Controls */}
+              <div className="mb-4 border-t border-border/50 pt-4">
+                <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">3D Charts</h3>
+                <div className="space-y-2">
+                  <label className="flex items-center justify-between cursor-pointer rounded-lg border border-border/50 p-3 hover:bg-primary/5 transition-all">
+                    <span className="text-sm font-medium text-foreground">Enable 3D Charts</span>
+                    <input
+                      type="checkbox"
+                      checked={false}
+                      disabled
+                      className="h-4 w-4 rounded border-primary text-primary"
+                    />
+                  </label>
+                  <p className="text-xs text-muted-foreground px-1">3D chart types (Bar, Line, Scatter, Surface) will be available in the widget palette when enabled. Coming soon.</p>
+                </div>
+              </div>
+
               <div className="mt-6 border-t border-border/50 pt-4">
                 <Label>Target Dashboard</Label>
                 <Select value={selectedDashboard} onValueChange={setSelectedDashboard}>

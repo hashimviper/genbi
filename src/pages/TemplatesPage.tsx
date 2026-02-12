@@ -48,6 +48,10 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   DollarSign,
   ShoppingCart,
   ClipboardList,
+  Database,
+  Search,
+  Sparkles,
+  ArrowRight,
 };
 
 const categoryColors: Record<string, string> = {

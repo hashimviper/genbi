@@ -281,6 +281,45 @@ export const blankCanvasTemplate: DashboardTemplate = {
   widgets: [], // Empty - user builds from scratch
 };
 
+// Growth Dashboard
+export const growthDashboardTemplate: DashboardTemplate = {
+  id: 'growth-dashboard',
+  name: 'Growth Dashboard',
+  description: 'Track user acquisition, retention, and growth metrics across channels',
+  category: 'Sales',
+  icon: 'TrendingUp',
+  color: 'hsl(160, 70%, 45%)',
+  sampleColumns: [
+    { name: 'channel', type: 'string' },
+    { name: 'new_users', type: 'number' },
+    { name: 'active_users', type: 'number' },
+    { name: 'retention_rate', type: 'number' },
+    { name: 'revenue', type: 'number' },
+    { name: 'churn_rate', type: 'number' },
+  ] as DataColumn[],
+  sampleData: [
+    { channel: 'Organic', new_users: 12500, active_users: 45000, retention_rate: 78.5, revenue: 425000, churn_rate: 4.2 },
+    { channel: 'Paid Search', new_users: 8900, active_users: 28000, retention_rate: 65.2, revenue: 312000, churn_rate: 8.5 },
+    { channel: 'Social', new_users: 15200, active_users: 38000, retention_rate: 52.8, revenue: 198000, churn_rate: 12.1 },
+    { channel: 'Referral', new_users: 4800, active_users: 18000, retention_rate: 88.4, revenue: 285000, churn_rate: 2.8 },
+    { channel: 'Email', new_users: 3200, active_users: 22000, retention_rate: 82.1, revenue: 195000, churn_rate: 5.5 },
+    { channel: 'Direct', new_users: 6500, active_users: 35000, retention_rate: 72.3, revenue: 380000, churn_rate: 6.8 },
+    { channel: 'Partnerships', new_users: 2100, active_users: 9500, retention_rate: 91.2, revenue: 178000, churn_rate: 1.9 },
+    { channel: 'Content', new_users: 7800, active_users: 32000, retention_rate: 68.9, revenue: 245000, churn_rate: 7.2 },
+  ],
+  widgets: [
+    { type: 'kpi', config: { id: '', type: 'kpi', title: 'New Users', datasetId: '', valueField: 'new_users', aggregation: 'sum', prefix: '', suffix: '', width: 1, height: 1, position: { x: 0, y: 0 } }, gridPosition: { x: 0, y: 0, w: 1, h: 1 } },
+    { type: 'kpi', config: { id: '', type: 'kpi', title: 'Active Users', datasetId: '', valueField: 'active_users', aggregation: 'sum', prefix: '', suffix: '', width: 1, height: 1, position: { x: 1, y: 0 } }, gridPosition: { x: 1, y: 0, w: 1, h: 1 } },
+    { type: 'gauge', config: { id: '', type: 'gauge', title: 'Retention Rate', datasetId: '', valueField: 'retention_rate', width: 1, height: 1, position: { x: 2, y: 0 } }, gridPosition: { x: 2, y: 0, w: 1, h: 1 } },
+    { type: 'kpi', config: { id: '', type: 'kpi', title: 'Total Revenue', datasetId: '', valueField: 'revenue', aggregation: 'sum', prefix: '$', suffix: '', width: 1, height: 1, position: { x: 3, y: 0 } }, gridPosition: { x: 3, y: 0, w: 1, h: 1 } },
+    { type: 'bar', config: { id: '', type: 'bar', title: 'New Users by Channel', datasetId: '', xAxis: 'channel', yAxis: 'new_users', width: 2, height: 2, position: { x: 0, y: 1 } }, gridPosition: { x: 0, y: 1, w: 2, h: 2 } },
+    { type: 'donut', config: { id: '', type: 'donut', title: 'Revenue Share', datasetId: '', labelField: 'channel', valueField: 'revenue', width: 2, height: 2, position: { x: 2, y: 1 } }, gridPosition: { x: 2, y: 1, w: 2, h: 2 } },
+    { type: 'horizontalBar', config: { id: '', type: 'horizontalBar', title: 'Retention by Channel', datasetId: '', labelField: 'channel', valueField: 'retention_rate', width: 2, height: 2, position: { x: 0, y: 3 } }, gridPosition: { x: 0, y: 3, w: 2, h: 2 } },
+    { type: 'waterfall', config: { id: '', type: 'waterfall', title: 'Churn Analysis', datasetId: '', labelField: 'channel', valueField: 'churn_rate', width: 2, height: 2, position: { x: 2, y: 3 } }, gridPosition: { x: 2, y: 3, w: 2, h: 2 } },
+    { type: 'table', config: { id: '', type: 'table', title: 'Growth Details', datasetId: '', width: 4, height: 2, position: { x: 0, y: 5 } }, gridPosition: { x: 0, y: 5, w: 4, h: 2 } },
+  ],
+};
+
 // Export all advanced templates
 export const advancedTemplates: DashboardTemplate[] = [
   salesPerformanceTemplate,
@@ -289,6 +328,7 @@ export const advancedTemplates: DashboardTemplate[] = [
   operationsTemplate,
   executiveKPITemplate,
   marketingAnalysisTemplate,
+  growthDashboardTemplate,
   blankCanvasTemplate,
 ];
 
@@ -300,5 +340,6 @@ export const advancedTemplateDatasetMap: Record<string, string> = {
   'operations-monitoring': 'operations-productivity-dataset',
   'executive-kpi': 'executive-kpi-dataset',
   'marketing-analysis': 'marketing-campaigns-dataset',
+  'growth-dashboard': 'growth-dashboard-dataset',
   'blank-canvas': '',
 };

@@ -368,6 +368,29 @@ export const sampleDatasets: DataSet[] = [
     data: projectData,
     createdAt: new Date(),
   },
+  {
+    id: 'growth-dashboard-dataset',
+    name: 'Growth Dashboard',
+    columns: [
+      { name: 'channel', type: 'string' },
+      { name: 'new_users', type: 'number' },
+      { name: 'active_users', type: 'number' },
+      { name: 'retention_rate', type: 'number' },
+      { name: 'revenue', type: 'number' },
+      { name: 'churn_rate', type: 'number' },
+    ],
+    data: [
+      { channel: 'Organic', new_users: 12500, active_users: 45000, retention_rate: 78.5, revenue: 425000, churn_rate: 4.2 },
+      { channel: 'Paid Search', new_users: 8900, active_users: 28000, retention_rate: 65.2, revenue: 312000, churn_rate: 8.5 },
+      { channel: 'Social', new_users: 15200, active_users: 38000, retention_rate: 52.8, revenue: 198000, churn_rate: 12.1 },
+      { channel: 'Referral', new_users: 4800, active_users: 18000, retention_rate: 88.4, revenue: 285000, churn_rate: 2.8 },
+      { channel: 'Email', new_users: 3200, active_users: 22000, retention_rate: 82.1, revenue: 195000, churn_rate: 5.5 },
+      { channel: 'Direct', new_users: 6500, active_users: 35000, retention_rate: 72.3, revenue: 380000, churn_rate: 6.8 },
+      { channel: 'Partnerships', new_users: 2100, active_users: 9500, retention_rate: 91.2, revenue: 178000, churn_rate: 1.9 },
+      { channel: 'Content', new_users: 7800, active_users: 32000, retention_rate: 68.9, revenue: 245000, churn_rate: 7.2 },
+    ],
+    createdAt: new Date(),
+  },
 ];
 
 // Map template IDs to their corresponding dataset IDs
@@ -390,6 +413,7 @@ export const templateDatasetMap: Record<string, string> = {
   'blank-canvas': '',
   'finance-dashboard': 'finance-expenses-dataset',
   'general-report': 'executive-kpi-dataset',
+  'growth-dashboard': 'growth-dashboard-dataset',
 };
 
 export const getDatasetForTemplate = (templateId: string): DataSet | undefined => {

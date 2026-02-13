@@ -36,6 +36,7 @@ import { isChartConfig, isKPIConfig, DashboardWidget, Dashboard } from '@/types/
 import { cn } from '@/lib/utils';
 import { sampleDatasets } from '@/data/sampleDatasets';
 import { deriveHierarchies, applyDrillFilters, getCurrentDrillField, canDrillDown, canDrillUp, aggregateForDrillLevel } from '@/lib/drillDown';
+import { calculateSummaries } from '@/lib/rankingUtils';
 
 export default function DashboardBuilderPage() {
   const [searchParams] = useSearchParams();
@@ -400,6 +401,45 @@ export default function DashboardBuilderPage() {
               className="mb-6"
             />
           )}
+
+          {/* Summary Metrics Panel */}
+          {getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (() => {
+            const ds = getCurrentDataset()!;
+            const data = getDatasetData(ds.id);
+            const numericCols = ds.columns.filter(c => c.type === 'number');
+            if (numericCols.length === 0) return null;
+            const primaryField = numericCols[0].name;
+            const summaries = calculateSummaries(data, { metrics: ['total', 'average', 'min', 'max', 'count'], valueField: primaryField });
+            return (
+              <div className="mb-6 glass-card rounded-xl p-4">
+                <h3 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                  Summary — {primaryField.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </h3>
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+                  <div className="rounded-lg bg-primary/5 p-3 text-center">
+                    <p className="text-xs text-muted-foreground">Total</p>
+                    <p className="text-lg font-bold text-foreground">{typeof summaries.total === 'number' ? summaries.total.toLocaleString() : summaries.total}</p>
+                  </div>
+                  <div className="rounded-lg bg-primary/5 p-3 text-center">
+                    <p className="text-xs text-muted-foreground">Average</p>
+                    <p className="text-lg font-bold text-foreground">{typeof summaries.average === 'number' ? summaries.average.toLocaleString() : summaries.average}</p>
+                  </div>
+                  <div className="rounded-lg bg-primary/5 p-3 text-center">
+                    <p className="text-xs text-muted-foreground">Min</p>
+                    <p className="text-lg font-bold text-foreground">{typeof summaries.min === 'number' ? summaries.min.toLocaleString() : summaries.min}</p>
+                  </div>
+                  <div className="rounded-lg bg-primary/5 p-3 text-center">
+                    <p className="text-xs text-muted-foreground">Max</p>
+                    <p className="text-lg font-bold text-foreground">{typeof summaries.max === 'number' ? summaries.max.toLocaleString() : summaries.max}</p>
+                  </div>
+                  <div className="rounded-lg bg-primary/5 p-3 text-center">
+                    <p className="text-xs text-muted-foreground">Count</p>
+                    <p className="text-lg font-bold text-foreground">{summaries.count}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
           {currentDashboard.widgets.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <Plus className="h-12 w-12 text-muted-foreground/30" />

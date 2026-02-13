@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAdminStore } from '@/stores/adminStore';
 import {
   BarChart3,
   LineChart,
@@ -83,6 +84,7 @@ interface ChartConfiguration {
 
 export default function AdminPanelPage() {
   const { datasets, dashboards, addWidget, currentDashboard, setCurrentDashboard } = useDashboardStore();
+  const { enable3DCharts, toggle3DCharts } = useAdminStore();
   const [selectedDashboard, setSelectedDashboard] = useState<string>('');
   const [configs, setConfigs] = useState<ChartConfiguration[]>([]);
   
@@ -273,12 +275,16 @@ export default function AdminPanelPage() {
                     <span className="text-sm font-medium text-foreground">Enable 3D Charts</span>
                     <input
                       type="checkbox"
-                      checked={false}
-                      disabled
+                      checked={enable3DCharts}
+                      onChange={(e) => toggle3DCharts(e.target.checked)}
                       className="h-4 w-4 rounded border-primary text-primary"
                     />
                   </label>
-                  <p className="text-xs text-muted-foreground px-1">3D chart types (Bar, Line, Scatter, Surface) will be available in the widget palette when enabled. Coming soon.</p>
+                  <p className="text-xs text-muted-foreground px-1">
+                    {enable3DCharts 
+                      ? '3D chart types (Bar, Line, Scatter, Surface) are now available in the widget palette.' 
+                      : '3D chart types (Bar, Line, Scatter, Surface) will be available in the widget palette when enabled.'}
+                  </p>
                 </div>
               </div>
 

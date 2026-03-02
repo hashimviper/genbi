@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Download, Maximize2, Minimize2 } from 'lucide-react';
+import { ArrowLeft, Download, Maximize2, Minimize2, X } from 'lucide-react';
 import { useDashboardStore } from '@/stores/dashboardStore';
 import { ChartCard } from '@/components/charts/ChartCard';
 import { BarChartWidget } from '@/components/charts/BarChartWidget';
@@ -24,10 +24,12 @@ import { ExportMenu } from '@/components/dashboard/ExportMenu';
 import { ShareMenu } from '@/components/dashboard/ShareMenu';
 import { GlobalFilterBar, FilterConfig, applyFilters } from '@/components/dashboard/GlobalFilterBar';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { isChartConfig, isKPIConfig, DashboardWidget } from '@/types/dashboard';
 import { sampleDatasets } from '@/data/sampleDatasets';
 import { decodeShareState, DashboardShareState } from '@/lib/shareUtils';
 import { calculateSummaries } from '@/lib/rankingUtils';
+import { toast } from '@/hooks/use-toast';
 
 export default function DashboardOutputPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +38,7 @@ export default function DashboardOutputPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [filters, setFilters] = useState<FilterConfig[]>([]);
   const [sharedState, setSharedState] = useState<DashboardShareState | null>(null);
+  const [crossFilters, setCrossFilters] = useState<Record<string, unknown>>({});
   
   // Combine user datasets with sample datasets
   const allDatasets = [...datasets, ...sampleDatasets];
@@ -114,8 +117,35 @@ export default function DashboardOutputPage() {
     let rawData = dataset?.data || [];
     // Apply global filters
     rawData = applyFilters(rawData, filters);
+    // Apply cross-filters
+    if (Object.keys(crossFilters).length > 0) {
+      rawData = rawData.filter(row => {
+        return Object.entries(crossFilters).every(([field, value]) => {
+          if (row[field] === undefined) return true;
+          return row[field] === value;
+        });
+      });
+    }
     return rawData;
   };
+
+  const handleCrossFilterClick = useCallback((field: string, value: unknown) => {
+    setCrossFilters(prev => {
+      // Toggle: if same filter exists, remove it
+      if (prev[field] === value) {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      }
+      return { ...prev, [field]: value };
+    });
+    toast({ title: 'Cross-filter applied', description: `Filtering by: ${String(value)}` });
+  }, []);
+
+  const clearCrossFilters = useCallback(() => {
+    setCrossFilters({});
+    toast({ title: 'Cross-filters cleared' });
+  }, []);
 
   const getRawDatasetData = (datasetId: string) => {
     return allDatasets.find((d) => d.id === datasetId)?.data || [];
@@ -282,13 +312,26 @@ export default function DashboardOutputPage() {
       <main id="dashboard-output-canvas" className="p-6">
         {/* Filters */}
         {getCurrentDataset() && (
-          <GlobalFilterBar
-            columns={getCurrentDataset()?.columns || []}
-            data={getRawDatasetData(getCurrentDataset()?.id || '')}
-            filters={filters}
-            onFiltersChange={setFilters}
-            className="mb-6"
-          />
+          <>
+            <GlobalFilterBar
+              columns={getCurrentDataset()?.columns || []}
+              data={getRawDatasetData(getCurrentDataset()?.id || '')}
+              filters={filters}
+              onFiltersChange={setFilters}
+              className="mb-4"
+            />
+            {Object.keys(crossFilters).length > 0 && (
+              <div className="mb-4 flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-medium text-muted-foreground">Cross-filters:</span>
+                {Object.entries(crossFilters).map(([field, value]) => (
+                  <Badge key={field} variant="secondary" className="gap-1 cursor-pointer" onClick={() => handleCrossFilterClick(field, value)}>
+                    {field}: {String(value)} <X className="h-3 w-3" />
+                  </Badge>
+                ))}
+                <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={clearCrossFilters}>Clear all</Button>
+              </div>
+            )}
+          </>
         )}
 
         {/* Summary Metrics Panel */}

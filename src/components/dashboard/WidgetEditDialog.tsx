@@ -92,8 +92,9 @@ export function WidgetEditDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="config">Configuration</TabsTrigger>
+            <TabsTrigger value="labels">Labels</TabsTrigger>
             <TabsTrigger value="data">Data Editor</TabsTrigger>
           </TabsList>
 
@@ -301,6 +302,82 @@ export function WidgetEditDialog({
                       onChange={(e) => updateConfig({ suffix: e.target.value })}
                       placeholder="%"
                     />
+                  </div>
+                </>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="labels" className="space-y-4 mt-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Chart Title</Label>
+                <Input
+                  value={editedWidget.config.title}
+                  onChange={(e) => updateConfig({ title: e.target.value })}
+                  placeholder="Chart title"
+                />
+              </div>
+
+              {isChartConfig(editedWidget.config) && !['kpi', 'gauge', 'table'].includes(editedWidget.type) && (
+                <>
+                  <div className="space-y-2">
+                    <Label>X-Axis Label</Label>
+                    <Input
+                      value={(editedWidget.config as any).xAxisLabel || ''}
+                      onChange={(e) => updateConfig({ xAxisLabel: e.target.value })}
+                      placeholder="Auto (field name)"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Y-Axis Label</Label>
+                    <Input
+                      value={(editedWidget.config as any).yAxisLabel || ''}
+                      onChange={(e) => updateConfig({ yAxisLabel: e.target.value })}
+                      placeholder="Auto (field name)"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Show Data Labels</Label>
+                    <Select
+                      value={(editedWidget.config as any).showDataLabels === true ? 'true' : 'false'}
+                      onValueChange={(v) => updateConfig({ showDataLabels: v === 'true' })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Yes</SelectItem>
+                        <SelectItem value="false">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Legend Position</Label>
+                    <Select
+                      value={(editedWidget.config as any).legendPosition || 'bottom'}
+                      onValueChange={(v) => updateConfig({ legendPosition: v })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="top">Top</SelectItem>
+                        <SelectItem value="bottom">Bottom</SelectItem>
+                        <SelectItem value="left">Left</SelectItem>
+                        <SelectItem value="right">Right</SelectItem>
+                        <SelectItem value="none">Hidden</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Show Legend</Label>
+                    <Select
+                      value={(editedWidget.config as any).showLegend === false ? 'false' : 'true'}
+                      onValueChange={(v) => updateConfig({ showLegend: v === 'true' })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Yes</SelectItem>
+                        <SelectItem value="false">No</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </>
               )}

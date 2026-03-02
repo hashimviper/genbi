@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Save, Undo, Redo, GripVertical, Database, RotateCcw, Maximize2, Minimize2, ChevronRight, ChevronLeft, Home } from 'lucide-react';
+import { Plus, Save, Undo, Redo, GripVertical, Database, RotateCcw, Maximize2, Minimize2, ChevronRight, ChevronLeft, Home, Search } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useDashboardStore } from '@/stores/dashboardStore';
@@ -37,6 +37,7 @@ import { cn } from '@/lib/utils';
 import { sampleDatasets } from '@/data/sampleDatasets';
 import { deriveHierarchies, applyDrillFilters, getCurrentDrillField, canDrillDown, canDrillUp, aggregateForDrillLevel } from '@/lib/drillDown';
 import { calculateSummaries } from '@/lib/rankingUtils';
+import { QueryDialog } from '@/components/dashboard/QueryDialog';
 
 export default function DashboardBuilderPage() {
   const [searchParams] = useSearchParams();
@@ -45,9 +46,10 @@ export default function DashboardBuilderPage() {
   const [filters, setFilters] = useState<FilterConfig[]>([]);
   const [showDatasetSwitcher, setShowDatasetSwitcher] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showQueryDialog, setShowQueryDialog] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
   
-  const { dashboards, datasets, currentDashboard, setCurrentDashboard, removeWidget, updateWidget, updateDashboard } = useDashboardStore();
+  const { dashboards, datasets, currentDashboard, setCurrentDashboard, removeWidget, updateWidget, updateDashboard, addWidget } = useDashboardStore();
   const { pushState, undo, redo, canUndo, canRedo, clear: clearUndoHistory } = useUndoStore();
   
   // Combine user datasets with sample datasets
@@ -342,6 +344,9 @@ export default function DashboardBuilderPage() {
             <p className="text-sm text-muted-foreground">{currentDashboard.widgets.length} widgets • Drag to reorder</p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowQueryDialog(true)}>
+              <Search className="h-4 w-4" /> Q&A
+            </Button>
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowDatasetSwitcher(true)}>
               <Database className="h-4 w-4" /> Switch Dataset
             </Button>
@@ -541,6 +546,22 @@ export default function DashboardBuilderPage() {
         widgets={currentDashboard?.widgets || []}
         onSwitch={handleDatasetSwitch}
       />
+
+      {getCurrentDataset() && (
+        <QueryDialog
+          open={showQueryDialog}
+          onOpenChange={setShowQueryDialog}
+          columns={getCurrentDataset()?.columns || []}
+          datasetId={getCurrentDataset()?.id || ''}
+          onAddWidget={(widget) => {
+            if (currentDashboard) {
+              saveStateForUndo();
+              addWidget(currentDashboard.id, widget);
+              toast({ title: 'Widget added', description: 'Generated from Q&A query.' });
+            }
+          }}
+        />
+      )}
     </MainLayout>
   );
 }

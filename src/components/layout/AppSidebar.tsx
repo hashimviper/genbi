@@ -10,10 +10,14 @@ import {
   ChevronRight,
   FileText,
   Home,
+  LogIn,
+  Building2,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { VisoryBILogo } from '@/components/VisoryBILogo';
+import { useAuthStore } from '@/stores/authStore';
 
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -28,12 +32,14 @@ const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard Builder', href: '/builder', color: 'text-accent' },
   { icon: FolderOpen, label: 'My Dashboards', href: '/dashboards', color: 'text-[hsl(155,75%,45%)]' },
   { icon: Database, label: 'Data Sources', href: '/data', color: 'text-[hsl(38,95%,55%)]' },
+  { icon: Building2, label: 'Workspace', href: '/workspace', color: 'text-[hsl(330,85%,60%)]' },
   { icon: Settings, label: 'Admin Panel', href: '/admin', color: 'text-[hsl(280,85%,58%)]' },
 ];
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const { currentUser, isAuthenticated, logout } = useAuthStore();
 
   return (
     <aside
@@ -84,9 +90,26 @@ export function AppSidebar() {
         })}
       </nav>
 
-      {/* Quick Actions */}
+      {/* Auth & Quick Actions */}
       {!collapsed && (
-        <div className="border-t border-border p-4">
+        <div className="border-t border-border p-4 space-y-2">
+          {isAuthenticated && currentUser ? (
+            <div className="flex items-center gap-2 mb-2 px-2">
+              <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                {currentUser.username?.[0]?.toUpperCase() || '?'}
+              </div>
+              <span className="text-sm text-foreground truncate flex-1">{currentUser.username}</span>
+              <button onClick={logout} title="Sign out" className="text-muted-foreground hover:text-destructive transition-colors">
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <Link to="/auth">
+              <Button variant="outline" className="w-full gap-2" size="sm">
+                <LogIn className="h-4 w-4" /> Sign In
+              </Button>
+            </Link>
+          )}
           <Link to="/templates">
             <Button className="w-full gap-2 gradient-bg hover:opacity-90 shadow-md hover:shadow-lg transition-all" size="sm">
               <Plus className="h-4 w-4" />

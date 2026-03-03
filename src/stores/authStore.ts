@@ -6,117 +6,58 @@ export type UserRole = 'admin' | 'editor' | 'viewer';
 export interface User {
   id: string;
   username: string;
-  email: string;
   role: UserRole;
-  organizationId?: string;
-  createdAt: string;
 }
+
+// Static hardcoded organization members
+export const STATIC_ORG = {
+  name: 'VisoryBI Team',
+  members: [
+    { id: 'viper-001', username: 'Viper', role: 'admin' as UserRole, isOwner: true },
+    { id: 'thaslee-002', username: 'Thaslee', role: 'editor' as UserRole, isOwner: false },
+    { id: 'naveen-003', username: 'Naveen', role: 'editor' as UserRole, isOwner: false },
+    { id: 'abd-004', username: 'Abd', role: 'editor' as UserRole, isOwner: false },
+  ],
+};
 
 interface AuthState {
   currentUser: User | null;
-  users: User[];
-  passwordHashes: Record<string, string>; // userId -> hash
   isAuthenticated: boolean;
-  
-  register: (username: string, email: string, password: string, role?: UserRole) => Promise<{ success: boolean; error?: string }>;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+
+  login: (username: string, role: UserRole) => void;
   logout: () => void;
-  updateUser: (userId: string, updates: Partial<User>) => void;
-  deleteUser: (userId: string) => void;
-  getAllUsers: () => User[];
-}
-
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-function generateId(): string {
-  return crypto.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2);
+  canEdit: () => boolean;
+  canDelete: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       currentUser: null,
-      users: [],
-      passwordHashes: {},
       isAuthenticated: false,
 
-      register: async (username, email, password, role = 'editor') => {
-        const { users } = get();
-        
-        if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-          return { success: false, error: 'Email already registered' };
-        }
-        if (password.length < 6) {
-          return { success: false, error: 'Password must be at least 6 characters' };
-        }
-
-        const hash = await hashPassword(password);
+      login: (username, role) => {
         const user: User = {
-          id: generateId(),
+          id: `${username.toLowerCase()}-${Date.now().toString(36)}`,
           username,
-          email: email.toLowerCase(),
           role,
-          createdAt: new Date().toISOString(),
         };
-
-        set(state => ({
-          users: [...state.users, user],
-          passwordHashes: { ...state.passwordHashes, [user.id]: hash },
-          currentUser: user,
-          isAuthenticated: true,
-        }));
-
-        return { success: true };
-      },
-
-      login: async (email, password) => {
-        const { users, passwordHashes } = get();
-        const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-        
-        if (!user) {
-          return { success: false, error: 'Invalid email or password' };
-        }
-
-        const hash = await hashPassword(password);
-        if (passwordHashes[user.id] !== hash) {
-          return { success: false, error: 'Invalid email or password' };
-        }
-
         set({ currentUser: user, isAuthenticated: true });
-        return { success: true };
       },
 
       logout: () => {
         set({ currentUser: null, isAuthenticated: false });
       },
 
-      updateUser: (userId, updates) => {
-        set(state => ({
-          users: state.users.map(u => u.id === userId ? { ...u, ...updates } : u),
-          currentUser: state.currentUser?.id === userId ? { ...state.currentUser, ...updates } : state.currentUser,
-        }));
+      canEdit: () => {
+        const { currentUser } = get();
+        return currentUser?.role === 'admin' || currentUser?.role === 'editor';
       },
 
-      deleteUser: (userId) => {
-        set(state => {
-          const newHashes = { ...state.passwordHashes };
-          delete newHashes[userId];
-          return {
-            users: state.users.filter(u => u.id !== userId),
-            passwordHashes: newHashes,
-            currentUser: state.currentUser?.id === userId ? null : state.currentUser,
-            isAuthenticated: state.currentUser?.id === userId ? false : state.isAuthenticated,
-          };
-        });
+      canDelete: () => {
+        const { currentUser } = get();
+        return currentUser?.role === 'admin';
       },
-
-      getAllUsers: () => get().users,
     }),
     { name: 'visorybi-auth' }
   )

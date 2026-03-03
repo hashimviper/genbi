@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard,
+  Home,
+  Shield,
+  Users,
+  Wrench,
+  LayoutGrid,
   Database,
-  Settings,
   FolderOpen,
-  Plus,
+  FileText,
   ChevronLeft,
   ChevronRight,
-  FileText,
-  Home,
+  Plus,
   LogIn,
-  Building2,
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -23,17 +24,17 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   href: string;
-  color?: string;
+  color: string;
 }
 
 const navItems: NavItem[] = [
   { icon: Home, label: 'Home', href: '/', color: 'text-[hsl(200,90%,50%)]' },
-  { icon: FileText, label: 'Templates', href: '/templates', color: 'text-primary' },
-  { icon: LayoutDashboard, label: 'Dashboard Builder', href: '/builder', color: 'text-accent' },
+  { icon: Shield, label: 'Admin Panel', href: '/admin', color: 'text-[hsl(280,85%,58%)]' },
+  { icon: Users, label: 'Collaboration', href: '/workspace', color: 'text-[hsl(170,80%,45%)]' },
+  { icon: Wrench, label: 'Dashboard Builder', href: '/builder', color: 'text-accent' },
+  { icon: FileText, label: 'Templates', href: '/templates', color: 'text-[hsl(38,95%,55%)]' },
   { icon: FolderOpen, label: 'My Dashboards', href: '/dashboards', color: 'text-[hsl(155,75%,45%)]' },
-  { icon: Database, label: 'Data Sources', href: '/data', color: 'text-[hsl(38,95%,55%)]' },
-  { icon: Building2, label: 'Workspace', href: '/workspace', color: 'text-[hsl(330,85%,60%)]' },
-  { icon: Settings, label: 'Admin Panel', href: '/admin', color: 'text-[hsl(280,85%,58%)]' },
+  { icon: Database, label: 'Data Sources', href: '/data', color: 'text-[hsl(330,85%,60%)]' },
 ];
 
 export function AppSidebar() {
@@ -98,7 +99,10 @@ export function AppSidebar() {
               <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
                 {currentUser.username?.[0]?.toUpperCase() || '?'}
               </div>
-              <span className="text-sm text-foreground truncate flex-1">{currentUser.username}</span>
+              <div className="flex-1 min-w-0">
+                <span className="text-sm text-foreground truncate block">{currentUser.username}</span>
+                <span className="text-[10px] text-muted-foreground capitalize">{currentUser.role}</span>
+              </div>
               <button onClick={logout} title="Sign out" className="text-muted-foreground hover:text-destructive transition-colors">
                 <LogOut className="h-4 w-4" />
               </button>

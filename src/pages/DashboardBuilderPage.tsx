@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Save, Undo, Redo, GripVertical, Database, RotateCcw, Maximize2, Minimize2, ChevronRight, ChevronLeft, Home, Search } from 'lucide-react';
+import { Plus, Save, Undo, Redo, GripVertical, Database, RotateCcw, Maximize2, Minimize2, Home } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useDashboardStore } from '@/stores/dashboardStore';
 import { useUndoStore } from '@/stores/undoStore';
 import { useDrillStore } from '@/stores/drillStore';
+import { useAuthStore } from '@/stores/authStore';
 import { ChartCard } from '@/components/charts/ChartCard';
 import { BarChartWidget } from '@/components/charts/BarChartWidget';
 import { LineChartWidget } from '@/components/charts/LineChartWidget';
@@ -29,6 +30,7 @@ import { ExportMenu } from '@/components/dashboard/ExportMenu';
 import { ShareMenu } from '@/components/dashboard/ShareMenu';
 import { GlobalFilterBar, FilterConfig, applyFilters } from '@/components/dashboard/GlobalFilterBar';
 import { DatasetSwitcher } from '@/components/dashboard/DatasetSwitcher';
+import { InsightModal } from '@/components/dashboard/InsightModal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
@@ -37,7 +39,6 @@ import { cn } from '@/lib/utils';
 import { sampleDatasets } from '@/data/sampleDatasets';
 import { deriveHierarchies, applyDrillFilters, getCurrentDrillField, canDrillDown, canDrillUp, aggregateForDrillLevel } from '@/lib/drillDown';
 import { calculateSummaries } from '@/lib/rankingUtils';
-import { QueryDialog } from '@/components/dashboard/QueryDialog';
 
 export default function DashboardBuilderPage() {
   const [searchParams] = useSearchParams();
@@ -46,16 +47,19 @@ export default function DashboardBuilderPage() {
   const [filters, setFilters] = useState<FilterConfig[]>([]);
   const [showDatasetSwitcher, setShowDatasetSwitcher] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showQueryDialog, setShowQueryDialog] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
+  
+  // Double-click insight modal state
+  const [insightWidget, setInsightWidget] = useState<DashboardWidget | null>(null);
+  const [insightPos, setInsightPos] = useState({ x: 0, y: 0 });
+  
+  // Auth for role-based UI
+  const { canEdit, canDelete } = useAuthStore();
   
   const { dashboards, datasets, currentDashboard, setCurrentDashboard, removeWidget, updateWidget, updateDashboard, addWidget } = useDashboardStore();
   const { pushState, undo, redo, canUndo, canRedo, clear: clearUndoHistory } = useUndoStore();
   
-  // Combine user datasets with sample datasets
   const allDatasets = [...datasets, ...sampleDatasets];
-  
-  // Drill-down store
   const { drillStates, crossFilters, initDrill, drillDown, drillUp, resetDrill, clearAllCrossFilters } = useDrillStore();
 
   useEffect(() => {
@@ -64,8 +68,6 @@ export default function DashboardBuilderPage() {
       if (dashboard) {
         setCurrentDashboard(dashboard);
         clearUndoHistory();
-        
-        // Initialize drill hierarchies for each widget
         dashboard.widgets.forEach(widget => {
           const datasetId = widget.config.datasetId;
           const columns = allDatasets.find(d => d.id === datasetId)?.columns || [];
@@ -80,93 +82,53 @@ export default function DashboardBuilderPage() {
     }
   }, [dashboardId, dashboards, setCurrentDashboard, clearUndoHistory]);
 
-  // Handle fullscreen toggle
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement && dashboardRef.current) {
-      dashboardRef.current.requestFullscreen().then(() => {
-        setIsFullscreen(true);
-      }).catch(() => {
-        setIsFullscreen(true);
-      });
+      dashboardRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => setIsFullscreen(true));
     } else if (document.fullscreenElement) {
-      document.exitFullscreen().then(() => {
-        setIsFullscreen(false);
-      }).catch(() => {
-        setIsFullscreen(false);
-      });
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => setIsFullscreen(false));
     }
   }, []);
 
-  // Listen for fullscreen changes
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    const h = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', h);
+    return () => document.removeEventListener('fullscreenchange', h);
   }, []);
 
-  // Save state before modifications for undo
   const saveStateForUndo = useCallback(() => {
-    if (currentDashboard) {
-      pushState(currentDashboard);
-    }
+    if (currentDashboard) pushState(currentDashboard);
   }, [currentDashboard, pushState]);
 
-  // Handle undo
   const handleUndo = useCallback(() => {
     if (currentDashboard && canUndo()) {
-      const previousState = undo(currentDashboard);
-      if (previousState) {
-        updateDashboard(currentDashboard.id, { widgets: previousState.widgets });
-        toast({ title: 'Undo successful', description: 'Previous state restored.' });
-      }
+      const prev = undo(currentDashboard);
+      if (prev) { updateDashboard(currentDashboard.id, { widgets: prev.widgets }); toast({ title: 'Undo successful' }); }
     }
   }, [currentDashboard, canUndo, undo, updateDashboard]);
 
-  // Handle redo
   const handleRedo = useCallback(() => {
     if (currentDashboard && canRedo()) {
-      const nextState = redo(currentDashboard);
-      if (nextState) {
-        updateDashboard(currentDashboard.id, { widgets: nextState.widgets });
-        toast({ title: 'Redo successful', description: 'Action restored.' });
-      }
+      const next = redo(currentDashboard);
+      if (next) { updateDashboard(currentDashboard.id, { widgets: next.widgets }); toast({ title: 'Redo successful' }); }
     }
   }, [currentDashboard, canRedo, redo, updateDashboard]);
 
   const getDatasetData = (datasetId: string, widgetId?: string) => {
     const dataset = allDatasets.find((d) => d.id === datasetId);
     let rawData = dataset?.data || [];
-    
-    // Apply global filters
     rawData = applyFilters(rawData, filters);
-    
-    // Apply cross-filters from drill actions
     if (Object.keys(crossFilters).length > 0) {
-      rawData = rawData.filter(row => {
-        return Object.entries(crossFilters).every(([field, value]) => {
-          if (row[field] === undefined) return true; // Field doesn't exist in this dataset
-          return row[field] === value;
-        });
-      });
+      rawData = rawData.filter(row => Object.entries(crossFilters).every(([field, value]) => row[field] === undefined ? true : row[field] === value));
     }
-    
-    // Apply widget-specific drill filters
     if (widgetId && drillStates[widgetId]) {
       rawData = applyDrillFilters(rawData, drillStates[widgetId]);
     }
-    
     return rawData;
   };
 
-  const getRawDatasetData = (datasetId: string) => {
-    return allDatasets.find((d) => d.id === datasetId)?.data || [];
-  };
-
-  const getDatasetColumns = (datasetId: string) => {
-    return allDatasets.find((d) => d.id === datasetId)?.columns || [];
-  };
+  const getRawDatasetData = (datasetId: string) => allDatasets.find((d) => d.id === datasetId)?.data || [];
+  const getDatasetColumns = (datasetId: string) => allDatasets.find((d) => d.id === datasetId)?.columns || [];
   
   const getCurrentDataset = () => {
     if (!currentDashboard?.widgets.length) return null;
@@ -174,27 +136,15 @@ export default function DashboardBuilderPage() {
     return allDatasets.find(d => d.id === datasetId) || null;
   };
 
-  // Handle drill-down click on chart elements
   const handleDrillClick = useCallback((widgetId: string, value: unknown) => {
     const drillState = drillStates[widgetId];
-    if (!drillState || !canDrillDown(drillState)) {
-      toast({ title: 'Drill-down unavailable', description: 'No deeper hierarchy level available.' });
-      return;
-    }
+    if (!drillState || !canDrillDown(drillState)) return;
     drillDown(widgetId, value);
     toast({ title: 'Drilled down', description: `Showing details for: ${String(value)}` });
   }, [drillStates, drillDown]);
 
-  const handleDrillUp = useCallback((widgetId: string) => {
-    drillUp(widgetId);
-    toast({ title: 'Drilled up', description: 'Returned to previous level.' });
-  }, [drillUp]);
-
-  const handleDrillReset = useCallback((widgetId: string) => {
-    resetDrill(widgetId);
-    clearAllCrossFilters();
-    toast({ title: 'Drill reset', description: 'Returned to top level.' });
-  }, [resetDrill, clearAllCrossFilters]);
+  const handleDrillUp = useCallback((widgetId: string) => { drillUp(widgetId); }, [drillUp]);
+  const handleDrillReset = useCallback((widgetId: string) => { resetDrill(widgetId); clearAllCrossFilters(); }, [resetDrill, clearAllCrossFilters]);
 
   const calculateKPIValue = (datasetId: string, field: string, aggregation: string, widgetId?: string) => {
     const data = getDatasetData(datasetId, widgetId);
@@ -211,9 +161,7 @@ export default function DashboardBuilderPage() {
     }
   };
 
-  const handleSave = () => {
-    toast({ title: 'Dashboard saved', description: 'Your changes have been saved locally.' });
-  };
+  const handleSave = () => { toast({ title: 'Dashboard saved', description: 'Your changes have been saved locally.' }); };
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination || !currentDashboard) return;
@@ -233,10 +181,14 @@ export default function DashboardBuilderPage() {
   };
 
   const handleDeleteWidget = (widgetId: string) => {
+    if (!canDelete()) {
+      toast({ title: 'Permission denied', description: 'Only admins can delete widgets.', variant: 'destructive' });
+      return;
+    }
     if (currentDashboard) {
       saveStateForUndo();
       removeWidget(currentDashboard.id, widgetId);
-      toast({ title: 'Widget deleted', description: 'Widget has been removed from the dashboard.' });
+      toast({ title: 'Widget deleted' });
     }
   };
 
@@ -244,20 +196,25 @@ export default function DashboardBuilderPage() {
     if (currentDashboard) {
       saveStateForUndo();
       updateDashboard(currentDashboard.id, { widgets: remappedWidgets });
-      toast({ title: 'Dataset switched', description: 'Fields have been automatically remapped.' });
+      toast({ title: 'Dataset switched' });
     }
   };
+
+  // Double-click handler for insight modal
+  const handleWidgetDoubleClick = useCallback((widget: DashboardWidget, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setInsightWidget(widget);
+    setInsightPos({ x: event.clientX + 10, y: event.clientY - 20 });
+  }, []);
 
   const renderWidget = (widget: DashboardWidget) => {
     const config = widget.config;
     const datasetId = config.datasetId;
     const data = getDatasetData(datasetId, widget.id);
-    
-    // Get drill state for this widget to potentially override axis fields
     const drillState = drillStates[widget.id];
     const currentDrillField = drillState ? getCurrentDrillField(drillState) : null;
 
-    // Validate that data exists
     if (!data || data.length === 0) {
       return <div className="flex h-full items-center justify-center text-muted-foreground">No data available</div>;
     }
@@ -268,27 +225,13 @@ export default function DashboardBuilderPage() {
     }
 
     if (isChartConfig(config)) {
-      // Use drill field as xAxis/labelField override if drilling
       const effectiveXAxis = currentDrillField || config.xAxis || '';
       const effectiveLabelField = currentDrillField || config.labelField || '';
-      
-      // For drilled data, aggregate by the current drill field
       let chartData = data;
       if (currentDrillField && drillState && drillState.currentLevel > 0) {
         const numericCols = getDatasetColumns(datasetId).filter(c => c.type === 'number').map(c => c.name);
         chartData = aggregateForDrillLevel(data, currentDrillField, numericCols);
       }
-      
-      // Create drill-enabled click handler
-      const onChartClick = (clickData: unknown) => {
-        if (clickData && typeof clickData === 'object') {
-          const payload = clickData as Record<string, unknown>;
-          const clickedValue = payload.name || payload[effectiveXAxis] || payload[effectiveLabelField];
-          if (clickedValue) {
-            handleDrillClick(widget.id, clickedValue);
-          }
-        }
-      };
 
       switch (widget.type) {
         case 'bar': return <BarChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} />;
@@ -296,10 +239,7 @@ export default function DashboardBuilderPage() {
         case 'pie': return <PieChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
         case 'area': return <AreaChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} />;
         case 'table': return <DataTableWidget data={chartData} columns={getDatasetColumns(datasetId).map(c => c.name)} />;
-        case 'gauge': {
-          const gaugeValue = calculateKPIValue(datasetId, config.valueField || '', 'avg', widget.id);
-          return <GaugeChartWidget value={gaugeValue} title={config.title} />;
-        }
+        case 'gauge': { const v = calculateKPIValue(datasetId, config.valueField || '', 'avg', widget.id); return <GaugeChartWidget value={v} title={config.title} />; }
         case 'radar': return <RadarChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
         case 'treemap': return <TreemapWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
         case 'funnel': return <FunnelChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
@@ -308,15 +248,9 @@ export default function DashboardBuilderPage() {
         case 'horizontalBar': return <HorizontalBarWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
         case 'waterfall': return <WaterfallChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
         case 'scatter': return <ScatterPlotWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} />;
-        case 'stackedBar': {
-          const stackFields = config.yAxis ? [config.yAxis] : [];
-          return <StackedBarChartWidget data={chartData} xAxis={effectiveXAxis} stackFields={stackFields} />;
-        }
-        case 'sparkline': {
-          const sparkValue = calculateKPIValue(datasetId, config.valueField || '', 'sum', widget.id);
-          return <SparklineWidget data={chartData} valueField={config.valueField || ''} title={config.title} value={sparkValue} />;
-        }
-        default: return <div className="text-muted-foreground">Unknown widget type: {widget.type}</div>;
+        case 'stackedBar': { const sf = config.yAxis ? [config.yAxis] : []; return <StackedBarChartWidget data={chartData} xAxis={effectiveXAxis} stackFields={sf} />; }
+        case 'sparkline': { const sv = calculateKPIValue(datasetId, config.valueField || '', 'sum', widget.id); return <SparklineWidget data={chartData} valueField={config.valueField || ''} title={config.title} value={sv} />; }
+        default: return <div className="text-muted-foreground">Unknown type: {widget.type}</div>;
       }
     }
     return <div className="text-muted-foreground">Invalid configuration</div>;
@@ -334,63 +268,30 @@ export default function DashboardBuilderPage() {
 
   const kpiWidgets = currentDashboard.widgets.filter(w => w.type === 'kpi' || w.type === 'gauge' || w.type === 'sparkline');
   const chartWidgets = currentDashboard.widgets.filter(w => w.type !== 'kpi' && w.type !== 'gauge' && w.type !== 'sparkline');
+  const userCanEdit = canEdit();
+  const userCanDelete = canDelete();
 
   return (
     <MainLayout>
       <div ref={dashboardRef} className={cn("flex h-full flex-col", isFullscreen && "bg-background")}>
-        <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between border-b border-border/50 px-6 py-4 gap-2">
           <div>
             <h1 className="text-xl font-bold text-foreground">{currentDashboard.name}</h1>
-            <p className="text-sm text-muted-foreground">{currentDashboard.widgets.length} widgets • Drag to reorder</p>
+            <p className="text-sm text-muted-foreground">{currentDashboard.widgets.length} widgets • Double-click for insights</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowQueryDialog(true)}>
-              <Search className="h-4 w-4" /> Q&A
-            </Button>
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowDatasetSwitcher(true)}>
               <Database className="h-4 w-4" /> Switch Dataset
             </Button>
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setFilters([])}>
-              <RotateCcw className="h-4 w-4" /> Reset Filters
+              <RotateCcw className="h-4 w-4" /> Reset
             </Button>
-            <ShareMenu 
-              elementId="dashboard-canvas" 
-              dashboardName={currentDashboard.name} 
-              dashboardId={currentDashboard.id}
-              datasetId={getCurrentDataset()?.id}
-              filters={Object.fromEntries(filters.map(f => [f.field, f.values]))}
-              drillState={drillStates}
-            />
+            <ShareMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardId={currentDashboard.id} datasetId={getCurrentDataset()?.id} filters={Object.fromEntries(filters.map(f => [f.field, f.values]))} drillState={drillStates} />
             <ExportMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardData={currentDashboard} />
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-2" 
-              onClick={handleUndo}
-              disabled={!canUndo()}
-            >
-              <Undo className="h-4 w-4" /> Undo
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-2" 
-              onClick={handleRedo}
-              disabled={!canRedo()}
-            >
-              <Redo className="h-4 w-4" /> Redo
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-2"
-              onClick={toggleFullscreen}
-            >
-              {isFullscreen ? (
-                <><Minimize2 className="h-4 w-4" /> Exit Fullscreen</>
-              ) : (
-                <><Maximize2 className="h-4 w-4" /> Fullscreen</>
-              )}
+            <Button variant="outline" size="sm" className="gap-2" onClick={handleUndo} disabled={!canUndo()}><Undo className="h-4 w-4" /></Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={handleRedo} disabled={!canRedo()}><Redo className="h-4 w-4" /></Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={toggleFullscreen}>
+              {isFullscreen ? <><Minimize2 className="h-4 w-4" /> Exit</> : <><Maximize2 className="h-4 w-4" /> Full</>}
             </Button>
             <Button size="sm" className="gap-2" onClick={handleSave}><Save className="h-4 w-4" /> Save</Button>
           </div>
@@ -407,7 +308,7 @@ export default function DashboardBuilderPage() {
             />
           )}
 
-          {/* Summary Metrics Panel */}
+          {/* Summary Metrics */}
           {getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (() => {
             const ds = getCurrentDataset()!;
             const data = getDatasetData(ds.id);
@@ -421,30 +322,17 @@ export default function DashboardBuilderPage() {
                   Summary — {primaryField.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </h3>
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-                  <div className="rounded-lg bg-primary/5 p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Total</p>
-                    <p className="text-lg font-bold text-foreground">{typeof summaries.total === 'number' ? summaries.total.toLocaleString() : summaries.total}</p>
-                  </div>
-                  <div className="rounded-lg bg-primary/5 p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Average</p>
-                    <p className="text-lg font-bold text-foreground">{typeof summaries.average === 'number' ? summaries.average.toLocaleString() : summaries.average}</p>
-                  </div>
-                  <div className="rounded-lg bg-primary/5 p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Min</p>
-                    <p className="text-lg font-bold text-foreground">{typeof summaries.min === 'number' ? summaries.min.toLocaleString() : summaries.min}</p>
-                  </div>
-                  <div className="rounded-lg bg-primary/5 p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Max</p>
-                    <p className="text-lg font-bold text-foreground">{typeof summaries.max === 'number' ? summaries.max.toLocaleString() : summaries.max}</p>
-                  </div>
-                  <div className="rounded-lg bg-primary/5 p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Count</p>
-                    <p className="text-lg font-bold text-foreground">{summaries.count}</p>
-                  </div>
+                  {(['total', 'average', 'min', 'max', 'count'] as const).map(key => (
+                    <div key={key} className="rounded-lg bg-primary/5 p-3 text-center">
+                      <p className="text-xs text-muted-foreground capitalize">{key}</p>
+                      <p className="text-lg font-bold text-foreground">{typeof summaries[key] === 'number' ? (summaries[key] as number).toLocaleString() : summaries[key]}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             );
           })()}
+
           {currentDashboard.widgets.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <Plus className="h-12 w-12 text-muted-foreground/30" />
@@ -466,14 +354,16 @@ export default function DashboardBuilderPage() {
                                 <div {...provided.dragHandleProps} className="absolute -left-1 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
                                   <GripVertical className="h-5 w-5 text-muted-foreground" />
                                 </div>
-                                <button
-                                  onClick={() => handleDeleteWidget(widget.id)}
-                                  className="absolute -right-2 -top-2 z-20 h-6 w-6 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs hover:bg-destructive/90"
-                                  title="Delete widget"
+                                {userCanDelete && (
+                                  <button onClick={() => handleDeleteWidget(widget.id)} className="absolute -right-2 -top-2 z-20 h-6 w-6 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs hover:bg-destructive/90" title="Delete widget">×</button>
+                                )}
+                                <div
+                                  onClick={() => userCanEdit && setEditingWidget(widget)}
+                                  onDoubleClick={(e) => handleWidgetDoubleClick(widget, e)}
+                                  className={cn("cursor-pointer", !userCanEdit && "cursor-default")}
                                 >
-                                  ×
-                                </button>
-                                <div onClick={() => setEditingWidget(widget)} className="cursor-pointer">{renderWidget(widget)}</div>
+                                  {renderWidget(widget)}
+                                </div>
                               </div>
                             )}
                           </Draggable>
@@ -487,7 +377,7 @@ export default function DashboardBuilderPage() {
               {chartWidgets.length > 0 && (
                 <Droppable droppableId="charts">
                   {(provided) => (
-                    <div ref={provided.innerRef} {...provided.droppableProps} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <div ref={provided.innerRef} {...provided.droppableProps} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" style={{ minWidth: 0 }}>
                       {chartWidgets.map((widget, index) => (
                         <Draggable key={widget.id} draggableId={widget.id} index={kpiWidgets.length + index}>
                           {(provided, snapshot) => {
@@ -496,25 +386,30 @@ export default function DashboardBuilderPage() {
                             const canDrillUpWidget = widgetDrillState ? canDrillUp(widgetDrillState) : false;
                             const canDrillDownWidget = widgetDrillState ? canDrillDown(widgetDrillState) : false;
                             return (
-                            <div ref={provided.innerRef} {...provided.draggableProps} className={cn('relative', snapshot.isDragging && 'z-50')}>
-                              <ChartCard
-                                title={widget.config.title}
-                                className="h-80"
-                                isDragging={snapshot.isDragging}
-                                onDelete={() => handleDeleteWidget(widget.id)}
-                                onConfigure={() => setEditingWidget(widget)}
-                                drillBreadcrumb={drillBreadcrumb}
-                                canDrillUp={canDrillUpWidget}
-                                canDrillDown={canDrillDownWidget}
-                                onDrillUp={() => handleDrillUp(widget.id)}
-                                onDrillReset={() => handleDrillReset(widget.id)}
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className={cn('relative', snapshot.isDragging && 'z-50')}
+                                onDoubleClick={(e) => handleWidgetDoubleClick(widget, e)}
                               >
-                                <div {...provided.dragHandleProps} className="absolute left-2 top-2 z-10 opacity-0 group-hover:opacity-100 cursor-grab">
-                                  <GripVertical className="h-5 w-5 text-muted-foreground" />
-                                </div>
-                                {renderWidget(widget)}
-                              </ChartCard>
-                            </div>
+                                <ChartCard
+                                  title={widget.config.title}
+                                  className="h-80"
+                                  isDragging={snapshot.isDragging}
+                                  onDelete={userCanDelete ? () => handleDeleteWidget(widget.id) : undefined}
+                                  onConfigure={userCanEdit ? () => setEditingWidget(widget) : undefined}
+                                  drillBreadcrumb={drillBreadcrumb}
+                                  canDrillUp={canDrillUpWidget}
+                                  canDrillDown={canDrillDownWidget}
+                                  onDrillUp={() => handleDrillUp(widget.id)}
+                                  onDrillReset={() => handleDrillReset(widget.id)}
+                                >
+                                  <div {...provided.dragHandleProps} className="absolute left-2 top-2 z-10 opacity-0 group-hover:opacity-100 cursor-grab">
+                                    <GripVertical className="h-5 w-5 text-muted-foreground" />
+                                  </div>
+                                  {renderWidget(widget)}
+                                </ChartCard>
+                              </div>
                             );
                           }}
                         </Draggable>
@@ -547,19 +442,13 @@ export default function DashboardBuilderPage() {
         onSwitch={handleDatasetSwitch}
       />
 
-      {getCurrentDataset() && (
-        <QueryDialog
-          open={showQueryDialog}
-          onOpenChange={setShowQueryDialog}
-          columns={getCurrentDataset()?.columns || []}
-          datasetId={getCurrentDataset()?.id || ''}
-          onAddWidget={(widget) => {
-            if (currentDashboard) {
-              saveStateForUndo();
-              addWidget(currentDashboard.id, widget);
-              toast({ title: 'Widget added', description: 'Generated from Q&A query.' });
-            }
-          }}
+      {/* Double-click Insight Modal */}
+      {insightWidget && (
+        <InsightModal
+          widget={insightWidget}
+          data={getDatasetData(insightWidget.config.datasetId, insightWidget.id)}
+          position={insightPos}
+          onClose={() => setInsightWidget(null)}
         />
       )}
     </MainLayout>

@@ -1,10 +1,48 @@
-import { Users, Building2, Shield, Edit3, Crown } from 'lucide-react';
+import { useState } from 'react';
+import { Users, Building2, Shield, Edit3, Crown, Plus, Share2, UserPlus, X } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { STATIC_ORG, useAuthStore, UserRole } from '@/stores/authStore';
+import { useNotificationStore } from '@/stores/notificationStore';
+import { useDashboardStore } from '@/stores/dashboardStore';
+import { toast } from '@/hooks/use-toast';
+
+interface Team {
+  id: string;
+  name: string;
+  members: string[];
+}
+
+const TEAMS_STORAGE_KEY = 'visorybi-teams';
+const SHARED_DASHBOARDS_KEY = 'visorybi-shared-dashboards';
+
+function loadTeams(): Team[] {
+  try { return JSON.parse(localStorage.getItem(TEAMS_STORAGE_KEY) || '[]'); } catch { return []; }
+}
+function saveTeams(teams: Team[]) {
+  localStorage.setItem(TEAMS_STORAGE_KEY, JSON.stringify(teams));
+}
+function loadSharedIds(): string[] {
+  try { return JSON.parse(localStorage.getItem(SHARED_DASHBOARDS_KEY) || '[]'); } catch { return []; }
+}
+function saveSharedIds(ids: string[]) {
+  localStorage.setItem(SHARED_DASHBOARDS_KEY, JSON.stringify(ids));
+}
 
 export default function WorkspacePage() {
   const { currentUser } = useAuthStore();
+  const { addNotification } = useNotificationStore();
+  const { dashboards } = useDashboardStore();
+
+  const [teams, setTeams] = useState<Team[]>(loadTeams);
+  const [newTeamName, setNewTeamName] = useState('');
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [sharedIds, setSharedIds] = useState<string[]>(loadSharedIds);
+
+  const isOnline = (username: string) => username === 'Naveen';
 
   const roleColor = (role: UserRole) => {
     switch (role) {
@@ -22,11 +60,43 @@ export default function WorkspacePage() {
     }
   };
 
+  const handleCreateTeam = () => {
+    if (!newTeamName.trim()) { toast({ title: 'Enter a team name', variant: 'destructive' }); return; }
+    if (selectedMembers.length === 0) { toast({ title: 'Select at least one member', variant: 'destructive' }); return; }
+    const team: Team = { id: Date.now().toString(36), name: newTeamName.trim(), members: selectedMembers };
+    const updated = [...teams, team];
+    setTeams(updated);
+    saveTeams(updated);
+    setNewTeamName('');
+    setSelectedMembers([]);
+    addNotification('Team Created', `Team "${team.name}" has been created with ${team.members.length} members.`);
+    toast({ title: 'Team created', description: team.name });
+  };
+
+  const handleDeleteTeam = (id: string) => {
+    const updated = teams.filter(t => t.id !== id);
+    setTeams(updated);
+    saveTeams(updated);
+    toast({ title: 'Team deleted' });
+  };
+
+  const toggleMember = (username: string) => {
+    setSelectedMembers(prev => prev.includes(username) ? prev.filter(m => m !== username) : [...prev, username]);
+  };
+
+  const handleShareDashboard = (dashboardId: string, dashboardName: string) => {
+    const updated = [...new Set([...sharedIds, dashboardId])];
+    setSharedIds(updated);
+    saveSharedIds(updated);
+    addNotification('Dashboard Shared', `"${dashboardName}" has been shared with the team.`);
+    toast({ title: 'Dashboard shared', description: dashboardName });
+  };
+
   return (
     <MainLayout>
-      <div className="p-6 max-w-3xl mx-auto">
+      <div className="p-6 max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div className="mb-8">
+        <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Users className="h-6 w-6 text-[hsl(var(--chart-5))]" /> Collaboration
           </h1>
@@ -34,7 +104,7 @@ export default function WorkspacePage() {
         </div>
 
         {/* Organization Card */}
-        <div className="glass-card rounded-xl p-6 mb-6">
+        <div className="glass-card rounded-xl p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
               <Building2 className="h-6 w-6 text-primary" />
@@ -48,41 +118,127 @@ export default function WorkspacePage() {
           {/* Members List */}
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">Team Members</h3>
-            {STATIC_ORG.members.map((member) => (
-              <div
-                key={member.id}
-                className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3 transition-colors hover:bg-muted/80"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                      {member.username[0].toUpperCase()}
+            {STATIC_ORG.members.map((member) => {
+              const online = isOnline(member.username);
+              return (
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3 transition-colors hover:bg-muted/80"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                        {member.username[0].toUpperCase()}
+                      </div>
+                      <div className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card ${online ? 'bg-[hsl(var(--success))]' : 'bg-muted-foreground/40'}`} />
                     </div>
-                    {/* Active indicator */}
-                    <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-[hsl(var(--success))]" />
+                    <div>
+                      <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                        {member.username}
+                        {member.isOwner && (
+                          <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">Owner</span>
+                        )}
+                        {currentUser?.username === member.username && (
+                          <span className="text-[10px] font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">You</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{online ? 'Active now' : 'Offline'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                      {member.username}
-                      {member.isOwner && (
-                        <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">Owner</span>
-                      )}
-                      {currentUser?.username === member.username && (
-                        <span className="text-[10px] font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">You</span>
-                      )}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Active now</p>
+                  <div className="flex items-center gap-2">
+                    <Badge className={`${roleColor(member.role)} gap-1`}>
+                      {roleIcon(member.role)}
+                      {member.role}
+                    </Badge>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge className={`${roleColor(member.role)} gap-1`}>
-                    {roleIcon(member.role)}
-                    {member.role}
-                  </Badge>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+        </div>
+
+        {/* Create Team */}
+        <div className="glass-card rounded-xl p-6">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4 flex items-center gap-2">
+            <UserPlus className="h-4 w-4" /> Create Team
+          </h3>
+          <div className="flex flex-col gap-4">
+            <div className="space-y-2">
+              <Label>Team Name</Label>
+              <Input value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} placeholder="e.g. Analytics Team" />
+            </div>
+            <div className="space-y-2">
+              <Label>Assign Members</Label>
+              <div className="flex flex-wrap gap-2">
+                {STATIC_ORG.members.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => toggleMember(m.username)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                      selectedMembers.includes(m.username)
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted/50 text-foreground border-border hover:border-primary/50'
+                    }`}
+                  >
+                    {m.username}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Button onClick={handleCreateTeam} className="gap-2 w-fit">
+              <Plus className="h-4 w-4" /> Create Team
+            </Button>
+          </div>
+
+          {/* Existing Teams */}
+          {teams.length > 0 && (
+            <div className="mt-6 space-y-2">
+              <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Your Teams</h4>
+              {teams.map((team) => (
+                <div key={team.id} className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{team.name}</p>
+                    <p className="text-xs text-muted-foreground">{team.members.join(', ')}</p>
+                  </div>
+                  <button onClick={() => handleDeleteTeam(team.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Share Dashboard */}
+        <div className="glass-card rounded-xl p-6">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4 flex items-center gap-2">
+            <Share2 className="h-4 w-4" /> Share Dashboard
+          </h3>
+          {dashboards.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No dashboards available to share.</p>
+          ) : (
+            <div className="space-y-2">
+              {dashboards.map((d) => (
+                <div key={d.id} className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-foreground">{d.name}</p>
+                    {sharedIds.includes(d.id) && (
+                      <Badge variant="secondary" className="text-[10px]">Shared</Badge>
+                    )}
+                  </div>
+                  {!sharedIds.includes(d.id) ? (
+                    <Button variant="outline" size="sm" className="gap-1" onClick={() => handleShareDashboard(d.id, d.name)}>
+                      <Share2 className="h-3 w-3" /> Share
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-[hsl(var(--success))] inline-block" /> Active Now
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Role Permissions Info */}

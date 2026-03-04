@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { DashboardWidget, DataColumn, isKPIConfig, isChartConfig } from '@/types/dashboard';
 import { 
   Table, 
@@ -86,19 +85,20 @@ export function WidgetEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl flex flex-col" style={{ maxHeight: '90vh' }}>
+        <DialogHeader className="shrink-0">
           <DialogTitle>Edit Widget: {editedWidget.config.title}</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+          <TabsList className="grid w-full grid-cols-4 shrink-0">
             <TabsTrigger value="config">Configuration</TabsTrigger>
+            <TabsTrigger value="colors">Colors</TabsTrigger>
             <TabsTrigger value="labels">Labels</TabsTrigger>
             <TabsTrigger value="data">Data Editor</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="config" className="space-y-4 mt-4">
+          <TabsContent value="config" className="flex-1 overflow-y-auto mt-4 min-h-0">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Title</Label>
@@ -110,7 +110,6 @@ export function WidgetEditDialog({
 
               {isChartConfig(editedWidget.config) && editedWidget.type !== 'table' && (
                 <>
-                  {/* Chart type selector */}
                   <div className="space-y-2 sm:col-span-2">
                     <Label>Chart Type</Label>
                     <Select
@@ -150,98 +149,41 @@ export function WidgetEditDialog({
                     <>
                       <div className="space-y-2">
                         <Label>Label Field</Label>
-                        <Select
-                          value={editedWidget.config.labelField || ''}
-                          onValueChange={(v) => updateConfig({ labelField: v })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select field" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {columns.map((c) => (
-                              <SelectItem key={c.name} value={c.name}>
-                                {c.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
+                        <Select value={editedWidget.config.labelField || ''} onValueChange={(v) => updateConfig({ labelField: v })}>
+                          <SelectTrigger><SelectValue placeholder="Select field" /></SelectTrigger>
+                          <SelectContent>{columns.map((c) => (<SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>))}</SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-2">
                         <Label>Value Field</Label>
-                        <Select
-                          value={editedWidget.config.valueField || ''}
-                          onValueChange={(v) => updateConfig({ valueField: v })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select field" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {numericColumns.map((c) => (
-                              <SelectItem key={c.name} value={c.name}>
-                                {c.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
+                        <Select value={editedWidget.config.valueField || ''} onValueChange={(v) => updateConfig({ valueField: v })}>
+                          <SelectTrigger><SelectValue placeholder="Select field" /></SelectTrigger>
+                          <SelectContent>{numericColumns.map((c) => (<SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>))}</SelectContent>
                         </Select>
                       </div>
                     </>
                   ) : editedWidget.type === 'gauge' ? (
-                    <>
-                      <div className="space-y-2">
-                        <Label>Value Field</Label>
-                        <Select
-                          value={editedWidget.config.valueField || ''}
-                          onValueChange={(v) => updateConfig({ valueField: v })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select field" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {numericColumns.map((c) => (
-                              <SelectItem key={c.name} value={c.name}>
-                                {c.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </>
+                    <div className="space-y-2">
+                      <Label>Value Field</Label>
+                      <Select value={editedWidget.config.valueField || ''} onValueChange={(v) => updateConfig({ valueField: v })}>
+                        <SelectTrigger><SelectValue placeholder="Select field" /></SelectTrigger>
+                        <SelectContent>{numericColumns.map((c) => (<SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>))}</SelectContent>
+                      </Select>
+                    </div>
                   ) : (
                     <>
                       <div className="space-y-2">
                         <Label>X Axis</Label>
-                        <Select
-                          value={editedWidget.config.xAxis || ''}
-                          onValueChange={(v) => updateConfig({ xAxis: v })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select field" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {columns.map((c) => (
-                              <SelectItem key={c.name} value={c.name}>
-                                {c.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
+                        <Select value={editedWidget.config.xAxis || ''} onValueChange={(v) => updateConfig({ xAxis: v })}>
+                          <SelectTrigger><SelectValue placeholder="Select field" /></SelectTrigger>
+                          <SelectContent>{columns.map((c) => (<SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>))}</SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-2">
                         <Label>Y Axis</Label>
-                        <Select
-                          value={editedWidget.config.yAxis || ''}
-                          onValueChange={(v) => updateConfig({ yAxis: v })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select field" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {numericColumns.map((c) => (
-                              <SelectItem key={c.name} value={c.name}>
-                                {c.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
+                        <Select value={editedWidget.config.yAxis || ''} onValueChange={(v) => updateConfig({ yAxis: v })}>
+                          <SelectTrigger><SelectValue placeholder="Select field" /></SelectTrigger>
+                          <SelectContent>{numericColumns.map((c) => (<SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>))}</SelectContent>
                         </Select>
                       </div>
                     </>
@@ -253,31 +195,15 @@ export function WidgetEditDialog({
                 <>
                   <div className="space-y-2">
                     <Label>Value Field</Label>
-                    <Select
-                      value={editedWidget.config.valueField}
-                      onValueChange={(v) => updateConfig({ valueField: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select field" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {numericColumns.map((c) => (
-                          <SelectItem key={c.name} value={c.name}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
+                    <Select value={editedWidget.config.valueField} onValueChange={(v) => updateConfig({ valueField: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select field" /></SelectTrigger>
+                      <SelectContent>{numericColumns.map((c) => (<SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>))}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Aggregation</Label>
-                    <Select
-                      value={editedWidget.config.aggregation}
-                      onValueChange={(v) => updateConfig({ aggregation: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                    <Select value={editedWidget.config.aggregation} onValueChange={(v) => updateConfig({ aggregation: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="sum">Sum</SelectItem>
                         <SelectItem value="avg">Average</SelectItem>
@@ -289,26 +215,84 @@ export function WidgetEditDialog({
                   </div>
                   <div className="space-y-2">
                     <Label>Prefix</Label>
-                    <Input
-                      value={editedWidget.config.prefix || ''}
-                      onChange={(e) => updateConfig({ prefix: e.target.value })}
-                      placeholder="$"
-                    />
+                    <Input value={editedWidget.config.prefix || ''} onChange={(e) => updateConfig({ prefix: e.target.value })} placeholder="$" />
                   </div>
                   <div className="space-y-2">
                     <Label>Suffix</Label>
-                    <Input
-                      value={editedWidget.config.suffix || ''}
-                      onChange={(e) => updateConfig({ suffix: e.target.value })}
-                      placeholder="%"
-                    />
+                    <Input value={editedWidget.config.suffix || ''} onChange={(e) => updateConfig({ suffix: e.target.value })} placeholder="%" />
                   </div>
                 </>
               )}
             </div>
           </TabsContent>
 
-          <TabsContent value="labels" className="space-y-4 mt-4">
+          {/* Colors Tab */}
+          <TabsContent value="colors" className="flex-1 overflow-y-auto mt-4 min-h-0">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Primary Chart Color</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={(editedWidget.config as any).primaryColor || '#6366f1'}
+                    onChange={(e) => updateConfig({ primaryColor: e.target.value })}
+                    className="h-9 w-12 rounded border border-border cursor-pointer"
+                  />
+                  <Input
+                    value={(editedWidget.config as any).primaryColor || '#6366f1'}
+                    onChange={(e) => updateConfig({ primaryColor: e.target.value })}
+                    className="flex-1"
+                    placeholder="#6366f1"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Label Text Color</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={(editedWidget.config as any).labelColor || '#666666'}
+                    onChange={(e) => updateConfig({ labelColor: e.target.value })}
+                    className="h-9 w-12 rounded border border-border cursor-pointer"
+                  />
+                  <Input
+                    value={(editedWidget.config as any).labelColor || '#666666'}
+                    onChange={(e) => updateConfig({ labelColor: e.target.value })}
+                    className="flex-1"
+                    placeholder="#666666"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Label Background</Label>
+                <Select
+                  value={(editedWidget.config as any).labelBg === true ? 'true' : 'false'}
+                  onValueChange={(v) => updateConfig({ labelBg: v === 'true' })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Enabled</SelectItem>
+                    <SelectItem value="false">Disabled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Show Labels</Label>
+                <Select
+                  value={(editedWidget.config as any).showDataLabels === true ? 'true' : 'false'}
+                  onValueChange={(v) => updateConfig({ showDataLabels: v === 'true' })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Yes</SelectItem>
+                    <SelectItem value="false">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="labels" className="flex-1 overflow-y-auto mt-4 min-h-0">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label>Chart Title</Label>
@@ -338,15 +322,17 @@ export function WidgetEditDialog({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Show Data Labels</Label>
+                    <Label>Font Size</Label>
                     <Select
-                      value={(editedWidget.config as any).showDataLabels === true ? 'true' : 'false'}
-                      onValueChange={(v) => updateConfig({ showDataLabels: v === 'true' })}
+                      value={(editedWidget.config as any).fontSize || '12'}
+                      onValueChange={(v) => updateConfig({ fontSize: v })}
                     >
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="true">Yes</SelectItem>
-                        <SelectItem value="false">No</SelectItem>
+                        <SelectItem value="10">10px</SelectItem>
+                        <SelectItem value="12">12px</SelectItem>
+                        <SelectItem value="14">14px</SelectItem>
+                        <SelectItem value="16">16px</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -384,14 +370,15 @@ export function WidgetEditDialog({
             </div>
           </TabsContent>
 
-          <TabsContent value="data" className="mt-4">
-            <ScrollArea className="h-[400px] rounded-md border">
+          {/* Data Editor - FIXED flex layout */}
+          <TabsContent value="data" className="flex-1 flex flex-col mt-4 min-h-0">
+            <div className="flex-1 overflow-auto rounded-md border min-h-0" style={{ maxHeight: '400px' }}>
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="w-12 text-center">#</TableHead>
+                    <TableHead className="w-12 text-center sticky top-0 bg-muted/90 z-10">#</TableHead>
                     {columns.map((col) => (
-                      <TableHead key={col.name} className="min-w-[120px]">
+                      <TableHead key={col.name} className="min-w-[120px] sticky top-0 bg-muted/90 z-10">
                         {col.name}
                         <span className="ml-1 text-xs text-muted-foreground">({col.type})</span>
                       </TableHead>
@@ -409,7 +396,7 @@ export function WidgetEditDialog({
                           <Input
                             value={String(row[col.name] ?? '')}
                             onChange={(e) => updateDataCell(rowIndex, col.name, e.target.value)}
-                            className="h-8 text-sm"
+                            className="h-8 text-sm w-full"
                             type={col.type === 'number' ? 'number' : 'text'}
                           />
                         </TableCell>
@@ -418,16 +405,16 @@ export function WidgetEditDialog({
                   ))}
                 </TableBody>
               </Table>
-            </ScrollArea>
+            </div>
             {editedData.length > 50 && (
-              <p className="mt-2 text-sm text-muted-foreground text-center">
+              <p className="mt-2 text-sm text-muted-foreground text-center shrink-0">
                 Showing first 50 rows of {editedData.length} total
               </p>
             )}
           </TabsContent>
         </Tabs>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>

@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Database, 
@@ -9,10 +10,13 @@ import {
   Zap,
   TrendingUp,
   Shield,
-  Cpu
+  Cpu,
+  Bell,
+  Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VisoryBILogo } from '@/components/VisoryBILogo';
+import { useNotificationStore } from '@/stores/notificationStore';
 
 const features = [
   { 
@@ -31,9 +35,9 @@ const features = [
   },
   { 
     icon: Settings, 
-    title: 'Admin Panel', 
+    title: 'Dashboard Builder', 
     description: 'Configure charts, KPIs & widgets', 
-    href: '/admin',
+    href: '/builder',
     color: 'from-[hsl(38,95%,55%)] to-[hsl(330,85%,60%)]',
   },
   { 
@@ -58,6 +62,19 @@ const stats = [
 ];
 
 export default function Index() {
+  const [bellOpen, setBellOpen] = useState(false);
+  const bellRef = useRef<HTMLDivElement>(null);
+  const { notifications, markRead, markAllRead, unreadCount } = useNotificationStore();
+  const count = unreadCount();
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   return (
     <div className="flex min-h-screen flex-col bg-background overflow-hidden">
       {/* Animated Background */}
@@ -83,6 +100,53 @@ export default function Index() {
             <Link to="/dashboards" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors link-underline">
               Dashboards
             </Link>
+
+            {/* Notification Bell */}
+            <div className="relative" ref={bellRef}>
+              <button
+                onClick={() => setBellOpen(!bellOpen)}
+                className="relative p-2 rounded-full hover:bg-muted transition-colors"
+              >
+                <Bell className="h-5 w-5 text-muted-foreground" />
+                {count > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                    {count > 9 ? '9+' : count}
+                  </span>
+                )}
+              </button>
+              {bellOpen && (
+                <div className="absolute right-0 mt-2 w-80 rounded-xl border border-border bg-card shadow-xl z-[60] animate-fade-in">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+                    <h4 className="text-sm font-semibold text-foreground">Notifications</h4>
+                    {count > 0 && (
+                      <button onClick={markAllRead} className="text-xs text-primary hover:underline">
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-72 overflow-auto">
+                    {notifications.length === 0 ? (
+                      <p className="p-4 text-sm text-muted-foreground text-center">No notifications</p>
+                    ) : (
+                      notifications.slice(0, 10).map((n) => (
+                        <button
+                          key={n.id}
+                          onClick={() => markRead(n.id)}
+                          className={`w-full text-left px-4 py-3 border-b border-border/30 hover:bg-muted/50 transition-colors flex gap-3 ${!n.read ? 'bg-primary/5' : ''}`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-medium truncate ${!n.read ? 'text-foreground' : 'text-muted-foreground'}`}>{n.title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                          </div>
+                          {n.read && <Check className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0 mt-1" />}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Link to="/data">
               <Button size="sm" className="gradient-bg hover:opacity-90 shadow-lg hover:shadow-xl transition-all">
                 Get Started
@@ -121,7 +185,7 @@ export default function Index() {
 
           {/* Stats */}
           <div className="mt-20 flex justify-center gap-12 md:gap-20 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
-            {stats.map((stat, i) => (
+            {stats.map((stat) => (
               <div key={stat.label} className="text-center group hover-scale cursor-default">
                 <div className={`text-4xl md:text-5xl font-bold ${stat.color} transition-transform`}>
                   {stat.value}

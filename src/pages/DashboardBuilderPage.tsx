@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Save, Undo, Redo, GripVertical, Database, RotateCcw, Maximize2, Minimize2, Home } from 'lucide-react';
+import { Plus, Save, Undo, Redo, GripVertical, Database, RotateCcw, Maximize2, Minimize2, Home, PanelLeftOpen, PanelLeftClose, BarChart3, LineChart, PieChart, AreaChart, ScatterChart, Table2, Hash, Gauge, Circle, GitBranch, Layers, TrendingUp, ArrowDownUp, Activity, Target } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useDashboardStore } from '@/stores/dashboardStore';
 import { useUndoStore } from '@/stores/undoStore';
 import { useDrillStore } from '@/stores/drillStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useAdminStore } from '@/stores/adminStore';
 import { ChartCard } from '@/components/charts/ChartCard';
 import { BarChartWidget } from '@/components/charts/BarChartWidget';
 import { LineChartWidget } from '@/components/charts/LineChartWidget';
@@ -33,12 +34,35 @@ import { DatasetSwitcher } from '@/components/dashboard/DatasetSwitcher';
 import { InsightModal } from '@/components/dashboard/InsightModal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { isChartConfig, isKPIConfig, DashboardWidget, Dashboard } from '@/types/dashboard';
+import { isChartConfig, isKPIConfig, DashboardWidget, ChartType } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
 import { sampleDatasets } from '@/data/sampleDatasets';
 import { deriveHierarchies, applyDrillFilters, getCurrentDrillField, canDrillDown, canDrillUp, aggregateForDrillLevel } from '@/lib/drillDown';
 import { calculateSummaries } from '@/lib/rankingUtils';
+import { autoConfigureWidget, generateSmartTitle } from '@/lib/fieldMapping';
+
+const chartTypes: { type: ChartType; icon: React.ComponentType<{ className?: string }>; label: string; category: string }[] = [
+  { type: 'bar', icon: BarChart3, label: 'Bar', category: 'Standard' },
+  { type: 'line', icon: LineChart, label: 'Line', category: 'Standard' },
+  { type: 'pie', icon: PieChart, label: 'Pie', category: 'Standard' },
+  { type: 'area', icon: AreaChart, label: 'Area', category: 'Standard' },
+  { type: 'scatter', icon: ScatterChart, label: 'Scatter', category: 'Standard' },
+  { type: 'table', icon: Table2, label: 'Table', category: 'Standard' },
+  { type: 'kpi', icon: Hash, label: 'KPI', category: 'Metrics' },
+  { type: 'gauge', icon: Gauge, label: 'Gauge', category: 'Metrics' },
+  { type: 'sparkline', icon: Activity, label: 'Sparkline', category: 'Metrics' },
+  { type: 'donut', icon: Circle, label: 'Donut', category: 'Advanced' },
+  { type: 'horizontalBar', icon: ArrowDownUp, label: 'H-Bar', category: 'Advanced' },
+  { type: 'funnel', icon: GitBranch, label: 'Funnel', category: 'Advanced' },
+  { type: 'treemap', icon: Layers, label: 'Treemap', category: 'Advanced' },
+  { type: 'radar', icon: Target, label: 'Radar', category: 'Advanced' },
+  { type: 'combo', icon: TrendingUp, label: 'Combo', category: 'Advanced' },
+  { type: 'waterfall', icon: Activity, label: 'Waterfall', category: 'Advanced' },
+  { type: 'stackedBar', icon: BarChart3, label: 'Stacked', category: 'Advanced' },
+];
 
 export default function DashboardBuilderPage() {
   const [searchParams] = useSearchParams();
@@ -47,14 +71,14 @@ export default function DashboardBuilderPage() {
   const [filters, setFilters] = useState<FilterConfig[]>([]);
   const [showDatasetSwitcher, setShowDatasetSwitcher] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [sliderOpen, setSliderOpen] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
   
-  // Double-click insight modal state
   const [insightWidget, setInsightWidget] = useState<DashboardWidget | null>(null);
   const [insightPos, setInsightPos] = useState({ x: 0, y: 0 });
   
-  // Auth for role-based UI
   const { canEdit, canDelete } = useAuthStore();
+  const { enable3DCharts, toggle3DCharts } = useAdminStore();
   
   const { dashboards, datasets, currentDashboard, setCurrentDashboard, removeWidget, updateWidget, updateDashboard, addWidget } = useDashboardStore();
   const { pushState, undo, redo, canUndo, canRedo, clear: clearUndoHistory } = useUndoStore();
@@ -136,6 +160,49 @@ export default function DashboardBuilderPage() {
     return allDatasets.find(d => d.id === datasetId) || null;
   };
 
+  const handleAddChartFromSlider = (type: ChartType) => {
+    if (!currentDashboard) {
+      toast({ title: 'No dashboard selected', variant: 'destructive' });
+      return;
+    }
+    const defaultDataset = getCurrentDataset() || allDatasets[0];
+    if (!defaultDataset) {
+      toast({ title: 'No dataset available', variant: 'destructive' });
+      return;
+    }
+    const columns = defaultDataset.columns;
+    const autoConfig = autoConfigureWidget(type, columns, defaultDataset.data);
+    const isKpiType = ['kpi', 'gauge', 'sparkline'].includes(type);
+    const widgetCount = currentDashboard.widgets.length;
+
+    saveStateForUndo();
+    const widget: Omit<DashboardWidget, 'id'> = {
+      type,
+      config: {
+        id: '',
+        type,
+        title: generateSmartTitle(type, autoConfig.xAxis as string, autoConfig.yAxis as string, autoConfig.labelField as string, autoConfig.valueField as string),
+        datasetId: defaultDataset.id,
+        xAxis: (autoConfig.xAxis as string) || '',
+        yAxis: (autoConfig.yAxis as string) || '',
+        labelField: (autoConfig.labelField as string) || '',
+        valueField: (autoConfig.valueField as string) || '',
+        aggregation: (autoConfig.aggregation as 'sum') || 'sum',
+        width: 1,
+        height: 1,
+        position: { x: 0, y: 0 },
+      },
+      gridPosition: {
+        x: (widgetCount % 2) * 6,
+        y: Math.floor(widgetCount / 2) * 4,
+        w: isKpiType ? 3 : 6,
+        h: isKpiType ? 2 : 4,
+      },
+    };
+    addWidget(currentDashboard.id, widget);
+    toast({ title: `${chartTypes.find(c => c.type === type)?.label || type} added` });
+  };
+
   const handleDrillClick = useCallback((widgetId: string, value: unknown) => {
     const drillState = drillStates[widgetId];
     if (!drillState || !canDrillDown(drillState)) return;
@@ -200,7 +267,6 @@ export default function DashboardBuilderPage() {
     }
   };
 
-  // Double-click handler for insight modal
   const handleWidgetDoubleClick = useCallback((widget: DashboardWidget, event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
@@ -275,9 +341,15 @@ export default function DashboardBuilderPage() {
     <MainLayout>
       <div ref={dashboardRef} className={cn("flex h-full flex-col", isFullscreen && "bg-background")}>
         <div className="flex flex-wrap items-center justify-between border-b border-border/50 px-6 py-4 gap-2">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">{currentDashboard.name}</h1>
-            <p className="text-sm text-muted-foreground">{currentDashboard.widgets.length} widgets • Double-click for insights</p>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={() => setSliderOpen(!sliderOpen)} className="gap-2">
+              {sliderOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+              {sliderOpen ? 'Close' : 'Charts'}
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">{currentDashboard.name}</h1>
+              <p className="text-sm text-muted-foreground">{currentDashboard.widgets.length} widgets • Double-click for insights</p>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowDatasetSwitcher(true)}>
@@ -297,130 +369,197 @@ export default function DashboardBuilderPage() {
           </div>
         </div>
 
-        <div id="dashboard-canvas" className="flex-1 overflow-auto p-6">
-          {getCurrentDataset() && (
-            <GlobalFilterBar
-              columns={getCurrentDataset()?.columns || []}
-              data={getRawDatasetData(getCurrentDataset()?.id || '')}
-              filters={filters}
-              onFiltersChange={setFilters}
-              className="mb-6"
-            />
-          )}
-
-          {/* Summary Metrics */}
-          {getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (() => {
-            const ds = getCurrentDataset()!;
-            const data = getDatasetData(ds.id);
-            const numericCols = ds.columns.filter(c => c.type === 'number');
-            if (numericCols.length === 0) return null;
-            const primaryField = numericCols[0].name;
-            const summaries = calculateSummaries(data, { metrics: ['total', 'average', 'min', 'max', 'count'], valueField: primaryField });
-            return (
-              <div className="mb-6 glass-card rounded-xl p-4">
-                <h3 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                  Summary — {primaryField.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </h3>
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-                  {(['total', 'average', 'min', 'max', 'count'] as const).map(key => (
-                    <div key={key} className="rounded-lg bg-primary/5 p-3 text-center">
-                      <p className="text-xs text-muted-foreground capitalize">{key}</p>
-                      <p className="text-lg font-bold text-foreground">{typeof summaries[key] === 'number' ? (summaries[key] as number).toLocaleString() : summaries[key]}</p>
+        {/* Main area: Slider + Dashboard */}
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          {/* Chart Library Slider */}
+          <div
+            className={cn(
+              "shrink-0 border-r border-border/50 bg-card/50 transition-all duration-300 overflow-y-auto",
+              sliderOpen ? "w-56" : "w-0"
+            )}
+            style={{ minWidth: sliderOpen ? '14rem' : 0 }}
+          >
+            {sliderOpen && (
+              <div className="p-3 space-y-4">
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Chart Library</h3>
+                {['Standard', 'Metrics', 'Advanced'].map(cat => (
+                  <div key={cat}>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-2">{cat}</p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {chartTypes.filter(c => c.category === cat).map(({ type, icon: Icon, label }) => (
+                        <button
+                          key={type}
+                          onClick={() => handleAddChartFromSlider(type)}
+                          className="flex flex-col items-center gap-1 rounded-lg border border-border/50 p-2 text-[10px] font-medium text-foreground transition-all hover:border-primary/50 hover:bg-primary/5"
+                        >
+                          <Icon className="h-4 w-4 text-primary" />
+                          {label}
+                        </button>
+                      ))}
                     </div>
-                  ))}
+                  </div>
+                ))}
+
+                {/* 3D toggle */}
+                <div className="border-t border-border/50 pt-3">
+                  <label className="flex items-center justify-between cursor-pointer text-xs">
+                    <span className="text-foreground font-medium">3D Charts</span>
+                    <input
+                      type="checkbox"
+                      checked={enable3DCharts}
+                      onChange={(e) => toggle3DCharts(e.target.checked)}
+                      className="h-4 w-4 rounded border-primary text-primary"
+                    />
+                  </label>
+                </div>
+
+                {/* Dataset selector */}
+                <div className="border-t border-border/50 pt-3 space-y-2">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase">Active Dataset</p>
+                  <p className="text-xs text-foreground truncate">{getCurrentDataset()?.name || 'None'}</p>
+                  <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => setShowDatasetSwitcher(true)}>
+                    Switch
+                  </Button>
                 </div>
               </div>
-            );
-          })()}
+            )}
+          </div>
 
-          {currentDashboard.widgets.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center text-center">
-              <Plus className="h-12 w-12 text-muted-foreground/30" />
-              <p className="mt-4 font-medium text-muted-foreground">No widgets yet</p>
-              <p className="text-sm text-muted-foreground">Go to Admin Panel to add widgets</p>
-            </div>
-          ) : (
-            <DragDropContext onDragEnd={handleDragEnd}>
-              {kpiWidgets.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wide">Key Metrics</h3>
-                  <Droppable droppableId="kpis" direction="horizontal">
-                    {(provided) => (
-                      <div ref={provided.innerRef} {...provided.droppableProps} className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                        {kpiWidgets.map((widget, index) => (
-                          <Draggable key={widget.id} draggableId={widget.id} index={index}>
-                            {(provided, snapshot) => (
-                              <div ref={provided.innerRef} {...provided.draggableProps} className={cn('relative group', snapshot.isDragging && 'z-50')}>
-                                <div {...provided.dragHandleProps} className="absolute -left-1 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
-                                  <GripVertical className="h-5 w-5 text-muted-foreground" />
-                                </div>
-                                {userCanDelete && (
-                                  <button onClick={() => handleDeleteWidget(widget.id)} className="absolute -right-2 -top-2 z-20 h-6 w-6 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs hover:bg-destructive/90" title="Delete widget">×</button>
-                                )}
+          {/* Dashboard Canvas */}
+          <div id="dashboard-canvas" className="flex-1 overflow-auto p-6 min-w-0">
+            {getCurrentDataset() && (
+              <GlobalFilterBar
+                columns={getCurrentDataset()?.columns || []}
+                data={getRawDatasetData(getCurrentDataset()?.id || '')}
+                filters={filters}
+                onFiltersChange={setFilters}
+                className="mb-6"
+              />
+            )}
+
+            {/* Summary Metrics */}
+            {getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (() => {
+              const ds = getCurrentDataset()!;
+              const data = getDatasetData(ds.id);
+              const numericCols = ds.columns.filter(c => c.type === 'number');
+              if (numericCols.length === 0) return null;
+              const primaryField = numericCols[0].name;
+              const summaries = calculateSummaries(data, { metrics: ['total', 'average', 'min', 'max', 'count'], valueField: primaryField });
+              return (
+                <div className="mb-6 glass-card rounded-xl p-4">
+                  <h3 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                    Summary — {primaryField.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+                    {(['total', 'average', 'min', 'max', 'count'] as const).map(key => (
+                      <div key={key} className="rounded-lg bg-primary/5 p-3 text-center min-w-0">
+                        <p className="text-xs text-muted-foreground capitalize">{key}</p>
+                        <p className="text-lg font-bold text-foreground">{typeof summaries[key] === 'number' ? (summaries[key] as number).toLocaleString() : summaries[key]}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {currentDashboard.widgets.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center text-center">
+                <Plus className="h-12 w-12 text-muted-foreground/30" />
+                <p className="mt-4 font-medium text-muted-foreground">No widgets yet</p>
+                <p className="text-sm text-muted-foreground">Open the chart library panel to add widgets</p>
+                <Button className="mt-4 gap-2" onClick={() => setSliderOpen(true)}>
+                  <PanelLeftOpen className="h-4 w-4" /> Open Chart Library
+                </Button>
+              </div>
+            ) : (
+              <DragDropContext onDragEnd={handleDragEnd}>
+                {kpiWidgets.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wide">Key Metrics</h3>
+                    <Droppable droppableId="kpis" direction="horizontal">
+                      {(provided) => (
+                        <div ref={provided.innerRef} {...provided.droppableProps} className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                          {kpiWidgets.map((widget, index) => (
+                            <Draggable key={widget.id} draggableId={widget.id} index={index}>
+                              {(provided, snapshot) => (
                                 <div
-                                  onClick={() => userCanEdit && setEditingWidget(widget)}
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  className={cn('relative group min-w-0', snapshot.isDragging && 'z-50')}
                                   onDoubleClick={(e) => handleWidgetDoubleClick(widget, e)}
-                                  className={cn("cursor-pointer", !userCanEdit && "cursor-default")}
+                                  style={{ ...provided.draggableProps.style, pointerEvents: 'auto' }}
                                 >
-                                  {renderWidget(widget)}
+                                  <div {...provided.dragHandleProps} className="absolute -left-1 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
+                                    <GripVertical className="h-5 w-5 text-muted-foreground" />
+                                  </div>
+                                  {userCanDelete && (
+                                    <button onClick={() => handleDeleteWidget(widget.id)} className="absolute -right-2 -top-2 z-20 h-6 w-6 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs hover:bg-destructive/90" title="Delete widget">×</button>
+                                  )}
+                                  <div
+                                    onClick={() => userCanEdit && setEditingWidget(widget)}
+                                    className={cn("cursor-pointer", !userCanEdit && "cursor-default")}
+                                  >
+                                    {renderWidget(widget)}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </div>
+                )}
+                {chartWidgets.length > 0 && (
+                  <Droppable droppableId="charts">
+                    {(provided) => (
+                      <div ref={provided.innerRef} {...provided.droppableProps} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" style={{ minWidth: 0 }}>
+                        {chartWidgets.map((widget, index) => (
+                          <Draggable key={widget.id} draggableId={widget.id} index={kpiWidgets.length + index}>
+                            {(provided, snapshot) => {
+                              const widgetDrillState = drillStates[widget.id];
+                              const drillBreadcrumb = widgetDrillState?.breadcrumb || [];
+                              const canDrillUpWidget = widgetDrillState ? canDrillUp(widgetDrillState) : false;
+                              const canDrillDownWidget = widgetDrillState ? canDrillDown(widgetDrillState) : false;
+                              return (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  className={cn('relative min-w-0', snapshot.isDragging && 'z-50')}
+                                  onDoubleClick={(e) => handleWidgetDoubleClick(widget, e)}
+                                  style={{ ...provided.draggableProps.style, pointerEvents: 'auto' }}
+                                >
+                                  <ChartCard
+                                    title={widget.config.title}
+                                    className="h-80"
+                                    isDragging={snapshot.isDragging}
+                                    onDelete={userCanDelete ? () => handleDeleteWidget(widget.id) : undefined}
+                                    onConfigure={userCanEdit ? () => setEditingWidget(widget) : undefined}
+                                    drillBreadcrumb={drillBreadcrumb}
+                                    canDrillUp={canDrillUpWidget}
+                                    canDrillDown={canDrillDownWidget}
+                                    onDrillUp={() => handleDrillUp(widget.id)}
+                                    onDrillReset={() => handleDrillReset(widget.id)}
+                                  >
+                                    <div {...provided.dragHandleProps} className="absolute left-2 top-2 z-10 opacity-0 group-hover:opacity-100 cursor-grab">
+                                      <GripVertical className="h-5 w-5 text-muted-foreground" />
+                                    </div>
+                                    {renderWidget(widget)}
+                                  </ChartCard>
+                                </div>
+                              );
+                            }}
                           </Draggable>
                         ))}
                         {provided.placeholder}
                       </div>
                     )}
                   </Droppable>
-                </div>
-              )}
-              {chartWidgets.length > 0 && (
-                <Droppable droppableId="charts">
-                  {(provided) => (
-                    <div ref={provided.innerRef} {...provided.droppableProps} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" style={{ minWidth: 0 }}>
-                      {chartWidgets.map((widget, index) => (
-                        <Draggable key={widget.id} draggableId={widget.id} index={kpiWidgets.length + index}>
-                          {(provided, snapshot) => {
-                            const widgetDrillState = drillStates[widget.id];
-                            const drillBreadcrumb = widgetDrillState?.breadcrumb || [];
-                            const canDrillUpWidget = widgetDrillState ? canDrillUp(widgetDrillState) : false;
-                            const canDrillDownWidget = widgetDrillState ? canDrillDown(widgetDrillState) : false;
-                            return (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                className={cn('relative', snapshot.isDragging && 'z-50')}
-                                onDoubleClick={(e) => handleWidgetDoubleClick(widget, e)}
-                              >
-                                <ChartCard
-                                  title={widget.config.title}
-                                  className="h-80"
-                                  isDragging={snapshot.isDragging}
-                                  onDelete={userCanDelete ? () => handleDeleteWidget(widget.id) : undefined}
-                                  onConfigure={userCanEdit ? () => setEditingWidget(widget) : undefined}
-                                  drillBreadcrumb={drillBreadcrumb}
-                                  canDrillUp={canDrillUpWidget}
-                                  canDrillDown={canDrillDownWidget}
-                                  onDrillUp={() => handleDrillUp(widget.id)}
-                                  onDrillReset={() => handleDrillReset(widget.id)}
-                                >
-                                  <div {...provided.dragHandleProps} className="absolute left-2 top-2 z-10 opacity-0 group-hover:opacity-100 cursor-grab">
-                                    <GripVertical className="h-5 w-5 text-muted-foreground" />
-                                  </div>
-                                  {renderWidget(widget)}
-                                </ChartCard>
-                              </div>
-                            );
-                          }}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              )}
-            </DragDropContext>
-          )}
+                )}
+              </DragDropContext>
+            )}
+          </div>
         </div>
       </div>
 

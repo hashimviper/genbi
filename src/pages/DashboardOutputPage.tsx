@@ -43,7 +43,6 @@ export default function DashboardOutputPage() {
   const [insightWidget, setInsightWidget] = useState<DashboardWidget | null>(null);
   const [insightPos, setInsightPos] = useState({ x: 0, y: 0 });
   
-  // Combine user datasets with sample datasets
   const allDatasets = [...datasets, ...sampleDatasets];
 
   useEffect(() => {
@@ -53,14 +52,12 @@ export default function DashboardOutputPage() {
     }
   }, [id, dashboards, setCurrentDashboard]);
 
-  // Decode shared state from URL params
   useEffect(() => {
     const stateParam = searchParams.get('state');
     if (stateParam) {
       const decoded = decodeShareState(stateParam);
       if (decoded) {
         setSharedState(decoded);
-        // Apply filters from shared state
         if (decoded.filters && typeof decoded.filters === 'object') {
           const filterArray: FilterConfig[] = Object.entries(decoded.filters).map(([field, values]) => ({
             field,
@@ -73,68 +70,42 @@ export default function DashboardOutputPage() {
     }
   }, [searchParams]);
 
-  // Parse filter state from URL params on mount
   useEffect(() => {
     const filterParam = searchParams.get('filters');
     if (filterParam) {
       try {
         const parsed = JSON.parse(decodeURIComponent(filterParam));
-        if (Array.isArray(parsed)) {
-          setFilters(parsed);
-        }
-      } catch {
-        // Invalid filter param, ignore
-      }
+        if (Array.isArray(parsed)) setFilters(parsed);
+      } catch { /* ignore */ }
     }
   }, [searchParams]);
 
-  // Handle fullscreen toggle
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().then(() => {
-        setIsFullscreen(true);
-      }).catch(() => {
-        // Fallback for browsers that don't support fullscreen
-        setIsFullscreen(true);
-      });
+      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => setIsFullscreen(true));
     } else {
-      document.exitFullscreen().then(() => {
-        setIsFullscreen(false);
-      }).catch(() => {
-        setIsFullscreen(false);
-      });
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => setIsFullscreen(false));
     }
   };
 
-  // Listen for fullscreen changes
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    const h = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', h);
+    return () => document.removeEventListener('fullscreenchange', h);
   }, []);
 
   const getDatasetData = (datasetId: string) => {
     const dataset = allDatasets.find((d) => d.id === datasetId);
     let rawData = dataset?.data || [];
-    // Apply global filters
     rawData = applyFilters(rawData, filters);
-    // Apply cross-filters
     if (Object.keys(crossFilters).length > 0) {
-      rawData = rawData.filter(row => {
-        return Object.entries(crossFilters).every(([field, value]) => {
-          if (row[field] === undefined) return true;
-          return row[field] === value;
-        });
-      });
+      rawData = rawData.filter(row => Object.entries(crossFilters).every(([field, value]) => row[field] === undefined ? true : row[field] === value));
     }
     return rawData;
   };
 
   const handleCrossFilterClick = useCallback((field: string, value: unknown) => {
     setCrossFilters(prev => {
-      // Toggle: if same filter exists, remove it
       if (prev[field] === value) {
         const next = { ...prev };
         delete next[field];
@@ -147,21 +118,18 @@ export default function DashboardOutputPage() {
 
   const handleWidgetDoubleClick = useCallback((widget: DashboardWidget, event: React.MouseEvent) => {
     event.preventDefault();
+    event.stopPropagation();
     setInsightWidget(widget);
     setInsightPos({ x: event.clientX + 10, y: event.clientY - 20 });
   }, []);
+
   const clearCrossFilters = useCallback(() => {
     setCrossFilters({});
     toast({ title: 'Cross-filters cleared' });
   }, []);
 
-  const getRawDatasetData = (datasetId: string) => {
-    return allDatasets.find((d) => d.id === datasetId)?.data || [];
-  };
-
-  const getDatasetColumns = (datasetId: string) => {
-    return allDatasets.find((d) => d.id === datasetId)?.columns || [];
-  };
+  const getRawDatasetData = (datasetId: string) => allDatasets.find((d) => d.id === datasetId)?.data || [];
+  const getDatasetColumns = (datasetId: string) => allDatasets.find((d) => d.id === datasetId)?.columns || [];
 
   const getCurrentDataset = () => {
     if (!currentDashboard?.widgets.length) return null;
@@ -173,9 +141,7 @@ export default function DashboardOutputPage() {
     const data = getDatasetData(datasetId);
     if (!field || !data.length) return 0;
     const values = data.map((row) => Number(row[field]) || 0);
-    
     if (values.length === 0) return 0;
-    
     switch (aggregation) {
       case 'sum': return values.reduce((a, b) => a + b, 0);
       case 'avg': return values.reduce((a, b) => a + b, 0) / values.length;
@@ -190,67 +156,46 @@ export default function DashboardOutputPage() {
     const config = widget.config;
     const data = getDatasetData(config.datasetId);
 
-    // Validate data exists
+    const primaryColor = (config as any).primaryColor as string | undefined;
+    const labelColor = (config as any).labelColor as string | undefined;
+    const showDataLabels = (config as any).showDataLabels as boolean | undefined;
+
     if (!data || data.length === 0) {
       return <div className="flex h-full items-center justify-center text-muted-foreground">No data available</div>;
     }
 
     if (isKPIConfig(config)) {
       const value = calculateKPIValue(config.datasetId, config.valueField, config.aggregation);
-      return (
-        <KPICard 
-          title={config.title} 
-          value={value} 
-          prefix={config.prefix} 
-          suffix={config.suffix} 
-          trend="up" 
-          trendValue="+12.5%" 
-        />
-      );
+      return <KPICard title={config.title} value={value} prefix={config.prefix} suffix={config.suffix} trend="up" trendValue="+12.5%" />;
     }
 
     if (isChartConfig(config)) {
+      const xAxis = config.xAxis || '';
+      const labelField = config.labelField || '';
+
+      const onCrossFilter = (value: unknown) => {
+        const field = xAxis || labelField;
+        if (field) handleCrossFilterClick(field, value);
+      };
+
       switch (widget.type) {
-        case 'bar':
-          return <BarChartWidget data={data} xAxis={config.xAxis || ''} yAxis={config.yAxis || ''} />;
-        case 'line':
-          return <LineChartWidget data={data} xAxis={config.xAxis || ''} yAxis={config.yAxis || ''} />;
-        case 'pie':
-          return <PieChartWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
-        case 'area':
-          return <AreaChartWidget data={data} xAxis={config.xAxis || ''} yAxis={config.yAxis || ''} />;
-        case 'table':
-          return <DataTableWidget data={data} columns={getDatasetColumns(config.datasetId).map(c => c.name)} />;
-        case 'gauge': {
-          const gaugeValue = calculateKPIValue(config.datasetId, config.valueField || '', 'avg');
-          return <GaugeChartWidget value={gaugeValue} title={config.title} />;
-        }
-        case 'radar':
-          return <RadarChartWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
-        case 'treemap':
-          return <TreemapWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
-        case 'funnel':
-          return <FunnelChartWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
-        case 'combo':
-          return <ComboChartWidget data={data} xAxis={config.xAxis || ''} barField={config.yAxis || ''} lineField={config.valueField || config.yAxis || ''} />;
-        case 'donut':
-          return <DonutChartWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
-        case 'horizontalBar':
-          return <HorizontalBarWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
-        case 'waterfall':
-          return <WaterfallChartWidget data={data} labelField={config.labelField || ''} valueField={config.valueField || ''} />;
-        case 'scatter':
-          return <ScatterPlotWidget data={data} xAxis={config.xAxis || ''} yAxis={config.yAxis || ''} />;
-        case 'stackedBar': {
-          const stackFields = config.yAxis ? [config.yAxis] : [];
-          return <StackedBarChartWidget data={data} xAxis={config.xAxis || ''} stackFields={stackFields} />;
-        }
-        case 'sparkline': {
-          const sparkValue = calculateKPIValue(config.datasetId, config.valueField || '', 'sum');
-          return <SparklineWidget data={data} valueField={config.valueField || ''} title={config.title} value={sparkValue} />;
-        }
-        default:
-          return <div className="text-muted-foreground">Unknown widget type: {widget.type}</div>;
+        case 'bar': return <BarChartWidget data={data} xAxis={xAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} onBarClick={onCrossFilter} />;
+        case 'line': return <LineChartWidget data={data} xAxis={xAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} />;
+        case 'pie': return <PieChartWidget data={data} labelField={labelField} valueField={config.valueField || ''} labelColor={labelColor} showDataLabels={showDataLabels} onSliceClick={onCrossFilter} />;
+        case 'area': return <AreaChartWidget data={data} xAxis={xAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} />;
+        case 'table': return <DataTableWidget data={data} columns={getDatasetColumns(config.datasetId).map(c => c.name)} />;
+        case 'gauge': { const v = calculateKPIValue(config.datasetId, config.valueField || '', 'avg'); return <GaugeChartWidget value={v} title={config.title} />; }
+        case 'radar': return <RadarChartWidget data={data} labelField={labelField} valueField={config.valueField || ''} />;
+        case 'treemap': return <TreemapWidget data={data} labelField={labelField} valueField={config.valueField || ''} />;
+        case 'funnel': return <FunnelChartWidget data={data} labelField={labelField} valueField={config.valueField || ''} />;
+        case 'combo': return <ComboChartWidget data={data} xAxis={xAxis} barField={config.yAxis || ''} lineField={config.valueField || config.yAxis || ''} />;
+        case 'donut': return <DonutChartWidget data={data} labelField={labelField} valueField={config.valueField || ''} onSliceClick={onCrossFilter} />;
+        case 'horizontalBar': return <HorizontalBarWidget data={data} labelField={labelField} valueField={config.valueField || ''} primaryColor={primaryColor} onBarClick={onCrossFilter} />;
+        case 'waterfall': return <WaterfallChartWidget data={data} labelField={labelField} valueField={config.valueField || ''} />;
+        case 'scatter': return <ScatterPlotWidget data={data} xAxis={xAxis} yAxis={config.yAxis || ''} />;
+        case 'stackedBar': { const sf = config.yAxis ? [config.yAxis] : []; return <StackedBarChartWidget data={data} xAxis={xAxis} stackFields={sf} />; }
+        case 'sparkline': { const v = calculateKPIValue(config.datasetId, config.valueField || '', 'sum'); return <SparklineWidget data={data} valueField={config.valueField || ''} title={config.title} value={v} />; }
+        default: return <div className="text-muted-foreground">Unknown widget type: {widget.type}</div>;
       }
     }
 
@@ -291,26 +236,9 @@ export default function DashboardOutputPage() {
           </div>
           <div className="flex items-center gap-2">
             <ShareMenu elementId="dashboard-output-canvas" dashboardName={currentDashboard.name} dashboardId={currentDashboard.id} />
-            <ExportMenu
-              elementId="dashboard-output-canvas" 
-              dashboardName={currentDashboard.name} 
-              dashboardData={currentDashboard} 
-            />
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-2"
-              onClick={toggleFullscreen}
-            >
-              {isFullscreen ? (
-                <>
-                  <Minimize2 className="h-4 w-4" /> Exit Fullscreen
-                </>
-              ) : (
-                <>
-                  <Maximize2 className="h-4 w-4" /> Fullscreen
-                </>
-              )}
+            <ExportMenu elementId="dashboard-output-canvas" dashboardName={currentDashboard.name} dashboardData={currentDashboard} />
+            <Button variant="outline" size="sm" className="gap-2" onClick={toggleFullscreen}>
+              {isFullscreen ? <><Minimize2 className="h-4 w-4" /> Exit Fullscreen</> : <><Maximize2 className="h-4 w-4" /> Fullscreen</>}
             </Button>
           </div>
         </div>
@@ -396,7 +324,7 @@ export default function DashboardOutputPage() {
                 <h3 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wide">Key Metrics</h3>
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                   {kpiWidgets.map((widget) => (
-                    <div key={widget.id} className="animate-fade-in" onDoubleClick={(e) => handleWidgetDoubleClick(widget, e)}>
+                    <div key={widget.id} className="animate-fade-in" onDoubleClick={(e) => handleWidgetDoubleClick(widget, e)} style={{ pointerEvents: 'auto' }}>
                       {renderWidget(widget)}
                     </div>
                   ))}
@@ -408,7 +336,7 @@ export default function DashboardOutputPage() {
             {chartWidgets.length > 0 && (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {chartWidgets.map((widget) => (
-                  <div key={widget.id} onDoubleClick={(e) => handleWidgetDoubleClick(widget, e)}>
+                  <div key={widget.id} onDoubleClick={(e) => handleWidgetDoubleClick(widget, e)} style={{ pointerEvents: 'auto' }}>
                     <ChartCard
                       title={widget.config.title}
                       className="h-80 animate-fade-in"

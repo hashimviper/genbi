@@ -14,9 +14,11 @@ interface HorizontalBarWidgetProps {
   labelField: string;
   valueField: string;
   showRanking?: boolean;
+  primaryColor?: string;
+  onBarClick?: (value: unknown) => void;
 }
 
-const COLORS = [
+const DEFAULT_COLORS = [
   'hsl(var(--chart-1))',
   'hsl(var(--chart-2))',
   'hsl(var(--chart-3))',
@@ -24,7 +26,7 @@ const COLORS = [
   'hsl(var(--chart-5))',
 ];
 
-export function HorizontalBarWidget({ data, labelField, valueField, showRanking = false }: HorizontalBarWidgetProps) {
+export function HorizontalBarWidget({ data, labelField, valueField, showRanking = false, primaryColor, onBarClick }: HorizontalBarWidgetProps) {
   const sortedData = [...data]
     .sort((a, b) => (Number(b[valueField]) || 0) - (Number(a[valueField]) || 0))
     .slice(0, 10);
@@ -32,6 +34,7 @@ export function HorizontalBarWidget({ data, labelField, valueField, showRanking 
   const chartData = sortedData.map((item, index) => ({
     name: showRanking ? `${index + 1}. ${item[labelField]}` : String(item[labelField]),
     value: Number(item[valueField]) || 0,
+    _raw: item[labelField],
     index,
   }));
 
@@ -65,9 +68,14 @@ export function HorizontalBarWidget({ data, labelField, valueField, showRanking 
             color: 'hsl(var(--foreground))',
           }}
         />
-        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-          {chartData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+        <Bar
+          dataKey="value"
+          radius={[0, 4, 4, 0]}
+          cursor={onBarClick ? 'pointer' : undefined}
+          onClick={(entry) => onBarClick?.(entry?._raw)}
+        >
+          {chartData.map((_, index) => (
+            <Cell key={`cell-${index}`} fill={primaryColor || DEFAULT_COLORS[index % DEFAULT_COLORS.length]} />
           ))}
         </Bar>
       </BarChart>

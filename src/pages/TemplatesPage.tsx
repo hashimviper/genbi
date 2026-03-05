@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -16,10 +16,22 @@ import {
   Sparkles,
   ArrowRight,
   Database,
+  Briefcase,
+  BarChart3,
+  PieChart,
+  Activity,
+  Shield,
+  Truck,
+  GraduationCap,
+  Building2,
+  Megaphone,
+  HeartPulse,
+  Wrench,
+  LineChart,
+  Target,
 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { dashboardTemplates } from '@/data/templates';
-// Sample data is now embedded directly in templates
 import { useDashboardStore } from '@/stores/dashboardStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +48,31 @@ import { toast } from '@/hooks/use-toast';
 import { DashboardTemplate } from '@/types/dashboard';
 import { v4 as uuidv4 } from 'uuid';
 
+// Department-specific icon mapping
+const departmentIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  'Human Resources': Users,
+  'Digital Marketing': Megaphone,
+  'Sales': TrendingUp,
+  'Healthcare': HeartPulse,
+  'Manufacturing': Factory,
+  'Global': Globe2,
+  'Environment': CloudSun,
+  'General': BarChart3,
+  'Finance': DollarSign,
+  'E-commerce': ShoppingCart,
+  'Project Management': ClipboardList,
+  'Operations': Wrench,
+  'IT': Shield,
+  'Logistics': Truck,
+  'Education': GraduationCap,
+  'Real Estate': Building2,
+  'Analytics': PieChart,
+  'Executive': Briefcase,
+  'Marketing': Megaphone,
+  'Performance': Target,
+};
+
+// Fallback: map template icon strings to components
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Users,
   Globe,
@@ -52,6 +89,19 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Search,
   Sparkles,
   ArrowRight,
+  Briefcase,
+  BarChart3,
+  PieChart,
+  Activity,
+  Shield,
+  Truck,
+  GraduationCap,
+  Building2,
+  Megaphone,
+  HeartPulse,
+  Wrench,
+  LineChart,
+  Target,
 };
 
 const categoryColors: Record<string, string> = {
@@ -67,6 +117,15 @@ const categoryColors: Record<string, string> = {
   'E-commerce': 'badge-warning',
   'Project Management': 'badge-info',
 };
+
+function getTemplateIcon(template: DashboardTemplate): React.ComponentType<{ className?: string }> {
+  // First try department-specific icon
+  if (departmentIconMap[template.category]) return departmentIconMap[template.category];
+  // Then try template's icon string
+  if (iconMap[template.icon]) return iconMap[template.icon];
+  // Fallback
+  return FileBarChart;
+}
 
 export default function TemplatesPage() {
   const navigate = useNavigate();
@@ -89,7 +148,6 @@ export default function TemplatesPage() {
   const handleSelectTemplate = (template: DashboardTemplate) => {
     setSelectedTemplate(template);
     setDashboardName(`${template.name} Dashboard`);
-    // Check if this template has embedded sample data
     const hasSampleData = template.sampleData && template.sampleData.length > 0;
     setUseSampleData(hasSampleData);
     setSelectedDataset(datasets[0]?.id || '');
@@ -100,7 +158,6 @@ export default function TemplatesPage() {
 
     let datasetId = selectedDataset;
 
-    // If using sample data from template, create the dataset
     if (useSampleData && selectedTemplate.sampleData && selectedTemplate.sampleColumns) {
       const newDataset = addDataset({
         name: `${selectedTemplate.name} Sample Data`,
@@ -112,7 +169,6 @@ export default function TemplatesPage() {
 
     const dashboard = createDashboard(dashboardName.trim(), selectedTemplate.description);
 
-    // Add widgets from template with the dataset linked
     selectedTemplate.widgets.forEach((widget) => {
       const newWidget = {
         ...widget,
@@ -167,9 +223,12 @@ export default function TemplatesPage() {
             const categoryTemplates = filteredTemplates.filter((t) => t.category === category);
             if (categoryTemplates.length === 0) return null;
 
+            const CategoryIcon = departmentIconMap[category] || FileBarChart;
+
             return (
               <section key={category} className="animate-fade-in">
                 <div className="flex items-center gap-3 mb-5">
+                  <CategoryIcon className="h-5 w-5 text-primary" />
                   <h2 className="text-xl font-bold text-foreground">{category}</h2>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${categoryColors[category] || 'badge-primary'}`}>
                     {categoryTemplates.length} templates
@@ -177,7 +236,7 @@ export default function TemplatesPage() {
                 </div>
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {categoryTemplates.map((template, index) => {
-                    const IconComponent = iconMap[template.icon] || FileBarChart;
+                    const IconComponent = getTemplateIcon(template);
                     return (
                       <button
                         key={template.id}
@@ -237,26 +296,15 @@ export default function TemplatesPage() {
         <Dialog open={!!selectedTemplate} onOpenChange={() => setSelectedTemplate(null)}>
           <DialogContent className="bg-card border-border">
             <DialogHeader>
-              <DialogTitle>
-                Create from {selectedTemplate?.name}
-              </DialogTitle>
-              <DialogDescription>
-                Customize your dashboard before creating it
-              </DialogDescription>
+              <DialogTitle>Create from {selectedTemplate?.name}</DialogTitle>
+              <DialogDescription>Customize your dashboard before creating it</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Dashboard Name</Label>
-                <Input
-                  id="name"
-                  value={dashboardName}
-                  onChange={(e) => setDashboardName(e.target.value)}
-                  placeholder="My Dashboard"
-                  className="bg-background"
-                />
+                <Input id="name" value={dashboardName} onChange={(e) => setDashboardName(e.target.value)} placeholder="My Dashboard" className="bg-background" />
               </div>
               
-              {/* Sample Data Toggle */}
               {selectedTemplate && selectedTemplate.sampleData && selectedTemplate.sampleData.length > 0 && (
                 <div className="rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 p-4 border border-primary/20">
                   <div className="flex items-center gap-3 mb-2">
@@ -267,12 +315,7 @@ export default function TemplatesPage() {
                     This template includes pre-built sample data so you can see the charts in action immediately.
                   </p>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={useSampleData}
-                      onChange={(e) => setUseSampleData(e.target.checked)}
-                      className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
-                    />
+                    <input type="checkbox" checked={useSampleData} onChange={(e) => setUseSampleData(e.target.checked)} className="h-4 w-4 rounded border-primary text-primary focus:ring-primary" />
                     <span className="text-sm font-medium">Use sample data</span>
                   </label>
                 </div>
@@ -281,18 +324,9 @@ export default function TemplatesPage() {
               {!useSampleData && datasets.length > 0 && (
                 <div className="space-y-2">
                   <Label htmlFor="dataset">Link Your Dataset</Label>
-                  <select
-                    id="dataset"
-                    value={selectedDataset}
-                    onChange={(e) => setSelectedDataset(e.target.value)}
-                    className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
+                  <select id="dataset" value={selectedDataset} onChange={(e) => setSelectedDataset(e.target.value)} className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring">
                     <option value="">No dataset linked</option>
-                    {datasets.map((ds) => (
-                      <option key={ds.id} value={ds.id}>
-                        {ds.name}
-                      </option>
-                    ))}
+                    {datasets.map((ds) => (<option key={ds.id} value={ds.id}>{ds.name}</option>))}
                   </select>
                 </div>
               )}
@@ -304,14 +338,8 @@ export default function TemplatesPage() {
               )}
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setSelectedTemplate(null)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleCreateFromTemplate} 
-                disabled={!dashboardName.trim()} 
-                className="gap-2 gradient-bg hover:opacity-90"
-              >
+              <Button variant="outline" onClick={() => setSelectedTemplate(null)}>Cancel</Button>
+              <Button onClick={handleCreateFromTemplate} disabled={!dashboardName.trim()} className="gap-2 gradient-bg hover:opacity-90">
                 Create Dashboard <ArrowRight className="h-4 w-4" />
               </Button>
             </DialogFooter>

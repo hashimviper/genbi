@@ -1,55 +1,107 @@
-## Plan: Fix, Update & Expand VisoryBI — Targeted Repairs
+## Plan: Rebuild and Correct VisoryBI
 
-### Issues Identified
+This plan addresses all requirements: navigation changes, dashboard builder chart library slider, collaboration page fixes, double-click Q&A structural fix, Data Editor overflow fix, notification bell, layout stability, and online/offline member status.
 
-1. **Chart widgets don't accept color/label config** — The color customization in WidgetEditDialog stores `primaryColor`, `labelColor`, `showDataLabels`, etc. in widget config, but chart components (BarChartWidget, LineChartWidget, PieChartWidget, etc.) don't accept or use these props. Colors are hardcoded.
-2. **Double-click Q&A partially broken** — In DashboardOutputPage, `onDoubleClick` is on the wrapper div but `stopPropagation` is missing (unlike DashboardBuilderPage which has it). Also, clicking outside the InsightModal doesn't close it (no backdrop/click-away handler).
-3. **WidgetEditDialog Data Editor** — Already structurally fixed with `flex flex-col` and `maxHeight: 400px`, but the `onSave` callback signature accepts `updatedData` but the handler in DashboardBuilderPage ignores it (line 242-248), so data edits are silently lost.
-4. **Cross-filtering not wired to chart clicks** — Charts render but have no `onClick` handlers to trigger cross-filtering. The `handleDrillClick` exists in the builder but charts don't receive click callbacks.
-5. **Delete function is not working -** The delete funcction which is already existited and worked properly isnt working now and i need you to wire the delete function propely as make it able to work
-6. **Create Icons for Pre-Build Templates -**  Create an icon which should represent all the templates based on their department
+---
 
-### Plan
+### 1. Remove Admin from Sidebar, Integrate into Builder
 
-#### A. Wire color config into chart components (6 chart files + renderWidget)
+**AppSidebar.tsx**: Remove the `{ icon: Shield, label: 'Admin Panel', href: '/admin' }` entry from `navItems` array.
 
-Add optional `primaryColor`, `labelColor`, `showDataLabels` props to: `BarChartWidget`, `LineChartWidget`, `PieChartWidget`, `AreaChartWidget`, `DonutChartWidget`, `HorizontalBarWidget`. Each component falls back to its current default if prop is undefined.
+**DashboardBuilderPage.tsx**: Add a collapsible side slider panel containing the chart library (Bar, Line, Pie, KPI, Table + all existing chart types). This panel will:
 
-Update `renderWidget()` in both `DashboardBuilderPage` and `DashboardOutputPage` to pass these config values from `widget.config` to each chart component.
+- Use a button to toggle open/close with animation
+- Slide in from the left side of the builder canvas
+- Not overlap the dashboard grid (use flex layout, not absolute positioning)
+- Allow clicking a chart type to add it to the current dashboard (reusing the existing `addWidget` logic from AdminPanelPage)
+- Include the admin config fields (dataset selector, field mapping) inline
+- Include the 3D chart toggle from AdminPanelPage
 
-#### B. Fix double-click InsightModal dismiss
+The Admin page route remains but is no longer in the nav.
 
-Add a backdrop overlay behind the InsightModal (transparent click target) so clicking outside closes it. Add `stopPropagation` to the DashboardOutputPage double-click handler.
+### 2. Home Page: Fix Landing Navbar + Add Notification Bell
 
-#### C. Fix data edit persistence
+**Index.tsx**: The landing navbar already exists and is only on the Home page (Index uses its own layout, not MainLayout). This is correct. Add:
 
-Update `handleWidgetSave` in DashboardBuilderPage to accept and apply `updatedData` when provided by the WidgetEditDialog. Store updated data in the dashboard store or dataset.
+- A notification bell icon with numeric badge in the top-right nav area
+- Dropdown panel showing notifications from localStorage
+- Store notifications via a simple zustand store with persist
 
-#### D. Wire cross-filter click handlers to charts
+**Create `src/stores/notificationStore.ts**`: Simple store with `notifications[]`, `addNotification()`, `markRead()`, `unreadCount`.
 
-Add `onBarClick` / `onSliceClick` callbacks to BarChartWidget, PieChartWidget, etc. In `renderWidget()`, pass a handler that calls `handleCrossFilterClick(xAxisField, clickedValue)` for the builder page, and `handleCrossFilterClick` for the output page.
+### 3. Collaboration Page: Online/Offline Status + Team Creation
 
-#### E. Fix InsightModal viewport clipping
+**WorkspacePage.tsx**:
 
-Ensure the modal constrains to viewport with `Math.max(10, ...)` for both top and left to avoid negative positioning.
+- Change member status: Only **Naveen** shows as "Online" (green dot + "Active now"). All others (Viper, Thaslee, Abd) show as "Offline" (gray dot + "Offline").
+- Add "Create Team" section: form to create a new team name, assign from static members, store in localStorage via workspaceStore
+- Add "Share Dashboard" simulation: button that marks a dashboard as "Shared" (badge), triggers a notification, shows static "Active Now" indicator
 
-#### F. Fix Delete option in the Dashboard Builder  
-  
-Ensure that the model is containing deleting option which is fully functionable and which is used in the Dashboard Builder page  
-  
-G.Fix the template page with providing icons for the  pre-defined templates which should represent the department
+**WorkspaceStore.ts**: Add `teams[]` array with `createTeam()`, `shareDashboard()` methods.
 
-### Files Modified
+### 4. Double-Click Q&A Structural Fix
+
+**DashboardBuilderPage.tsx** and **DashboardOutputPage.tsx**:
+
+- Move `onDoubleClick` from the chart card inner content to an outer wrapper `<div>` around each widget
+- Ensure `pointer-events` are enabled on the wrapper
+- Ensure drag handle does not consume the double-click event (already uses `stopPropagation` appropriately)
+
+**InsightModal.tsx**:
+
+- Already uses `position: fixed` and `z-[100]` -- verify this is correct and modal is not clipped by any `overflow: hidden` parent
+
+### 5. Configuration Panel Data Editor Flex Fix (Critical)
+
+**WidgetEditDialog.tsx**: The Data Editor tab currently renders a table inside a ScrollArea. The fix:
+
+- Ensure the Dialog content uses `flex flex-col` with proper `overflow-y: auto` on the tab content
+- Data Editor's `ScrollArea` must have a fixed max-height and scroll internally
+- Input fields inside table cells: use `w-full` and remove any fixed widths
+- Add `min-w-0` to flex children to prevent overflow
+- The dialog must not cause horizontal page scroll
+
+### 6. Chart & Label Color System in Configuration
+
+**WidgetEditDialog.tsx**: Add a "Colors" section in the Config tab:
+
+- Color picker for primary chart color (bar fill, line stroke, pie slice)
+- Label text color picker
+- Label background color toggle
+- Toggle labels ON/OFF
+- Store color settings in widget config
+
+### 7. Cross-Filtering Stability
+
+Already implemented in DashboardBuilderPage. Verify:
+
+- No layout shift on filter
+- Works with 100+ rows (already filters in-memory)
+- No duplication
+
+### 8. Drill-Down: Replace Data, No Stack
+
+Already implemented. The current drill-down replaces chart data via `aggregateForDrillLevel`. The chart container uses fixed `h-80` class. Verify no stacking occurs. And should avoid Data Redudency by summarizing them
+
+### 9. Layout Stability
+
+- All grid containers already use `grid` and `gap` classes
+- Add `min-w-0` to grid children where missing to prevent overflow
+- Ensure slider panel uses flex-shrink-0 and doesn't push content
+
+---
+
+### Technical Summary
 
 
-| File                                            | Change                                                                                        |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `src/components/charts/BarChartWidget.tsx`      | Add `primaryColor`, `showDataLabels`, `labelColor`, `onBarClick` props                        |
-| `src/components/charts/LineChartWidget.tsx`     | Add `primaryColor`, `showDataLabels`, `labelColor` props                                      |
-| `src/components/charts/PieChartWidget.tsx`      | Add `colors`, `showDataLabels`, `labelColor`, `onSliceClick` props                            |
-| `src/components/charts/AreaChartWidget.tsx`     | Add `primaryColor` prop                                                                       |
-| `src/components/charts/DonutChartWidget.tsx`    | Add `colors`, `onSliceClick` props                                                            |
-| `src/components/charts/HorizontalBarWidget.tsx` | Add `primaryColor`, `onBarClick` props                                                        |
-| `src/pages/DashboardBuilderPage.tsx`            | Pass color/label/click props in `renderWidget`; fix `handleWidgetSave` to handle data updates |
-| `src/pages/DashboardOutputPage.tsx`             | Pass color/label/click props in `renderWidget`; fix double-click `stopPropagation`            |
-| `src/components/dashboard/InsightModal.tsx`     | Add click-away backdrop; fix viewport clamping                                                |
+| File                                            | Change                                                                                 |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `src/components/layout/AppSidebar.tsx`          | Remove Admin nav item                                                                  |
+| `src/pages/DashboardBuilderPage.tsx`            | Add collapsible chart library slider panel with admin config; fix double-click wrapper |
+| `src/stores/notificationStore.ts`               | New store for notifications                                                            |
+| `src/pages/Index.tsx`                           | Add notification bell with badge and dropdown                                          |
+| `src/pages/WorkspacePage.tsx`                   | Online/offline per member; team creation UI; share simulation                          |
+| `src/stores/workspaceStore.ts`                  | Add teams array and share methods                                                      |
+| `src/components/dashboard/WidgetEditDialog.tsx` | Fix Data Editor flex layout; add color configuration                                   |
+| `src/components/dashboard/InsightModal.tsx`     | Ensure fixed positioning not clipped                                                   |
+| `src/pages/DashboardOutputPage.tsx`             | Fix double-click wrapper structure                                                     |

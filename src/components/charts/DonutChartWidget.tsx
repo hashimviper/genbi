@@ -5,9 +5,11 @@ interface DonutChartWidgetProps {
   labelField: string;
   valueField: string;
   showPercentage?: boolean;
+  colors?: string[];
+  onSliceClick?: (value: unknown) => void;
 }
 
-const COLORS = [
+const DEFAULT_COLORS = [
   'hsl(var(--chart-1))',
   'hsl(var(--chart-2))',
   'hsl(var(--chart-3))',
@@ -15,8 +17,9 @@ const COLORS = [
   'hsl(var(--chart-5))',
 ];
 
-export function DonutChartWidget({ data, labelField, valueField, showPercentage = true }: DonutChartWidgetProps) {
+export function DonutChartWidget({ data, labelField, valueField, showPercentage = true, colors, onSliceClick }: DonutChartWidgetProps) {
   const total = data.reduce((sum, item) => sum + (Number(item[valueField]) || 0), 0);
+  const palette = colors && colors.length > 0 ? colors : DEFAULT_COLORS;
 
   return (
     <div className="relative h-full w-full">
@@ -32,9 +35,11 @@ export function DonutChartWidget({ data, labelField, valueField, showPercentage 
             outerRadius="80%"
             strokeWidth={0}
             paddingAngle={2}
+            cursor={onSliceClick ? 'pointer' : undefined}
+            onClick={(entry) => onSliceClick?.(entry?.[labelField])}
           >
             {data.map((_, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              <Cell key={`cell-${index}`} fill={palette[index % palette.length]} />
             ))}
           </Pie>
           <Tooltip

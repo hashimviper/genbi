@@ -21,7 +21,6 @@ export function InsightModal({ widget, data, position, onClose }: InsightModalPr
     const result: Insight[] = [];
     const config = widget.config;
 
-    // Determine the numeric field
     let valueField = '';
     let labelField = '';
 
@@ -48,7 +47,6 @@ export function InsightModal({ widget, data, position, onClose }: InsightModalPr
     const max = Math.max(...values);
     const min = Math.min(...values);
 
-    // Find highest label
     if (labelField) {
       const maxIndex = values.indexOf(max);
       const minIndex = values.indexOf(min);
@@ -66,7 +64,6 @@ export function InsightModal({ widget, data, position, onClose }: InsightModalPr
       });
     }
 
-    // Growth trend (first vs last)
     if (values.length >= 2) {
       const first = values[0];
       const last = values[values.length - 1];
@@ -79,7 +76,6 @@ export function InsightModal({ widget, data, position, onClose }: InsightModalPr
       });
     }
 
-    // Top contributor percentage
     if (total > 0 && labelField) {
       const maxContrib = (max / total) * 100;
       const maxIndex = values.indexOf(max);
@@ -91,7 +87,6 @@ export function InsightModal({ widget, data, position, onClose }: InsightModalPr
       });
     }
 
-    // Summary stats
     result.push({
       icon: <BarChart3 className="h-4 w-4" />,
       label: 'Summary',
@@ -102,42 +97,46 @@ export function InsightModal({ widget, data, position, onClose }: InsightModalPr
     return result;
   }, [widget, data]);
 
-  // Constrain position to viewport
+  // Constrain to viewport with safe margins
   const style = {
-    top: Math.min(position.y, window.innerHeight - 320),
-    left: Math.min(position.x, window.innerWidth - 360),
+    top: Math.max(10, Math.min(position.y, window.innerHeight - 320)),
+    left: Math.max(10, Math.min(position.x, window.innerWidth - 360)),
   };
 
   return (
-    <div
-      className="fixed z-[100] w-[340px] rounded-xl glass-card shadow-xl border border-primary/20 animate-scale-in"
-      style={style}
-    >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
-        <h3 className="text-sm font-semibold text-foreground truncate flex-1">
-          Insights — {widget.config.title}
-        </h3>
-        <button
-          onClick={onClose}
-          className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      </div>
-      <div className="p-4 space-y-3 max-h-60 overflow-auto">
-        {insights.map((insight, i) => (
-          <div key={i} className="flex items-start gap-3">
-            <div className={`mt-0.5 ${insight.color}`}>{insight.icon}</div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-muted-foreground">{insight.label}</p>
-              <p className="text-sm font-semibold text-foreground">{insight.value}</p>
+    <>
+      {/* Click-away backdrop */}
+      <div className="fixed inset-0 z-[99]" onClick={onClose} />
+      <div
+        className="fixed z-[100] w-[340px] rounded-xl glass-card shadow-xl border border-primary/20 animate-scale-in"
+        style={style}
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+          <h3 className="text-sm font-semibold text-foreground truncate flex-1">
+            Insights — {widget.config.title}
+          </h3>
+          <button
+            onClick={onClose}
+            className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="p-4 space-y-3 max-h-60 overflow-auto">
+          {insights.map((insight, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <div className={`mt-0.5 ${insight.color}`}>{insight.icon}</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-muted-foreground">{insight.label}</p>
+                <p className="text-sm font-semibold text-foreground">{insight.value}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        <div className="px-4 py-2 border-t border-border/50">
+          <p className="text-[10px] text-muted-foreground text-center">Double-click any chart for insights</p>
+        </div>
       </div>
-      <div className="px-4 py-2 border-t border-border/50">
-        <p className="text-[10px] text-muted-foreground text-center">Double-click any chart for insights</p>
-      </div>
-    </div>
+    </>
   );
 }

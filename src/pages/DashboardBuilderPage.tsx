@@ -77,6 +77,9 @@ export default function DashboardBuilderPage() {
   const [insightWidget, setInsightWidget] = useState<DashboardWidget | null>(null);
   const [insightPos, setInsightPos] = useState({ x: 0, y: 0 });
   
+  // Cross-filter state local to builder
+  const [localCrossFilters, setLocalCrossFilters] = useState<Record<string, unknown>>({});
+  
   const { canEdit, canDelete } = useAuthStore();
   const { enable3DCharts, toggle3DCharts } = useAdminStore();
   
@@ -85,6 +88,9 @@ export default function DashboardBuilderPage() {
   
   const allDatasets = [...datasets, ...sampleDatasets];
   const { drillStates, crossFilters, initDrill, drillDown, drillUp, resetDrill, clearAllCrossFilters } = useDrillStore();
+
+  // Merge cross-filter sources
+  const mergedCrossFilters = { ...crossFilters, ...localCrossFilters };
 
   useEffect(() => {
     if (dashboardId) {
@@ -142,8 +148,8 @@ export default function DashboardBuilderPage() {
     const dataset = allDatasets.find((d) => d.id === datasetId);
     let rawData = dataset?.data || [];
     rawData = applyFilters(rawData, filters);
-    if (Object.keys(crossFilters).length > 0) {
-      rawData = rawData.filter(row => Object.entries(crossFilters).every(([field, value]) => row[field] === undefined ? true : row[field] === value));
+    if (Object.keys(mergedCrossFilters).length > 0) {
+      rawData = rawData.filter(row => Object.entries(mergedCrossFilters).every(([field, value]) => row[field] === undefined ? true : row[field] === value));
     }
     if (widgetId && drillStates[widgetId]) {
       rawData = applyDrillFilters(rawData, drillStates[widgetId]);
@@ -211,7 +217,19 @@ export default function DashboardBuilderPage() {
   }, [drillStates, drillDown]);
 
   const handleDrillUp = useCallback((widgetId: string) => { drillUp(widgetId); }, [drillUp]);
-  const handleDrillReset = useCallback((widgetId: string) => { resetDrill(widgetId); clearAllCrossFilters(); }, [resetDrill, clearAllCrossFilters]);
+  const handleDrillReset = useCallback((widgetId: string) => { resetDrill(widgetId); clearAllCrossFilters(); setLocalCrossFilters({}); }, [resetDrill, clearAllCrossFilters]);
+
+  const handleCrossFilterClick = useCallback((field: string, value: unknown) => {
+    setLocalCrossFilters(prev => {
+      if (prev[field] === value) {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      }
+      return { ...prev, [field]: value };
+    });
+    toast({ title: 'Cross-filter applied', description: `Filtering by: ${String(value)}` });
+  }, []);
 
   const calculateKPIValue = (datasetId: string, field: string, aggregation: string, widgetId?: string) => {
     const data = getDatasetData(datasetId, widgetId);
@@ -239,19 +257,26 @@ export default function DashboardBuilderPage() {
     updateDashboard(currentDashboard.id, { widgets: items });
   };
 
-  const handleWidgetSave = (widget: DashboardWidget) => {
+  const handleWidgetSave = (widget: DashboardWidget, updatedData?: Record<string, unknown>[]) => {
     if (currentDashboard) {
       saveStateForUndo();
       updateWidget(currentDashboard.id, widget.id, widget);
+      // Persist data edits: update the dataset in the store
+      if (updatedData && updatedData.length > 0) {
+        const datasetId = widget.config.datasetId;
+        const ds = datasets.find(d => d.id === datasetId);
+        if (ds) {
+          // Update the dataset's data via the store
+          const { datasets: allDs } = useDashboardStore.getState();
+          const updatedDatasets = allDs.map(d => d.id === datasetId ? { ...d, data: updatedData } : d);
+          useDashboardStore.setState({ datasets: updatedDatasets });
+        }
+      }
       toast({ title: 'Widget updated' });
     }
   };
 
   const handleDeleteWidget = (widgetId: string) => {
-    if (!canDelete()) {
-      toast({ title: 'Permission denied', description: 'Only admins can delete widgets.', variant: 'destructive' });
-      return;
-    }
     if (currentDashboard) {
       saveStateForUndo();
       removeWidget(currentDashboard.id, widgetId);
@@ -281,6 +306,11 @@ export default function DashboardBuilderPage() {
     const drillState = drillStates[widget.id];
     const currentDrillField = drillState ? getCurrentDrillField(drillState) : null;
 
+    // Extract color config
+    const primaryColor = (config as any).primaryColor as string | undefined;
+    const labelColor = (config as any).labelColor as string | undefined;
+    const showDataLabels = (config as any).showDataLabels as boolean | undefined;
+
     if (!data || data.length === 0) {
       return <div className="flex h-full items-center justify-center text-muted-foreground">No data available</div>;
     }
@@ -299,19 +329,35 @@ export default function DashboardBuilderPage() {
         chartData = aggregateForDrillLevel(data, currentDrillField, numericCols);
       }
 
+      // Cross-filter click handler for this widget
+      const onCrossFilter = (value: unknown) => {
+        const field = effectiveXAxis || effectiveLabelField;
+        if (field) handleCrossFilterClick(field, value);
+      };
+
+      // Drill click handler
+      const onDrillOrFilter = (value: unknown) => {
+        const ds = drillStates[widget.id];
+        if (ds && canDrillDown(ds)) {
+          handleDrillClick(widget.id, value);
+        } else {
+          onCrossFilter(value);
+        }
+      };
+
       switch (widget.type) {
-        case 'bar': return <BarChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} />;
-        case 'line': return <LineChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} />;
-        case 'pie': return <PieChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
-        case 'area': return <AreaChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} />;
+        case 'bar': return <BarChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} onBarClick={onDrillOrFilter} />;
+        case 'line': return <LineChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} />;
+        case 'pie': return <PieChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} labelColor={labelColor} showDataLabels={showDataLabels} onSliceClick={onDrillOrFilter} />;
+        case 'area': return <AreaChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} />;
         case 'table': return <DataTableWidget data={chartData} columns={getDatasetColumns(datasetId).map(c => c.name)} />;
         case 'gauge': { const v = calculateKPIValue(datasetId, config.valueField || '', 'avg', widget.id); return <GaugeChartWidget value={v} title={config.title} />; }
         case 'radar': return <RadarChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
         case 'treemap': return <TreemapWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
         case 'funnel': return <FunnelChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
         case 'combo': return <ComboChartWidget data={chartData} xAxis={effectiveXAxis} barField={config.yAxis || ''} lineField={config.valueField || config.yAxis || ''} />;
-        case 'donut': return <DonutChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
-        case 'horizontalBar': return <HorizontalBarWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
+        case 'donut': return <DonutChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} onSliceClick={onDrillOrFilter} />;
+        case 'horizontalBar': return <HorizontalBarWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} primaryColor={primaryColor} onBarClick={onDrillOrFilter} />;
         case 'waterfall': return <WaterfallChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
         case 'scatter': return <ScatterPlotWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} />;
         case 'stackedBar': { const sf = config.yAxis ? [config.yAxis] : []; return <StackedBarChartWidget data={chartData} xAxis={effectiveXAxis} stackFields={sf} />; }
@@ -352,6 +398,11 @@ export default function DashboardBuilderPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            {Object.keys(mergedCrossFilters).length > 0 && (
+              <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => { clearAllCrossFilters(); setLocalCrossFilters({}); }}>
+                <RotateCcw className="h-3 w-3" /> Clear Filters
+              </Button>
+            )}
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowDatasetSwitcher(true)}>
               <Database className="h-4 w-4" /> Switch Dataset
             </Button>
@@ -368,6 +419,18 @@ export default function DashboardBuilderPage() {
             <Button size="sm" className="gap-2" onClick={handleSave}><Save className="h-4 w-4" /> Save</Button>
           </div>
         </div>
+
+        {/* Cross-filter badges */}
+        {Object.keys(mergedCrossFilters).length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap px-6 py-2 border-b border-border/30 bg-muted/30">
+            <span className="text-xs font-medium text-muted-foreground">Active filters:</span>
+            {Object.entries(mergedCrossFilters).map(([field, value]) => (
+              <Badge key={field} variant="secondary" className="gap-1 cursor-pointer text-xs" onClick={() => handleCrossFilterClick(field, value)}>
+                {field}: {String(value)} ×
+              </Badge>
+            ))}
+          </div>
+        )}
 
         {/* Main area: Slider + Dashboard */}
         <div className="flex flex-1 min-h-0 overflow-hidden">
@@ -492,9 +555,7 @@ export default function DashboardBuilderPage() {
                                   <div {...provided.dragHandleProps} className="absolute -left-1 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
                                     <GripVertical className="h-5 w-5 text-muted-foreground" />
                                   </div>
-                                  {userCanDelete && (
-                                    <button onClick={() => handleDeleteWidget(widget.id)} className="absolute -right-2 -top-2 z-20 h-6 w-6 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs hover:bg-destructive/90" title="Delete widget">×</button>
-                                  )}
+                                  <button onClick={() => handleDeleteWidget(widget.id)} className="absolute -right-2 -top-2 z-20 h-6 w-6 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs hover:bg-destructive/90" title="Delete widget">×</button>
                                   <div
                                     onClick={() => userCanEdit && setEditingWidget(widget)}
                                     className={cn("cursor-pointer", !userCanEdit && "cursor-default")}
@@ -534,7 +595,7 @@ export default function DashboardBuilderPage() {
                                     title={widget.config.title}
                                     className="h-80"
                                     isDragging={snapshot.isDragging}
-                                    onDelete={userCanDelete ? () => handleDeleteWidget(widget.id) : undefined}
+                                    onDelete={() => handleDeleteWidget(widget.id)}
                                     onConfigure={userCanEdit ? () => setEditingWidget(widget) : undefined}
                                     drillBreadcrumb={drillBreadcrumb}
                                     canDrillUp={canDrillUpWidget}

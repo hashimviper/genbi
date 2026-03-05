@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   AreaChart,
   Area,
@@ -12,27 +13,33 @@ interface AreaChartWidgetProps {
   data: Record<string, unknown>[];
   xAxis: string;
   yAxis: string;
+  primaryColor?: string;
+  labelColor?: string;
 }
 
-export function AreaChartWidget({ data, xAxis, yAxis }: AreaChartWidgetProps) {
+export function AreaChartWidget({ data, xAxis, yAxis, primaryColor, labelColor }: AreaChartWidgetProps) {
+  const stroke = primaryColor || 'hsl(var(--chart-3))';
+  const labelFill = labelColor || 'hsl(var(--muted-foreground))';
+  const gradientId = useMemo(() => `areaGrad-${Math.random().toString(36).slice(2, 8)}`, []);
+
   return (
     <ResponsiveContainer width="100%" height="100%">
       <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         <defs>
-          <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="hsl(var(--chart-3))" stopOpacity={0.4} />
-            <stop offset="100%" stopColor="hsl(var(--chart-3))" stopOpacity={0} />
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={stroke} stopOpacity={0.4} />
+            <stop offset="100%" stopColor={stroke} stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
         <XAxis
           dataKey={xAxis}
-          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+          tick={{ fill: labelFill, fontSize: 11 }}
           axisLine={{ stroke: 'hsl(var(--border))' }}
           tickLine={{ stroke: 'hsl(var(--border))' }}
         />
         <YAxis
-          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+          tick={{ fill: labelFill, fontSize: 11 }}
           axisLine={{ stroke: 'hsl(var(--border))' }}
           tickLine={{ stroke: 'hsl(var(--border))' }}
         />
@@ -47,9 +54,9 @@ export function AreaChartWidget({ data, xAxis, yAxis }: AreaChartWidgetProps) {
         <Area
           type="monotone"
           dataKey={yAxis}
-          stroke="hsl(var(--chart-3))"
+          stroke={stroke}
           strokeWidth={2}
-          fill="url(#areaGradient)"
+          fill={`url(#${gradientId})`}
         />
       </AreaChart>
     </ResponsiveContainer>

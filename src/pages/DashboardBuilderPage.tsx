@@ -333,9 +333,17 @@ export default function DashboardBuilderPage() {
       const effectiveXAxis = currentDrillField || config.xAxis || '';
       const effectiveLabelField = currentDrillField || config.labelField || '';
       let chartData = data;
+
+      // Auto-aggregate for large datasets
+      const groupField = effectiveXAxis || effectiveLabelField;
+      const measureField = config.yAxis || config.valueField || '';
+      if (data.length > 50 && groupField && measureField) {
+        chartData = autoAggregate(data, { chartType: widget.type, groupField, measureField });
+      }
+
       if (currentDrillField && drillState && drillState.currentLevel > 0) {
         const numericCols = getDatasetColumns(datasetId).filter(c => c.type === 'number').map(c => c.name);
-        chartData = aggregateForDrillLevel(data, currentDrillField, numericCols);
+        chartData = aggregateForDrillLevel(chartData, currentDrillField, numericCols);
       }
 
       // Cross-filter click handler for this widget

@@ -15,33 +15,38 @@ interface AreaChartWidgetProps {
   yAxis: string;
   primaryColor?: string;
   labelColor?: string;
+  chartBgColor?: string;
+  axisColor?: string;
+  gridColor?: string;
 }
 
-export function AreaChartWidget({ data, xAxis, yAxis, primaryColor, labelColor }: AreaChartWidgetProps) {
+export function AreaChartWidget({ data, xAxis, yAxis, primaryColor, labelColor, chartBgColor, axisColor, gridColor }: AreaChartWidgetProps) {
   const stroke = primaryColor || 'hsl(var(--chart-3))';
   const labelFill = labelColor || 'hsl(var(--muted-foreground))';
+  const axFill = axisColor || 'hsl(var(--border))';
+  const gridStroke = gridColor || 'hsl(var(--border))';
   const gradientId = useMemo(() => `areaGrad-${Math.random().toString(36).slice(2, 8)}`, []);
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+      <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} style={chartBgColor ? { backgroundColor: chartBgColor } : undefined}>
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={stroke} stopOpacity={0.4} />
             <stop offset="100%" stopColor={stroke} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+        <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
         <XAxis
           dataKey={xAxis}
           tick={{ fill: labelFill, fontSize: 11 }}
-          axisLine={{ stroke: 'hsl(var(--border))' }}
-          tickLine={{ stroke: 'hsl(var(--border))' }}
+          axisLine={{ stroke: axFill }}
+          tickLine={{ stroke: axFill }}
         />
         <YAxis
           tick={{ fill: labelFill, fontSize: 11 }}
-          axisLine={{ stroke: 'hsl(var(--border))' }}
-          tickLine={{ stroke: 'hsl(var(--border))' }}
+          axisLine={{ stroke: axFill }}
+          tickLine={{ stroke: axFill }}
         />
         <Tooltip
           contentStyle={{

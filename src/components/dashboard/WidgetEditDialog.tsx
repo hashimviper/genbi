@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,8 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { getPreviewPage } from '@/lib/dataModel';
 
 interface WidgetEditDialogProps {
   open: boolean;
@@ -34,6 +36,24 @@ interface WidgetEditDialogProps {
   columns: DataColumn[];
   data: Record<string, unknown>[];
   onSave: (widget: DashboardWidget, updatedData?: Record<string, unknown>[]) => void;
+}
+
+// Color picker row component
+function ColorPickerRow({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-12 rounded border border-border cursor-pointer"
+        />
+        <Input value={value} onChange={(e) => onChange(e.target.value)} className="flex-1" placeholder={value} />
+      </div>
+    </div>
+  );
 }
 
 export function WidgetEditDialog({
@@ -47,17 +67,22 @@ export function WidgetEditDialog({
   const [editedWidget, setEditedWidget] = useState<DashboardWidget | null>(null);
   const [editedData, setEditedData] = useState<Record<string, unknown>[]>([]);
   const [activeTab, setActiveTab] = useState('config');
+  const [dataPage, setDataPage] = useState(1);
 
   useEffect(() => {
     if (widget) {
       setEditedWidget(JSON.parse(JSON.stringify(widget)));
       setEditedData(JSON.parse(JSON.stringify(data)));
+      setDataPage(1);
     }
   }, [widget, data]);
+
+  const dataPreview = useMemo(() => getPreviewPage(editedData, dataPage, 200), [editedData, dataPage]);
 
   if (!editedWidget) return null;
 
   const numericColumns = columns.filter((c) => c.type === 'number');
+  const cfg = editedWidget.config as any;
 
   const updateConfig = (updates: Record<string, unknown>) => {
     setEditedWidget({
@@ -67,10 +92,11 @@ export function WidgetEditDialog({
   };
 
   const updateDataCell = (rowIndex: number, column: string, value: string) => {
+    const globalIndex = (dataPage - 1) * 200 + rowIndex;
     const newData = [...editedData];
     const columnDef = columns.find(c => c.name === column);
-    newData[rowIndex] = {
-      ...newData[rowIndex],
+    newData[globalIndex] = {
+      ...newData[globalIndex],
       [column]: columnDef?.type === 'number' ? parseFloat(value) || 0 : value,
     };
     setEditedData(newData);
@@ -82,6 +108,21 @@ export function WidgetEditDialog({
     }
     onOpenChange(false);
   };
+
+  // Detect unique categories for per-category color pickers
+  const categoryField = cfg.xAxis || cfg.labelField || '';
+  const uniqueCategories = useMemo(() => {
+    if (!categoryField || !data.length) return [];
+    const unique = [...new Set(data.map(r => String(r[categoryField] ?? '')))];
+    return unique.slice(0, 12);
+  }, [data, categoryField]);
+
+  const categoryColors: Record<string, string> = cfg.categoryColors || {};
+  const setCategoryColor = (cat: string, color: string) => {
+    updateConfig({ categoryColors: { ...categoryColors, [cat]: color } });
+  };
+
+  const DEFAULT_CAT_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#14b8a6', '#a855f7', '#eab308'];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -98,6 +139,7 @@ export function WidgetEditDialog({
             <TabsTrigger value="data">Data Editor</TabsTrigger>
           </TabsList>
 
+          {/* ── Configuration Tab ── */}
           <TabsContent value="config" className="flex-1 overflow-y-auto mt-4 min-h-0">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -122,9 +164,7 @@ export function WidgetEditDialog({
                         });
                       }}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="bar">Bar Chart</SelectItem>
                         <SelectItem value="line">Line Chart</SelectItem>
@@ -149,14 +189,14 @@ export function WidgetEditDialog({
                     <>
                       <div className="space-y-2">
                         <Label>Label Field</Label>
-                        <Select value={editedWidget.config.labelField || ''} onValueChange={(v) => updateConfig({ labelField: v })}>
+                        <Select value={cfg.labelField || ''} onValueChange={(v) => updateConfig({ labelField: v })}>
                           <SelectTrigger><SelectValue placeholder="Select field" /></SelectTrigger>
                           <SelectContent>{columns.map((c) => (<SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>))}</SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-2">
                         <Label>Value Field</Label>
-                        <Select value={editedWidget.config.valueField || ''} onValueChange={(v) => updateConfig({ valueField: v })}>
+                        <Select value={cfg.valueField || ''} onValueChange={(v) => updateConfig({ valueField: v })}>
                           <SelectTrigger><SelectValue placeholder="Select field" /></SelectTrigger>
                           <SelectContent>{numericColumns.map((c) => (<SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>))}</SelectContent>
                         </Select>
@@ -165,7 +205,7 @@ export function WidgetEditDialog({
                   ) : editedWidget.type === 'gauge' ? (
                     <div className="space-y-2">
                       <Label>Value Field</Label>
-                      <Select value={editedWidget.config.valueField || ''} onValueChange={(v) => updateConfig({ valueField: v })}>
+                      <Select value={cfg.valueField || ''} onValueChange={(v) => updateConfig({ valueField: v })}>
                         <SelectTrigger><SelectValue placeholder="Select field" /></SelectTrigger>
                         <SelectContent>{numericColumns.map((c) => (<SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>))}</SelectContent>
                       </Select>
@@ -174,14 +214,14 @@ export function WidgetEditDialog({
                     <>
                       <div className="space-y-2">
                         <Label>X Axis</Label>
-                        <Select value={editedWidget.config.xAxis || ''} onValueChange={(v) => updateConfig({ xAxis: v })}>
+                        <Select value={cfg.xAxis || ''} onValueChange={(v) => updateConfig({ xAxis: v })}>
                           <SelectTrigger><SelectValue placeholder="Select field" /></SelectTrigger>
                           <SelectContent>{columns.map((c) => (<SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>))}</SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-2">
                         <Label>Y Axis</Label>
-                        <Select value={editedWidget.config.yAxis || ''} onValueChange={(v) => updateConfig({ yAxis: v })}>
+                        <Select value={cfg.yAxis || ''} onValueChange={(v) => updateConfig({ yAxis: v })}>
                           <SelectTrigger><SelectValue placeholder="Select field" /></SelectTrigger>
                           <SelectContent>{numericColumns.map((c) => (<SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>))}</SelectContent>
                         </Select>
@@ -226,60 +266,18 @@ export function WidgetEditDialog({
             </div>
           </TabsContent>
 
-          {/* Colors Tab */}
+          {/* ── Colors Tab ── */}
           <TabsContent value="colors" className="flex-1 overflow-y-auto mt-4 min-h-0">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Primary Chart Color</Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={(editedWidget.config as any).primaryColor || '#6366f1'}
-                    onChange={(e) => updateConfig({ primaryColor: e.target.value })}
-                    className="h-9 w-12 rounded border border-border cursor-pointer"
-                  />
-                  <Input
-                    value={(editedWidget.config as any).primaryColor || '#6366f1'}
-                    onChange={(e) => updateConfig({ primaryColor: e.target.value })}
-                    className="flex-1"
-                    placeholder="#6366f1"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Label Text Color</Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={(editedWidget.config as any).labelColor || '#666666'}
-                    onChange={(e) => updateConfig({ labelColor: e.target.value })}
-                    className="h-9 w-12 rounded border border-border cursor-pointer"
-                  />
-                  <Input
-                    value={(editedWidget.config as any).labelColor || '#666666'}
-                    onChange={(e) => updateConfig({ labelColor: e.target.value })}
-                    className="flex-1"
-                    placeholder="#666666"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Label Background</Label>
-                <Select
-                  value={(editedWidget.config as any).labelBg === true ? 'true' : 'false'}
-                  onValueChange={(v) => updateConfig({ labelBg: v === 'true' })}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">Enabled</SelectItem>
-                    <SelectItem value="false">Disabled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <ColorPickerRow label="Primary Chart Color" value={cfg.primaryColor || '#6366f1'} onChange={(v) => updateConfig({ primaryColor: v })} />
+              <ColorPickerRow label="Chart Background" value={cfg.chartBgColor || '#ffffff'} onChange={(v) => updateConfig({ chartBgColor: v === '#ffffff' ? undefined : v })} />
+              <ColorPickerRow label="Axis Color" value={cfg.axisColor || '#e2e8f0'} onChange={(v) => updateConfig({ axisColor: v })} />
+              <ColorPickerRow label="Gridline Color" value={cfg.gridColor || '#e2e8f0'} onChange={(v) => updateConfig({ gridColor: v })} />
+
               <div className="space-y-2">
                 <Label>Show Labels</Label>
                 <Select
-                  value={(editedWidget.config as any).showDataLabels === true ? 'true' : 'false'}
+                  value={cfg.showDataLabels === true ? 'true' : 'false'}
                   onValueChange={(v) => updateConfig({ showDataLabels: v === 'true' })}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -289,9 +287,58 @@ export function WidgetEditDialog({
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Line chart extras */}
+              {editedWidget.type === 'line' && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Line Thickness</Label>
+                    <Select value={String(cfg.lineThickness || 2)} onValueChange={(v) => updateConfig({ lineThickness: Number(v) })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Thin (1px)</SelectItem>
+                        <SelectItem value="2">Normal (2px)</SelectItem>
+                        <SelectItem value="3">Thick (3px)</SelectItem>
+                        <SelectItem value="4">Extra Thick (4px)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Area Fill</Label>
+                    <Select value={cfg.areaFill ? 'true' : 'false'} onValueChange={(v) => updateConfig({ areaFill: v === 'true' })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Enabled</SelectItem>
+                        <SelectItem value="false">Disabled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
             </div>
+
+            {/* Per-category color pickers */}
+            {uniqueCategories.length > 0 && ['bar', 'pie', 'donut', 'horizontalBar'].includes(editedWidget.type) && (
+              <div className="mt-6 space-y-3">
+                <Label className="text-sm font-medium">Category Colors ({categoryField})</Label>
+                <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+                  {uniqueCategories.map((cat, i) => (
+                    <div key={cat} className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={categoryColors[cat] || DEFAULT_CAT_COLORS[i % DEFAULT_CAT_COLORS.length]}
+                        onChange={(e) => setCategoryColor(cat, e.target.value)}
+                        className="h-7 w-9 rounded border border-border cursor-pointer shrink-0"
+                      />
+                      <span className="text-xs text-foreground truncate">{cat}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </TabsContent>
 
+          {/* ── Labels Tab ── */}
           <TabsContent value="labels" className="flex-1 overflow-y-auto mt-4 min-h-0">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
@@ -303,12 +350,15 @@ export function WidgetEditDialog({
                 />
               </div>
 
+              <ColorPickerRow label="Title Color" value={cfg.titleColor || '#333333'} onChange={(v) => updateConfig({ titleColor: v })} />
+              <ColorPickerRow label="Label Text Color" value={cfg.labelColor || '#666666'} onChange={(v) => updateConfig({ labelColor: v })} />
+
               {isChartConfig(editedWidget.config) && !['kpi', 'gauge', 'table'].includes(editedWidget.type) && (
                 <>
                   <div className="space-y-2">
                     <Label>X-Axis Label</Label>
                     <Input
-                      value={(editedWidget.config as any).xAxisLabel || ''}
+                      value={cfg.xAxisLabel || ''}
                       onChange={(e) => updateConfig({ xAxisLabel: e.target.value })}
                       placeholder="Auto (field name)"
                     />
@@ -316,17 +366,18 @@ export function WidgetEditDialog({
                   <div className="space-y-2">
                     <Label>Y-Axis Label</Label>
                     <Input
-                      value={(editedWidget.config as any).yAxisLabel || ''}
+                      value={cfg.yAxisLabel || ''}
                       onChange={(e) => updateConfig({ yAxisLabel: e.target.value })}
                       placeholder="Auto (field name)"
                     />
                   </div>
+                  <ColorPickerRow label="X-Axis Label Color" value={cfg.xAxisLabelColor || '#666666'} onChange={(v) => updateConfig({ xAxisLabelColor: v })} />
+                  <ColorPickerRow label="Y-Axis Label Color" value={cfg.yAxisLabelColor || '#666666'} onChange={(v) => updateConfig({ yAxisLabelColor: v })} />
+                  <ColorPickerRow label="Legend Text Color" value={cfg.legendColor || '#666666'} onChange={(v) => updateConfig({ legendColor: v })} />
+                  <ColorPickerRow label="Data Label Color" value={cfg.dataLabelColor || '#666666'} onChange={(v) => updateConfig({ dataLabelColor: v })} />
                   <div className="space-y-2">
                     <Label>Font Size</Label>
-                    <Select
-                      value={(editedWidget.config as any).fontSize || '12'}
-                      onValueChange={(v) => updateConfig({ fontSize: v })}
-                    >
+                    <Select value={cfg.fontSize || '12'} onValueChange={(v) => updateConfig({ fontSize: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="10">10px</SelectItem>
@@ -338,10 +389,7 @@ export function WidgetEditDialog({
                   </div>
                   <div className="space-y-2">
                     <Label>Legend Position</Label>
-                    <Select
-                      value={(editedWidget.config as any).legendPosition || 'bottom'}
-                      onValueChange={(v) => updateConfig({ legendPosition: v })}
-                    >
+                    <Select value={cfg.legendPosition || 'bottom'} onValueChange={(v) => updateConfig({ legendPosition: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="top">Top</SelectItem>
@@ -354,14 +402,21 @@ export function WidgetEditDialog({
                   </div>
                   <div className="space-y-2">
                     <Label>Show Legend</Label>
-                    <Select
-                      value={(editedWidget.config as any).showLegend === false ? 'false' : 'true'}
-                      onValueChange={(v) => updateConfig({ showLegend: v === 'true' })}
-                    >
+                    <Select value={cfg.showLegend === false ? 'false' : 'true'} onValueChange={(v) => updateConfig({ showLegend: v === 'true' })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="true">Yes</SelectItem>
                         <SelectItem value="false">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Label Background</Label>
+                    <Select value={cfg.labelBg === true ? 'true' : 'false'} onValueChange={(v) => updateConfig({ labelBg: v === 'true' })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Enabled</SelectItem>
+                        <SelectItem value="false">Disabled</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -370,7 +425,7 @@ export function WidgetEditDialog({
             </div>
           </TabsContent>
 
-          {/* Data Editor - FIXED flex layout */}
+          {/* ── Data Editor Tab with Pagination ── */}
           <TabsContent value="data" className="flex-1 flex flex-col mt-4 min-h-0">
             <div className="flex-1 overflow-auto rounded-md border min-h-0" style={{ maxHeight: '400px' }}>
               <Table>
@@ -386,10 +441,10 @@ export function WidgetEditDialog({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {editedData.slice(0, 50).map((row, rowIndex) => (
+                  {dataPreview.rows.map((row, rowIndex) => (
                     <TableRow key={rowIndex}>
                       <TableCell className="text-center text-muted-foreground">
-                        {rowIndex + 1}
+                        {(dataPage - 1) * 200 + rowIndex + 1}
                       </TableCell>
                       {columns.map((col) => (
                         <TableCell key={col.name} className="p-1">
@@ -406,11 +461,23 @@ export function WidgetEditDialog({
                 </TableBody>
               </Table>
             </div>
-            {editedData.length > 50 && (
-              <p className="mt-2 text-sm text-muted-foreground text-center shrink-0">
-                Showing first 50 rows of {editedData.length} total
+            {/* Pagination */}
+            <div className="mt-2 flex items-center justify-between shrink-0">
+              <p className="text-sm text-muted-foreground">
+                Rows {(dataPage - 1) * 200 + 1}–{Math.min(dataPage * 200, dataPreview.totalRows)} of {dataPreview.totalRows}
               </p>
-            )}
+              {dataPreview.totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="icon" className="h-7 w-7" disabled={dataPage <= 1} onClick={() => setDataPage(p => p - 1)}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-xs text-muted-foreground px-2">Page {dataPage}/{dataPreview.totalPages}</span>
+                  <Button variant="outline" size="icon" className="h-7 w-7" disabled={dataPage >= dataPreview.totalPages} onClick={() => setDataPage(p => p + 1)}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
 

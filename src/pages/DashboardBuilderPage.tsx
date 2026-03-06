@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Save, Undo, Redo, GripVertical, Database, RotateCcw, Maximize2, Minimize2, Home, PanelLeftOpen, PanelLeftClose, BarChart3, LineChart, PieChart, AreaChart, ScatterChart, Table2, Hash, Gauge, Circle, GitBranch, Layers, TrendingUp, ArrowDownUp, Activity, Target } from 'lucide-react';
+import { Plus, Save, Undo, Redo, GripVertical, Database, RotateCcw, Maximize2, Minimize2, Home, PanelLeftOpen, PanelLeftClose, BarChart3, LineChart, PieChart, AreaChart, ScatterChart, Table2, Hash, Gauge, Circle, GitBranch, Layers, TrendingUp, ArrowDownUp, Activity, Target, Search } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useDashboardStore } from '@/stores/dashboardStore';
@@ -43,6 +43,8 @@ import { sampleDatasets } from '@/data/sampleDatasets';
 import { deriveHierarchies, applyDrillFilters, getCurrentDrillField, canDrillDown, canDrillUp, aggregateForDrillLevel } from '@/lib/drillDown';
 import { calculateSummaries } from '@/lib/rankingUtils';
 import { autoConfigureWidget, generateSmartTitle } from '@/lib/fieldMapping';
+import { autoAggregate, clearAggregationCache } from '@/lib/dataModel';
+import { QueryDialog } from '@/components/dashboard/QueryDialog';
 
 const chartTypes: { type: ChartType; icon: React.ComponentType<{ className?: string }>; label: string; category: string }[] = [
   { type: 'bar', icon: BarChart3, label: 'Bar', category: 'Standard' },
@@ -72,6 +74,7 @@ export default function DashboardBuilderPage() {
   const [showDatasetSwitcher, setShowDatasetSwitcher] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [sliderOpen, setSliderOpen] = useState(false);
+  const [qaDialogOpen, setQaDialogOpen] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
   
   const [insightWidget, setInsightWidget] = useState<DashboardWidget | null>(null);
@@ -299,6 +302,12 @@ export default function DashboardBuilderPage() {
     setInsightPos({ x: event.clientX + 10, y: event.clientY - 20 });
   }, []);
 
+  const handleCanvasDoubleClick = useCallback((e: React.MouseEvent) => {
+    if (e.target !== e.currentTarget) return;
+    e.preventDefault();
+    setQaDialogOpen(true);
+  }, []);
+
   const renderWidget = (widget: DashboardWidget) => {
     const config = widget.config;
     const datasetId = config.datasetId;
@@ -310,6 +319,12 @@ export default function DashboardBuilderPage() {
     const primaryColor = (config as any).primaryColor as string | undefined;
     const labelColor = (config as any).labelColor as string | undefined;
     const showDataLabels = (config as any).showDataLabels as boolean | undefined;
+    const categoryColors = (config as any).categoryColors as Record<string, string> | undefined;
+    const chartBgColor = (config as any).chartBgColor as string | undefined;
+    const axisColor = (config as any).axisColor as string | undefined;
+    const gridColor = (config as any).gridColor as string | undefined;
+    const lineThickness = (config as any).lineThickness as number | undefined;
+    const areaFill = (config as any).areaFill as boolean | undefined;
 
     if (!data || data.length === 0) {
       return <div className="flex h-full items-center justify-center text-muted-foreground">No data available</div>;
@@ -324,9 +339,17 @@ export default function DashboardBuilderPage() {
       const effectiveXAxis = currentDrillField || config.xAxis || '';
       const effectiveLabelField = currentDrillField || config.labelField || '';
       let chartData = data;
+
+      // Auto-aggregate for large datasets
+      const groupField = effectiveXAxis || effectiveLabelField;
+      const measureField = config.yAxis || config.valueField || '';
+      if (data.length > 50 && groupField && measureField) {
+        chartData = autoAggregate(data, { chartType: widget.type, groupField, measureField });
+      }
+
       if (currentDrillField && drillState && drillState.currentLevel > 0) {
         const numericCols = getDatasetColumns(datasetId).filter(c => c.type === 'number').map(c => c.name);
-        chartData = aggregateForDrillLevel(data, currentDrillField, numericCols);
+        chartData = aggregateForDrillLevel(chartData, currentDrillField, numericCols);
       }
 
       // Cross-filter click handler for this widget
@@ -346,10 +369,10 @@ export default function DashboardBuilderPage() {
       };
 
       switch (widget.type) {
-        case 'bar': return <BarChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} onBarClick={onDrillOrFilter} />;
-        case 'line': return <LineChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} />;
-        case 'pie': return <PieChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} labelColor={labelColor} showDataLabels={showDataLabels} onSliceClick={onDrillOrFilter} />;
-        case 'area': return <AreaChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} />;
+        case 'bar': return <BarChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} categoryColors={categoryColors} chartBgColor={chartBgColor} axisColor={axisColor} gridColor={gridColor} onBarClick={onDrillOrFilter} />;
+        case 'line': return <LineChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} lineThickness={lineThickness} areaFill={areaFill} chartBgColor={chartBgColor} axisColor={axisColor} gridColor={gridColor} />;
+        case 'pie': return <PieChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} labelColor={labelColor} showDataLabels={showDataLabels} categoryColors={categoryColors} onSliceClick={onDrillOrFilter} />;
+        case 'area': return <AreaChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} chartBgColor={chartBgColor} axisColor={axisColor} gridColor={gridColor} />;
         case 'table': return <DataTableWidget data={chartData} columns={getDatasetColumns(datasetId).map(c => c.name)} />;
         case 'gauge': { const v = calculateKPIValue(datasetId, config.valueField || '', 'avg', widget.id); return <GaugeChartWidget value={v} title={config.title} />; }
         case 'radar': return <RadarChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
@@ -398,6 +421,9 @@ export default function DashboardBuilderPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setQaDialogOpen(true)}>
+              <Search className="h-4 w-4" /> Ask Data
+            </Button>
             {Object.keys(mergedCrossFilters).length > 0 && (
               <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => { clearAllCrossFilters(); setLocalCrossFilters({}); }}>
                 <RotateCcw className="h-3 w-3" /> Clear Filters
@@ -489,7 +515,7 @@ export default function DashboardBuilderPage() {
           </div>
 
           {/* Dashboard Canvas */}
-          <div id="dashboard-canvas" className="flex-1 overflow-auto p-6 min-w-0">
+          <div id="dashboard-canvas" className="flex-1 overflow-auto p-6 min-w-0 select-none" onDoubleClick={handleCanvasDoubleClick}>
             {getCurrentDataset() && (
               <GlobalFilterBar
                 columns={getCurrentDataset()?.columns || []}
@@ -641,6 +667,23 @@ export default function DashboardBuilderPage() {
         widgets={currentDashboard?.widgets || []}
         onSwitch={handleDatasetSwitch}
       />
+
+      {/* Q&A Dialog */}
+      {getCurrentDataset() && (
+        <QueryDialog
+          open={qaDialogOpen}
+          onOpenChange={setQaDialogOpen}
+          columns={getCurrentDataset()?.columns || []}
+          datasetId={getCurrentDataset()?.id || ''}
+          onAddWidget={(widget) => {
+            if (currentDashboard) {
+              saveStateForUndo();
+              addWidget(currentDashboard.id, widget);
+              toast({ title: 'Widget added from Q&A' });
+            }
+          }}
+        />
+      )}
 
       {/* Double-click Insight Modal */}
       {insightWidget && (

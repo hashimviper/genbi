@@ -13,6 +13,7 @@ interface PieChartWidgetProps {
   labelField: string;
   valueField: string;
   colors?: string[];
+  categoryColors?: Record<string, string>;
   labelColor?: string;
   showDataLabels?: boolean;
   onSliceClick?: (value: unknown) => void;
@@ -26,9 +27,18 @@ const DEFAULT_COLORS = [
   'hsl(var(--chart-5))',
 ];
 
-export function PieChartWidget({ data, labelField, valueField, colors, labelColor, showDataLabels, onSliceClick }: PieChartWidgetProps) {
+export function PieChartWidget({ data, labelField, valueField, colors, categoryColors, labelColor, showDataLabels, onSliceClick }: PieChartWidgetProps) {
   const palette = colors && colors.length > 0 ? colors : DEFAULT_COLORS;
   const labelFill = labelColor || 'hsl(var(--muted-foreground))';
+  const hasCategoryColors = categoryColors && Object.keys(categoryColors).length > 0;
+
+  const getSliceColor = (entry: Record<string, unknown>, index: number) => {
+    if (hasCategoryColors) {
+      const key = String(entry[labelField] ?? '');
+      if (categoryColors![key]) return categoryColors![key];
+    }
+    return palette[index % palette.length];
+  };
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -45,8 +55,8 @@ export function PieChartWidget({ data, labelField, valueField, colors, labelColo
           cursor={onSliceClick ? 'pointer' : undefined}
           onClick={(entry) => onSliceClick?.(entry?.[labelField])}
         >
-          {data.map((_, index) => (
-            <Cell key={`cell-${index}`} fill={palette[index % palette.length]} />
+          {data.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={getSliceColor(entry, index)} />
           ))}
           {showDataLabels && (
             <LabelList dataKey={valueField} position="outside" fill={labelFill} fontSize={10} />

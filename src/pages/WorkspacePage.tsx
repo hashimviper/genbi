@@ -42,7 +42,7 @@ export default function WorkspacePage() {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [sharedIds, setSharedIds] = useState<string[]>(loadSharedIds);
 
-  const isOnline = (username: string) => username === 'Naveen';
+  const isOnline = (username: string) => username === 'Viper';
 
   const roleColor = (role: UserRole) => {
     switch (role) {

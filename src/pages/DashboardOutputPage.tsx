@@ -31,6 +31,7 @@ import { sampleDatasets } from '@/data/sampleDatasets';
 import { decodeShareState, DashboardShareState } from '@/lib/shareUtils';
 import { calculateSummaries } from '@/lib/rankingUtils';
 import { toast } from '@/hooks/use-toast';
+import { autoAggregate } from '@/lib/dataModel';
 
 export default function DashboardOutputPage() {
   const { id } = useParams<{ id: string }>();
@@ -154,11 +155,17 @@ export default function DashboardOutputPage() {
 
   const renderWidget = (widget: DashboardWidget) => {
     const config = widget.config;
-    const data = getDatasetData(config.datasetId);
+    let data = getDatasetData(config.datasetId);
 
     const primaryColor = (config as any).primaryColor as string | undefined;
     const labelColor = (config as any).labelColor as string | undefined;
     const showDataLabels = (config as any).showDataLabels as boolean | undefined;
+    const categoryColors = (config as any).categoryColors as Record<string, string> | undefined;
+    const chartBgColor = (config as any).chartBgColor as string | undefined;
+    const axisColor = (config as any).axisColor as string | undefined;
+    const gridColor = (config as any).gridColor as string | undefined;
+    const lineThickness = (config as any).lineThickness as number | undefined;
+    const areaFill = (config as any).areaFill as boolean | undefined;
 
     if (!data || data.length === 0) {
       return <div className="flex h-full items-center justify-center text-muted-foreground">No data available</div>;
@@ -173,16 +180,23 @@ export default function DashboardOutputPage() {
       const xAxis = config.xAxis || '';
       const labelField = config.labelField || '';
 
+      // Auto-aggregate for large datasets
+      const groupField = xAxis || labelField;
+      const measureField = config.yAxis || config.valueField || '';
+      if (data.length > 50 && groupField && measureField) {
+        data = autoAggregate(data, { chartType: widget.type, groupField, measureField });
+      }
+
       const onCrossFilter = (value: unknown) => {
         const field = xAxis || labelField;
         if (field) handleCrossFilterClick(field, value);
       };
 
       switch (widget.type) {
-        case 'bar': return <BarChartWidget data={data} xAxis={xAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} onBarClick={onCrossFilter} />;
-        case 'line': return <LineChartWidget data={data} xAxis={xAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} />;
-        case 'pie': return <PieChartWidget data={data} labelField={labelField} valueField={config.valueField || ''} labelColor={labelColor} showDataLabels={showDataLabels} onSliceClick={onCrossFilter} />;
-        case 'area': return <AreaChartWidget data={data} xAxis={xAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} />;
+        case 'bar': return <BarChartWidget data={data} xAxis={xAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} categoryColors={categoryColors} chartBgColor={chartBgColor} axisColor={axisColor} gridColor={gridColor} onBarClick={onCrossFilter} />;
+        case 'line': return <LineChartWidget data={data} xAxis={xAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} lineThickness={lineThickness} areaFill={areaFill} chartBgColor={chartBgColor} axisColor={axisColor} gridColor={gridColor} />;
+        case 'pie': return <PieChartWidget data={data} labelField={labelField} valueField={config.valueField || ''} labelColor={labelColor} showDataLabels={showDataLabels} categoryColors={categoryColors} onSliceClick={onCrossFilter} />;
+        case 'area': return <AreaChartWidget data={data} xAxis={xAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} chartBgColor={chartBgColor} axisColor={axisColor} gridColor={gridColor} />;
         case 'table': return <DataTableWidget data={data} columns={getDatasetColumns(config.datasetId).map(c => c.name)} />;
         case 'gauge': { const v = calculateKPIValue(config.datasetId, config.valueField || '', 'avg'); return <GaugeChartWidget value={v} title={config.title} />; }
         case 'radar': return <RadarChartWidget data={data} labelField={labelField} valueField={config.valueField || ''} />;

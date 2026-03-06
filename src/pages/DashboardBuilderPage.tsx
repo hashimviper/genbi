@@ -319,6 +319,12 @@ export default function DashboardBuilderPage() {
     const primaryColor = (config as any).primaryColor as string | undefined;
     const labelColor = (config as any).labelColor as string | undefined;
     const showDataLabels = (config as any).showDataLabels as boolean | undefined;
+    const categoryColors = (config as any).categoryColors as Record<string, string> | undefined;
+    const chartBgColor = (config as any).chartBgColor as string | undefined;
+    const axisColor = (config as any).axisColor as string | undefined;
+    const gridColor = (config as any).gridColor as string | undefined;
+    const lineThickness = (config as any).lineThickness as number | undefined;
+    const areaFill = (config as any).areaFill as boolean | undefined;
 
     if (!data || data.length === 0) {
       return <div className="flex h-full items-center justify-center text-muted-foreground">No data available</div>;

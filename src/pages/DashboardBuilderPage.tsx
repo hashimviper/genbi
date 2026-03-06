@@ -75,6 +75,7 @@ export default function DashboardBuilderPage() {
   const [showDatasetSwitcher, setShowDatasetSwitcher] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [sliderOpen, setSliderOpen] = useState(false);
+  const [qaDialogOpen, setQaDialogOpen] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
   
   const [insightWidget, setInsightWidget] = useState<DashboardWidget | null>(null);

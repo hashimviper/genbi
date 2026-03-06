@@ -662,6 +662,23 @@ export default function DashboardBuilderPage() {
         onSwitch={handleDatasetSwitch}
       />
 
+      {/* Q&A Dialog */}
+      {getCurrentDataset() && (
+        <QueryDialog
+          open={qaDialogOpen}
+          onOpenChange={setQaDialogOpen}
+          columns={getCurrentDataset()?.columns || []}
+          datasetId={getCurrentDataset()?.id || ''}
+          onAddWidget={(widget) => {
+            if (currentDashboard) {
+              saveStateForUndo();
+              addWidget(currentDashboard.id, widget);
+              toast({ title: 'Widget added from Q&A' });
+            }
+          }}
+        />
+      )}
+
       {/* Double-click Insight Modal */}
       {insightWidget && (
         <InsightModal

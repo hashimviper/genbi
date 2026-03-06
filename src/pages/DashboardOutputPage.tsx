@@ -155,7 +155,7 @@ export default function DashboardOutputPage() {
 
   const renderWidget = (widget: DashboardWidget) => {
     const config = widget.config;
-    const data = getDatasetData(config.datasetId);
+    let data = getDatasetData(config.datasetId);
 
     const primaryColor = (config as any).primaryColor as string | undefined;
     const labelColor = (config as any).labelColor as string | undefined;
@@ -173,6 +173,13 @@ export default function DashboardOutputPage() {
     if (isChartConfig(config)) {
       const xAxis = config.xAxis || '';
       const labelField = config.labelField || '';
+
+      // Auto-aggregate for large datasets
+      const groupField = xAxis || labelField;
+      const measureField = config.yAxis || config.valueField || '';
+      if (data.length > 50 && groupField && measureField) {
+        data = autoAggregate(data, { chartType: widget.type, groupField, measureField });
+      }
 
       const onCrossFilter = (value: unknown) => {
         const field = xAxis || labelField;

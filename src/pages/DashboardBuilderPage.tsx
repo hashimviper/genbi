@@ -43,6 +43,9 @@ import { sampleDatasets } from '@/data/sampleDatasets';
 import { deriveHierarchies, applyDrillFilters, getCurrentDrillField, canDrillDown, canDrillUp, aggregateForDrillLevel } from '@/lib/drillDown';
 import { calculateSummaries } from '@/lib/rankingUtils';
 import { autoConfigureWidget, generateSmartTitle } from '@/lib/fieldMapping';
+import { autoAggregate, clearAggregationCache } from '@/lib/dataModel';
+import { QueryDialog } from '@/components/dashboard/QueryDialog';
+import { autoConfigureWidget, generateSmartTitle } from '@/lib/fieldMapping';
 
 const chartTypes: { type: ChartType; icon: React.ComponentType<{ className?: string }>; label: string; category: string }[] = [
   { type: 'bar', icon: BarChart3, label: 'Bar', category: 'Standard' },

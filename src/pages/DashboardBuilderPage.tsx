@@ -369,10 +369,10 @@ export default function DashboardBuilderPage() {
       };
 
       switch (widget.type) {
-        case 'bar': return <BarChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} onBarClick={onDrillOrFilter} />;
-        case 'line': return <LineChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} />;
-        case 'pie': return <PieChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} labelColor={labelColor} showDataLabels={showDataLabels} onSliceClick={onDrillOrFilter} />;
-        case 'area': return <AreaChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} />;
+        case 'bar': return <BarChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} categoryColors={categoryColors} chartBgColor={chartBgColor} axisColor={axisColor} gridColor={gridColor} onBarClick={onDrillOrFilter} />;
+        case 'line': return <LineChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} lineThickness={lineThickness} areaFill={areaFill} chartBgColor={chartBgColor} axisColor={axisColor} gridColor={gridColor} />;
+        case 'pie': return <PieChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} labelColor={labelColor} showDataLabels={showDataLabels} categoryColors={categoryColors} onSliceClick={onDrillOrFilter} />;
+        case 'area': return <AreaChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} chartBgColor={chartBgColor} axisColor={axisColor} gridColor={gridColor} />;
         case 'table': return <DataTableWidget data={chartData} columns={getDatasetColumns(datasetId).map(c => c.name)} />;
         case 'gauge': { const v = calculateKPIValue(datasetId, config.valueField || '', 'avg', widget.id); return <GaugeChartWidget value={v} title={config.title} />; }
         case 'radar': return <RadarChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;

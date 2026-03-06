@@ -302,6 +302,12 @@ export default function DashboardBuilderPage() {
     setInsightPos({ x: event.clientX + 10, y: event.clientY - 20 });
   }, []);
 
+  const handleCanvasDoubleClick = useCallback((e: React.MouseEvent) => {
+    if (e.target !== e.currentTarget) return;
+    e.preventDefault();
+    setQaDialogOpen(true);
+  }, []);
+
   const renderWidget = (widget: DashboardWidget) => {
     const config = widget.config;
     const datasetId = config.datasetId;

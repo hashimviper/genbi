@@ -31,6 +31,7 @@ import { sampleDatasets } from '@/data/sampleDatasets';
 import { decodeShareState, DashboardShareState } from '@/lib/shareUtils';
 import { calculateSummaries } from '@/lib/rankingUtils';
 import { toast } from '@/hooks/use-toast';
+import { autoAggregate } from '@/lib/dataModel';
 
 export default function DashboardOutputPage() {
   const { id } = useParams<{ id: string }>();

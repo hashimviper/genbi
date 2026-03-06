@@ -79,6 +79,14 @@ export function WidgetEditDialog({
 
   const dataPreview = useMemo(() => getPreviewPage(editedData, dataPage, 200), [editedData, dataPage]);
 
+  // Detect unique categories for per-category color pickers
+  const categoryField = editedWidget ? ((editedWidget.config as any).xAxis || (editedWidget.config as any).labelField || '') : '';
+  const uniqueCategories = useMemo(() => {
+    if (!categoryField || !data.length) return [];
+    const unique = [...new Set(data.map(r => String(r[categoryField] ?? '')))];
+    return unique.slice(0, 12);
+  }, [data, categoryField]);
+
   if (!editedWidget) return null;
 
   const numericColumns = columns.filter((c) => c.type === 'number');
@@ -108,14 +116,6 @@ export function WidgetEditDialog({
     }
     onOpenChange(false);
   };
-
-  // Detect unique categories for per-category color pickers
-  const categoryField = cfg.xAxis || cfg.labelField || '';
-  const uniqueCategories = useMemo(() => {
-    if (!categoryField || !data.length) return [];
-    const unique = [...new Set(data.map(r => String(r[categoryField] ?? '')))];
-    return unique.slice(0, 12);
-  }, [data, categoryField]);
 
   const categoryColors: Record<string, string> = cfg.categoryColors || {};
   const setCategoryColor = (cat: string, color: string) => {

@@ -181,7 +181,7 @@ export default function DataSourcesPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {currentDataset.data.slice(0, 50).map((row, i) => (
+                        {currentDataset.data.slice((previewPage - 1) * PAGE_SIZE, previewPage * PAGE_SIZE).map((row, i) => (
                           <TableRow
                             key={i}
                             className="border-border/30 hover:bg-secondary/30"
@@ -196,6 +196,22 @@ export default function DataSourcesPage() {
                       </TableBody>
                     </Table>
                   </ScrollArea>
+                  {/* Pagination */}
+                  {currentDataset.data.length > PAGE_SIZE && (
+                    <div className="flex items-center justify-between border-t border-border/50 px-4 py-3">
+                      <p className="text-xs text-muted-foreground">
+                        Page {previewPage} of {Math.ceil(currentDataset.data.length / PAGE_SIZE)} ({currentDataset.data.length} rows)
+                      </p>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" disabled={previewPage <= 1} onClick={() => setPreviewPage(p => p - 1)}>
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" disabled={previewPage >= Math.ceil(currentDataset.data.length / PAGE_SIZE)} onClick={() => setPreviewPage(p => p + 1)}>
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )
                 </>
               ) : (
                 <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">

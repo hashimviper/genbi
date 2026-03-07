@@ -120,11 +120,18 @@ export default function Index() {
                 <div className="absolute right-0 mt-2 w-80 rounded-xl border border-border bg-card shadow-xl z-[60] animate-fade-in">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
                     <h4 className="text-sm font-semibold text-foreground">Notifications</h4>
-                    {count > 0 && (
-                      <button onClick={markAllRead} className="text-xs text-primary hover:underline">
-                        Mark all read
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {count > 0 && (
+                        <button onClick={markAllRead} className="text-xs text-primary hover:underline">
+                          Mark all read
+                        </button>
+                      )}
+                      {notifications.length > 0 && (
+                        <button onClick={clearAll} className="text-xs text-destructive hover:underline flex items-center gap-1">
+                          <Trash2 className="h-3 w-3" /> Clear
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="max-h-72 overflow-auto">
                     {notifications.length === 0 ? (

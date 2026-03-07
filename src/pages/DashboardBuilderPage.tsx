@@ -636,7 +636,9 @@ export default function DashboardBuilderPage() {
                                     <div {...provided.dragHandleProps} className="absolute left-2 top-2 z-10 opacity-0 group-hover:opacity-100 cursor-grab">
                                       <GripVertical className="h-5 w-5 text-muted-foreground" />
                                     </div>
-                                    {renderWidget(widget)}
+                                    <LazyWidget className="h-full">
+                                      {renderWidget(widget)}
+                                    </LazyWidget>
                                   </ChartCard>
                                 </div>
                               );

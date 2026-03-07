@@ -138,17 +138,21 @@ export default function Index() {
                       <p className="p-4 text-sm text-muted-foreground text-center">No notifications</p>
                     ) : (
                       notifications.slice(0, 10).map((n) => (
-                        <button
+                        <div
                           key={n.id}
-                          onClick={() => markRead(n.id)}
-                          className={`w-full text-left px-4 py-3 border-b border-border/30 hover:bg-muted/50 transition-colors flex gap-3 ${!n.read ? 'bg-primary/5' : ''}`}
+                          className={`relative w-full text-left px-4 py-3 border-b border-border/30 hover:bg-muted/50 transition-colors flex gap-3 group/notif ${!n.read ? 'bg-primary/5' : ''}`}
                         >
-                          <div className="flex-1 min-w-0">
+                          <button onClick={() => markRead(n.id)} className="flex-1 min-w-0 text-left">
                             <p className={`text-sm font-medium truncate ${!n.read ? 'text-foreground' : 'text-muted-foreground'}`}>{n.title}</p>
                             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
-                          </div>
-                          {n.read && <Check className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0 mt-1" />}
-                        </button>
+                          </button>
+                          <button
+                            onClick={() => removeNotification(n.id)}
+                            className="shrink-0 mt-1 opacity-0 group-hover/notif:opacity-100 transition-opacity p-0.5 rounded hover:bg-destructive/10"
+                          >
+                            <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                          </button>
+                        </div>
                       ))
                     )}
                   </div>

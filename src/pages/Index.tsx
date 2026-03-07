@@ -66,7 +66,7 @@ const stats = [
 export default function Index() {
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
-  const { notifications, markRead, markAllRead, unreadCount } = useNotificationStore();
+  const { notifications, markRead, markAllRead, removeNotification, clearAll, unreadCount } = useNotificationStore();
   const count = unreadCount();
 
   useEffect(() => {

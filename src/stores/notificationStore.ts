@@ -14,6 +14,8 @@ interface NotificationState {
   addNotification: (title: string, message: string) => void;
   markRead: (id: string) => void;
   markAllRead: () => void;
+  removeNotification: (id: string) => void;
+  clearAll: () => void;
   unreadCount: () => number;
 }
 

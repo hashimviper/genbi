@@ -211,7 +211,7 @@ export default function DataSourcesPage() {
                         </Button>
                       </div>
                     </div>
-                  )
+                  )}
                 </>
               ) : (
                 <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
@@ -225,6 +225,24 @@ export default function DataSourcesPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(open) => !open && setDeleteTargetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this dataset?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Dashboards using this dataset may stop working. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MainLayout>
   );
 }

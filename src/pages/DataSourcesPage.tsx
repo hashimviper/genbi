@@ -99,8 +99,8 @@ export default function DataSourcesPage() {
                   {datasets.map((dataset) => (
                     <button
                       key={dataset.id}
-                      onClick={() => setCurrentDataset(dataset)}
-                      className={`flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors ${
+                      onClick={() => { setCurrentDataset(dataset); setPreviewPage(1); }}
+                      className={`group flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors ${
                         currentDataset?.id === dataset.id
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-secondary'
@@ -120,7 +120,7 @@ export default function DataSourcesPage() {
                         className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100"
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteDataset(dataset.id);
+                          setDeleteTargetId(dataset.id);
                         }}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />

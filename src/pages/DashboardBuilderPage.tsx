@@ -303,7 +303,8 @@ export default function DashboardBuilderPage() {
   }, []);
 
   const handleCanvasDoubleClick = useCallback((e: React.MouseEvent) => {
-    if (e.target !== e.currentTarget) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-widget-id]')) return;
     e.preventDefault();
     setQaDialogOpen(true);
   }, []);
@@ -574,6 +575,7 @@ export default function DashboardBuilderPage() {
                                 <div
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
+                                  data-widget-id={widget.id}
                                   className={cn('relative group min-w-0', snapshot.isDragging && 'z-50')}
                                   onDoubleClick={(e) => handleWidgetDoubleClick(widget, e)}
                                   style={{ ...provided.draggableProps.style, pointerEvents: 'auto' }}
@@ -613,6 +615,7 @@ export default function DashboardBuilderPage() {
                                 <div
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
+                                  data-widget-id={widget.id}
                                   className={cn('relative min-w-0', snapshot.isDragging && 'z-50')}
                                   onDoubleClick={(e) => handleWidgetDoubleClick(widget, e)}
                                   style={{ ...provided.draggableProps.style, pointerEvents: 'auto' }}

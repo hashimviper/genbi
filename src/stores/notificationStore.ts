@@ -14,6 +14,8 @@ interface NotificationState {
   addNotification: (title: string, message: string) => void;
   markRead: (id: string) => void;
   markAllRead: () => void;
+  removeNotification: (id: string) => void;
+  clearAll: () => void;
   unreadCount: () => number;
 }
 
@@ -59,6 +61,11 @@ export const useNotificationStore = create<NotificationState>()(
         set((state) => ({
           notifications: state.notifications.map((n) => ({ ...n, read: true })),
         })),
+      removeNotification: (id) =>
+        set((state) => ({
+          notifications: state.notifications.filter((n) => n.id !== id),
+        })),
+      clearAll: () => set({ notifications: [] }),
       unreadCount: () => get().notifications.filter((n) => !n.read).length,
     }),
     { name: 'visorybi-notifications' }

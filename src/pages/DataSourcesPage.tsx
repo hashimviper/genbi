@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, FileSpreadsheet, Database } from 'lucide-react';
+import { Plus, Trash2, FileSpreadsheet, Database, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { FileUploader } from '@/components/data/FileUploader';
 import { useDashboardStore } from '@/stores/dashboardStore';
@@ -12,6 +12,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -22,10 +32,26 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
+const PAGE_SIZE = 200;
+
 export default function DataSourcesPage() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const { datasets, deleteDataset, currentDataset, setCurrentDataset } =
+  const [previewPage, setPreviewPage] = useState(1);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const { datasets, deleteDataset, currentDataset, setCurrentDataset, dashboards, deleteDashboard } =
     useDashboardStore();
+
+  const handleConfirmDelete = () => {
+    if (!deleteTargetId) return;
+    // Remove dashboards that depend on this dataset
+    dashboards.forEach((d) => {
+      if (d.widgets.some((w) => w.config.datasetId === deleteTargetId)) {
+        deleteDashboard(d.id);
+      }
+    });
+    deleteDataset(deleteTargetId);
+    setDeleteTargetId(null);
+  };
 
   return (
     <MainLayout>
@@ -73,8 +99,8 @@ export default function DataSourcesPage() {
                   {datasets.map((dataset) => (
                     <button
                       key={dataset.id}
-                      onClick={() => setCurrentDataset(dataset)}
-                      className={`flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors ${
+                      onClick={() => { setCurrentDataset(dataset); setPreviewPage(1); }}
+                      className={`group flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors ${
                         currentDataset?.id === dataset.id
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-secondary'
@@ -94,7 +120,7 @@ export default function DataSourcesPage() {
                         className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100"
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteDataset(dataset.id);
+                          setDeleteTargetId(dataset.id);
                         }}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
@@ -155,7 +181,7 @@ export default function DataSourcesPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {currentDataset.data.slice(0, 50).map((row, i) => (
+                        {currentDataset.data.slice((previewPage - 1) * PAGE_SIZE, previewPage * PAGE_SIZE).map((row, i) => (
                           <TableRow
                             key={i}
                             className="border-border/30 hover:bg-secondary/30"
@@ -170,6 +196,22 @@ export default function DataSourcesPage() {
                       </TableBody>
                     </Table>
                   </ScrollArea>
+                  {/* Pagination */}
+                  {currentDataset.data.length > PAGE_SIZE && (
+                    <div className="flex items-center justify-between border-t border-border/50 px-4 py-3">
+                      <p className="text-xs text-muted-foreground">
+                        Page {previewPage} of {Math.ceil(currentDataset.data.length / PAGE_SIZE)} ({currentDataset.data.length} rows)
+                      </p>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" disabled={previewPage <= 1} onClick={() => setPreviewPage(p => p - 1)}>
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" disabled={previewPage >= Math.ceil(currentDataset.data.length / PAGE_SIZE)} onClick={() => setPreviewPage(p => p + 1)}>
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
@@ -183,6 +225,24 @@ export default function DataSourcesPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(open) => !open && setDeleteTargetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this dataset?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Dashboards using this dataset may stop working. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MainLayout>
   );
 }

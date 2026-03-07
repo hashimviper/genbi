@@ -575,6 +575,7 @@ export default function DashboardBuilderPage() {
                                 <div
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
+                                  data-widget-id={widget.id}
                                   className={cn('relative group min-w-0', snapshot.isDragging && 'z-50')}
                                   onDoubleClick={(e) => handleWidgetDoubleClick(widget, e)}
                                   style={{ ...provided.draggableProps.style, pointerEvents: 'auto' }}

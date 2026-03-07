@@ -1,107 +1,434 @@
-## Plan: Rebuild and Correct VisoryBI
+## Objective:  
+Implement missing usability features, improve dataset handling for large datasets, and complete template UI enhancements **without removing any existing functionality**.
 
-This plan addresses all requirements: navigation changes, dashboard builder chart library slider, collaboration page fixes, double-click Q&A structural fix, Data Editor overflow fix, notification bell, layout stability, and online/offline member status.
+All current working features such as:
 
----
+- Cross filtering
+- Chart deletion
+- Dashboard creation
+- Dataset import
+- Existing templates
 
-### 1. Remove Admin from Sidebar, Integrate into Builder
-
-**AppSidebar.tsx**: Remove the `{ icon: Shield, label: 'Admin Panel', href: '/admin' }` entry from `navItems` array.
-
-**DashboardBuilderPage.tsx**: Add a collapsible side slider panel containing the chart library (Bar, Line, Pie, KPI, Table + all existing chart types). This panel will:
-
-- Use a button to toggle open/close with animation
-- Slide in from the left side of the builder canvas
-- Not overlap the dashboard grid (use flex layout, not absolute positioning)
-- Allow clicking a chart type to add it to the current dashboard (reusing the existing `addWidget` logic from AdminPanelPage)
-- Include the admin config fields (dataset selector, field mapping) inline
-- Include the 3D chart toggle from AdminPanelPage
-
-The Admin page route remains but is no longer in the nav.
-
-### 2. Home Page: Fix Landing Navbar + Add Notification Bell
-
-**Index.tsx**: The landing navbar already exists and is only on the Home page (Index uses its own layout, not MainLayout). This is correct. Add:
-
-- A notification bell icon with numeric badge in the top-right nav area
-- Dropdown panel showing notifications from localStorage
-- Store notifications via a simple zustand store with persist
-
-**Create `src/stores/notificationStore.ts**`: Simple store with `notifications[]`, `addNotification()`, `markRead()`, `unreadCount`.
-
-### 3. Collaboration Page: Online/Offline Status + Team Creation
-
-**WorkspacePage.tsx**:
-
-- Change member status: Only **Naveen** shows as "Online" (green dot + "Active now"). All others (Viper, Thaslee, Abd) show as "Offline" (gray dot + "Offline").
-- Add "Create Team" section: form to create a new team name, assign from static members, store in localStorage via workspaceStore
-- Add "Share Dashboard" simulation: button that marks a dashboard as "Shared" (badge), triggers a notification, shows static "Active Now" indicator
-
-**WorkspaceStore.ts**: Add `teams[]` array with `createTeam()`, `shareDashboard()` methods.
-
-### 4. Double-Click Q&A Structural Fix
-
-**DashboardBuilderPage.tsx** and **DashboardOutputPage.tsx**:
-
-- Move `onDoubleClick` from the chart card inner content to an outer wrapper `<div>` around each widget
-- Ensure `pointer-events` are enabled on the wrapper
-- Ensure drag handle does not consume the double-click event (already uses `stopPropagation` appropriately)
-
-**InsightModal.tsx**:
-
-- Already uses `position: fixed` and `z-[100]` -- verify this is correct and modal is not clipped by any `overflow: hidden` parent
-
-### 5. Configuration Panel Data Editor Flex Fix (Critical)
-
-**WidgetEditDialog.tsx**: The Data Editor tab currently renders a table inside a ScrollArea. The fix:
-
-- Ensure the Dialog content uses `flex flex-col` with proper `overflow-y: auto` on the tab content
-- Data Editor's `ScrollArea` must have a fixed max-height and scroll internally
-- Input fields inside table cells: use `w-full` and remove any fixed widths
-- Add `min-w-0` to flex children to prevent overflow
-- The dialog must not cause horizontal page scroll
-
-### 6. Chart & Label Color System in Configuration
-
-**WidgetEditDialog.tsx**: Add a "Colors" section in the Config tab:
-
-- Color picker for primary chart color (bar fill, line stroke, pie slice)
-- Label text color picker
-- Label background color toggle
-- Toggle labels ON/OFF
-- Store color settings in widget config
-
-### 7. Cross-Filtering Stability
-
-Already implemented in DashboardBuilderPage. Verify:
-
-- No layout shift on filter
-- Works with 100+ rows (already filters in-memory)
-- No duplication
-
-### 8. Drill-Down: Replace Data, No Stack
-
-Already implemented. The current drill-down replaces chart data via `aggregateForDrillLevel`. The chart container uses fixed `h-80` class. Verify no stacking occurs. And should avoid Data Redudency by summarizing them
-
-### 9. Layout Stability
-
-- All grid containers already use `grid` and `gap` classes
-- Add `min-w-0` to grid children where missing to prevent overflow
-- Ensure slider panel uses flex-shrink-0 and doesn't push content
+**must remain unchanged.**
 
 ---
 
-### Technical Summary
+# 1. Canvas Double-Click Q&A Feature
 
+## Problem
 
-| File                                            | Change                                                                                 |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `src/components/layout/AppSidebar.tsx`          | Remove Admin nav item                                                                  |
-| `src/pages/DashboardBuilderPage.tsx`            | Add collapsible chart library slider panel with admin config; fix double-click wrapper |
-| `src/stores/notificationStore.ts`               | New store for notifications                                                            |
-| `src/pages/Index.tsx`                           | Add notification bell with badge and dropdown                                          |
-| `src/pages/WorkspacePage.tsx`                   | Online/offline per member; team creation UI; share simulation                          |
-| `src/stores/workspaceStore.ts`                  | Add teams array and share methods                                                      |
-| `src/components/dashboard/WidgetEditDialog.tsx` | Fix Data Editor flex layout; add color configuration                                   |
-| `src/components/dashboard/InsightModal.tsx`     | Ensure fixed positioning not clipped                                                   |
-| `src/pages/DashboardOutputPage.tsx`             | Fix double-click wrapper structure                                                     |
+Double-click on the dashboard canvas does not open the **Q&A query dialog**.
+
+This happens because the event listener checks:
+
+```
+e.target === e.currentTarget
+```
+
+But clicks often land on **child elements inside the canvas**, causing the condition to fail.
+
+---
+
+## Implementation
+
+File:
+
+```
+src/pages/DashboardBuilderPage.tsx
+```
+
+### Step 1 — Add widget identifier
+
+Every widget container must include:
+
+```
+data-widget-id={widget.id}
+```
+
+Example wrapper:
+
+```
+<div
+  key={widget.id}
+  data-widget-id={widget.id}
+  className="widget-container"
+>
+```
+
+---
+
+### Step 2 — Update canvas double-click logic
+
+Replace the existing double-click condition with a **closest() widget detection**.
+
+```
+const handleCanvasDoubleClick = (e: React.MouseEvent) => {
+
+  const target = e.target as HTMLElement;
+
+  const clickedWidget = target.closest("[data-widget-id]");
+
+  if (!clickedWidget) {
+      setQaDialogOpen(true);
+  }
+
+};
+```
+
+---
+
+### Step 3 — Attach handler to canvas
+
+```
+<div
+ className="dashboard-canvas select-none"
+ onDoubleClick={handleCanvasDoubleClick}
+>
+```
+
+---
+
+### Step 4 — Keep toolbar fallback
+
+The existing **"Ask Data" button in the toolbar must remain** as a manual Q&A trigger.
+
+---
+
+# 2. Large Dataset Support (1000+ Rows)
+
+## Problem
+
+Large datasets work when imported manually but **templates struggle with large datasets** and create redundant rendering.
+
+---
+
+## Solution
+
+Add **dataset processing + virtualization**.
+
+---
+
+## Step 1 — Dataset Normalization
+
+File:
+
+```
+src/utils/datasetProcessor.ts
+```
+
+Create a processing utility:
+
+```
+export function normalizeDataset(data:any[]) {
+
+  const MAX_ROWS = 2000
+
+  if(data.length > MAX_ROWS){
+
+    return data.slice(0, MAX_ROWS)
+
+  }
+
+  return data
+}
+```
+
+Use this during dataset import.
+
+---
+
+## Step 2 — Chart Aggregation
+
+Before rendering charts:
+
+```
+if(dataset.length > 100){
+   applyAutoAggregation(dataset)
+}
+```
+
+Aggregation methods:
+
+- count
+- sum
+- average
+- groupBy category
+
+---
+
+## Step 3 — Virtual Table Rendering
+
+Install
+
+```
+react-window
+```
+
+Use it in dataset preview tables.
+
+Example:
+
+```
+FixedSizeList
+```
+
+This allows **10,000+ rows without UI lag**.
+
+---
+
+# 3. Template Icons Inside Template Cards
+
+## Problem
+
+Icons appear near **template categories**, but **individual templates still show empty icon placeholders**.
+
+Each template card contains a **dedicated icon box** that must be populated.
+
+---
+
+## Implementation
+
+File:
+
+```
+src/pages/TemplatesPage.tsx
+```
+
+---
+
+### Step 1 — Extend template metadata
+
+Example:
+
+```
+{
+ id: "hr-analytics-1",
+ name: "HR Workforce Overview",
+ department: "HR",
+ icon: "users"
+}
+```
+
+---
+
+### Step 2 — Create icon mapper
+
+```
+import {
+ Users,
+ Database,
+ FolderKanban,
+ BarChart3,
+ Briefcase,
+ ShoppingCart
+} from "lucide-react"
+```
+
+```
+const iconMap = {
+ hr: Users,
+ data: Database,
+ analytics: BarChart3,
+ sales: ShoppingCart,
+ business: Briefcase,
+ dashboard: FolderKanban
+}
+```
+
+---
+
+### Step 3 — Render inside icon box
+
+```
+const IconComponent = iconMap[template.department] || BarChart3
+
+<IconComponent size={28} />
+```
+
+---
+
+Result:
+
+Every template card will display its **dedicated icon automatically**.
+
+---
+
+# 4. Delete Imported Data Sources
+
+## Problem
+
+Imported datasets cannot be removed easily.
+
+Also deleting datasets does not clear **dependent dashboards**.
+
+---
+
+## Implementation
+
+File:
+
+```
+src/pages/DataSourcesPage.tsx
+```
+
+---
+
+### Step 1 — Add delete button
+
+```
+<button
+ onClick={() => handleDelete(dataset.id)}
+ className="text-red-500 hover:text-red-700"
+>
+ <Trash2 size={16}/>
+</button>
+```
+
+---
+
+### Step 2 — Confirmation dialog
+
+Use:
+
+```
+AlertDialog
+```
+
+Confirmation message:
+
+```
+Delete this dataset?
+
+Dashboards using this dataset may stop working.
+```
+
+---
+
+### Step 3 — Cleanup references
+
+When dataset deleted:
+
+```
+dashboards = dashboards.filter(d =>
+ !d.widgets.some(w => w.datasetId === deletedId)
+)
+```
+
+---
+
+# 5. Notification Cleanup
+
+## Problem
+
+Notifications accumulate without delete option.
+
+---
+
+## Implementation
+
+File:
+
+```
+src/components/NotificationsPanel.tsx
+```
+
+---
+
+### Add delete option
+
+Per notification:
+
+```
+<X size={14} onClick={()=>removeNotification(id)} />
+```
+
+---
+
+### Add clear all button
+
+```
+Clear All
+```
+
+```
+setNotifications([])
+```
+
+---
+
+# 6. Dataset Preview Pagination
+
+Large dataset preview should not render thousands of rows.
+
+---
+
+File:
+
+```
+src/pages/DataSourcesPage.tsx
+```
+
+---
+
+### Pagination state
+
+```
+const [page,setPage] = useState(1)
+const PAGE_SIZE = 200
+```
+
+---
+
+### Slice rows
+
+```
+const paginated = data.slice(
+ (page-1)*PAGE_SIZE,
+ page*PAGE_SIZE
+)
+```
+
+---
+
+### Pagination UI
+
+Add controls:
+
+```
+Previous | Page X | Next
+```
+
+---
+
+# 7. Lazy Widget Rendering (Performance Optimization)
+
+When dashboards contain **many widgets**, rendering slows down.
+
+---
+
+File:
+
+```
+src/components/LazyWidget.tsx
+```
+
+---
+
+### Use IntersectionObserver
+
+Render charts **only when visible**.
+
+```
+const observer = new IntersectionObserver()
+```
+
+If widget not visible:
+
+Show skeleton placeholder.
+
+---
+
+### Benefits
+
+- Faster dashboard load
+- Better performance with 30+ widgets

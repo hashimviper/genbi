@@ -13,6 +13,8 @@ import {
   Cpu,
   Bell,
   Check,
+  X,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VisoryBILogo } from '@/components/VisoryBILogo';

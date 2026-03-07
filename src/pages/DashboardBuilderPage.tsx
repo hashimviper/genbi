@@ -303,7 +303,8 @@ export default function DashboardBuilderPage() {
   }, []);
 
   const handleCanvasDoubleClick = useCallback((e: React.MouseEvent) => {
-    if (e.target !== e.currentTarget) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-widget-id]')) return;
     e.preventDefault();
     setQaDialogOpen(true);
   }, []);

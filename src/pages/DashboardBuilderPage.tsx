@@ -45,6 +45,7 @@ import { calculateSummaries } from '@/lib/rankingUtils';
 import { autoConfigureWidget, generateSmartTitle } from '@/lib/fieldMapping';
 import { autoAggregate, clearAggregationCache } from '@/lib/dataModel';
 import { QueryDialog } from '@/components/dashboard/QueryDialog';
+import { LazyWidget } from '@/components/dashboard/LazyWidget';
 
 const chartTypes: { type: ChartType; icon: React.ComponentType<{ className?: string }>; label: string; category: string }[] = [
   { type: 'bar', icon: BarChart3, label: 'Bar', category: 'Standard' },
@@ -635,7 +636,9 @@ export default function DashboardBuilderPage() {
                                     <div {...provided.dragHandleProps} className="absolute left-2 top-2 z-10 opacity-0 group-hover:opacity-100 cursor-grab">
                                       <GripVertical className="h-5 w-5 text-muted-foreground" />
                                     </div>
-                                    {renderWidget(widget)}
+                                    <LazyWidget className="h-full">
+                                      {renderWidget(widget)}
+                                    </LazyWidget>
                                   </ChartCard>
                                 </div>
                               );

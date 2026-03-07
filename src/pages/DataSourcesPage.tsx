@@ -32,10 +32,26 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
+const PAGE_SIZE = 200;
+
 export default function DataSourcesPage() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const { datasets, deleteDataset, currentDataset, setCurrentDataset } =
+  const [previewPage, setPreviewPage] = useState(1);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const { datasets, deleteDataset, currentDataset, setCurrentDataset, dashboards, deleteDashboard } =
     useDashboardStore();
+
+  const handleConfirmDelete = () => {
+    if (!deleteTargetId) return;
+    // Remove dashboards that depend on this dataset
+    dashboards.forEach((d) => {
+      if (d.widgets.some((w) => w.config.datasetId === deleteTargetId)) {
+        deleteDashboard(d.id);
+      }
+    });
+    deleteDataset(deleteTargetId);
+    setDeleteTargetId(null);
+  };
 
   return (
     <MainLayout>

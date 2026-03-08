@@ -71,7 +71,19 @@ export default function WorkspacePage() {
   const [newOrgName, setNewOrgName] = useState('');
   const [newOrgDesc, setNewOrgDesc] = useState('');
 
-  const isOnline = (username: string) => currentUser?.username === username;
+  // Update presence for the logged-in user
+  useEffect(() => {
+    if (currentUser) {
+      updatePresence(currentUser.id, currentUser.username);
+      const interval = setInterval(() => updatePresence(currentUser.id, currentUser.username), 30_000);
+      return () => clearInterval(interval);
+    }
+  }, [currentUser]);
+
+  const checkOnline = (username: string) => {
+    if (currentUser?.username === username) return true;
+    return isUserOnline(username);
+  };
 
   const roleColor = (role: UserRole) => {
     switch (role) {

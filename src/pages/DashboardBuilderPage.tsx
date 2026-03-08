@@ -49,6 +49,8 @@ import { QueryDialog } from '@/components/dashboard/QueryDialog';
 import { LazyWidget } from '@/components/dashboard/LazyWidget';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { AnalyticsChatbot } from '@/components/dashboard/AnalyticsChatbot';
+import { TrendAnalysisPanel } from '@/components/dashboard/TrendAnalysisPanel';
+import { ThemeConfigDialog, getThemeStyle, DashboardTheme } from '@/components/dashboard/ThemeConfig';
 
 const chartTypes: { type: ChartType; icon: React.ComponentType<{ className?: string }>; label: string; category: string }[] = [
   { type: 'bar', icon: BarChart3, label: 'Bar', category: 'Standard' },

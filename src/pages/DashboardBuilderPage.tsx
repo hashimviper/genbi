@@ -394,6 +394,7 @@ export default function DashboardBuilderPage() {
     const gridColor = (config as any).gridColor as string | undefined;
     const lineThickness = (config as any).lineThickness as number | undefined;
     const areaFill = (config as any).areaFill as boolean | undefined;
+    const themeColors = (config as any).colors as string[] | undefined;
 
     if (!data || data.length === 0) {
       return <div className="flex h-full items-center justify-center text-muted-foreground">No data available</div>;
@@ -440,7 +441,7 @@ export default function DashboardBuilderPage() {
       switch (widget.type) {
         case 'bar': return <BarChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} categoryColors={categoryColors} chartBgColor={chartBgColor} axisColor={axisColor} gridColor={gridColor} onBarClick={onDrillOrFilter} />;
         case 'line': return <LineChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} showDataLabels={showDataLabels} lineThickness={lineThickness} areaFill={areaFill} chartBgColor={chartBgColor} axisColor={axisColor} gridColor={gridColor} />;
-        case 'pie': return <PieChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} labelColor={labelColor} showDataLabels={showDataLabels} categoryColors={categoryColors} onSliceClick={onDrillOrFilter} />;
+        case 'pie': return <PieChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} colors={themeColors} labelColor={labelColor} showDataLabels={showDataLabels} categoryColors={categoryColors} onSliceClick={onDrillOrFilter} />;
         case 'area': return <AreaChartWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} primaryColor={primaryColor} labelColor={labelColor} chartBgColor={chartBgColor} axisColor={axisColor} gridColor={gridColor} />;
         case 'table': return <DataTableWidget data={chartData} columns={getDatasetColumns(datasetId).map(c => c.name)} />;
         case 'gauge': { const v = calculateKPIValue(datasetId, config.valueField || '', 'avg', widget.id); return <GaugeChartWidget value={v} title={config.title} />; }
@@ -448,7 +449,7 @@ export default function DashboardBuilderPage() {
         case 'treemap': return <TreemapWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
         case 'funnel': return <FunnelChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
         case 'combo': return <ComboChartWidget data={chartData} xAxis={effectiveXAxis} barField={config.yAxis || ''} lineField={config.valueField || config.yAxis || ''} />;
-        case 'donut': return <DonutChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} onSliceClick={onDrillOrFilter} />;
+        case 'donut': return <DonutChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} colors={themeColors} onSliceClick={onDrillOrFilter} />;
         case 'horizontalBar': return <HorizontalBarWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} primaryColor={primaryColor} onBarClick={onDrillOrFilter} />;
         case 'waterfall': return <WaterfallChartWidget data={chartData} labelField={effectiveLabelField} valueField={config.valueField || ''} />;
         case 'scatter': return <ScatterPlotWidget data={chartData} xAxis={effectiveXAxis} yAxis={config.yAxis || ''} />;

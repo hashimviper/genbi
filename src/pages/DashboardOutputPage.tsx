@@ -234,12 +234,14 @@ export default function DashboardOutputPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Branding Header */}
-      <DashboardHeader
-        branding={currentDashboard.branding}
-        onBrandingChange={() => {}}
-        editable={false}
-      />
+      {/* Branding Header - sticky on scroll */}
+      <div className="sticky top-0 z-[60]">
+        <DashboardHeader
+          branding={currentDashboard.branding}
+          onBrandingChange={() => {}}
+          editable={false}
+        />
+      </div>
 
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

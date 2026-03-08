@@ -9,6 +9,7 @@ import {
   Cell,
   ReferenceLine,
 } from 'recharts';
+import { formatAxisValue, formatTooltipValue } from '@/lib/chartUtils';
 
 interface WaterfallChartWidgetProps {
   data: Record<string, unknown>[];

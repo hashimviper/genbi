@@ -297,6 +297,7 @@ export default function DashboardOutputPage() {
           </div>
         </div>
       </header>
+      </div>
 
       {/* Dashboard Content */}
       <main id="dashboard-output-canvas" className="flex-1 p-6 flex flex-col">

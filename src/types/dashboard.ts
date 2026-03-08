@@ -80,11 +80,18 @@ export interface DashboardWidget {
   };
 }
 
+export interface DashboardBranding {
+  companyName: string;
+  dashboardTitle: string;
+  logoUrl?: string; // base64 data URL or external URL
+}
+
 export interface Dashboard {
   id: string;
   name: string;
   description?: string;
   widgets: DashboardWidget[];
+  branding?: DashboardBranding;
   createdAt: Date;
   updatedAt: Date;
 }

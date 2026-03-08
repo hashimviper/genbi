@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { Bot, Send, X, Sparkles, ChevronRight, Star, ThumbsUp, MessageSquare } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { Bot, Send, X, Sparkles, Minimize2, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -36,35 +36,40 @@ const ANALYSIS_ICONS: Record<string, string> = {
 
 export function AnalyticsChatbot({ columns, data, datasetId, onAddWidget }: AnalyticsChatbotProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const welcomeSent = useRef(false);
 
+  // Memoize quick prompts to avoid recalculating
   const quickPrompts = useMemo(() => getQuickPrompts(columns), [columns]);
 
+  // Scroll to bottom on new messages
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
+  // Send welcome message only once
   useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      const welcome: ChatMessage = {
+    if (isOpen && !welcomeSent.current && messages.length === 0) {
+      welcomeSent.current = true;
+      setMessages([{
         id: uuidv4(),
         role: 'assistant',
         content: `👋 **Welcome to Analytics Advisor!**\n\nI've analyzed your dataset with **${columns.length} fields** and **${data.length.toLocaleString()} records**. I can recommend the most effective chart types for different analytical perspectives.\n\n🔍 Ask me about trends, comparisons, rankings, distributions, correlations, or any specific field in your data.`,
         timestamp: new Date(),
-      };
-      setMessages([welcome]);
+      }]);
     }
-  }, [isOpen, columns.length, data.length]);
+  }, [isOpen]);
 
-  const handleSend = (text?: string) => {
+  const handleSend = useCallback((text?: string) => {
     const query = text || input.trim();
-    if (!query) return;
+    if (!query || isTyping) return;
 
     const userMsg: ChatMessage = {
       id: uuidv4(),
@@ -76,7 +81,6 @@ export function AnalyticsChatbot({ columns, data, datasetId, onAddWidget }: Anal
     setInput('');
     setIsTyping(true);
 
-    // Simulate brief thinking delay
     setTimeout(() => {
       const response = generateBotResponse(query, columns, data);
       const botMsg: ChatMessage = {
@@ -89,13 +93,13 @@ export function AnalyticsChatbot({ columns, data, datasetId, onAddWidget }: Anal
       setMessages(prev => [...prev, botMsg]);
       setIsTyping(false);
     }, 600);
-  };
+  }, [input, isTyping, columns, data]);
 
-  const handleCreateChart = (instance: AnalysisInstance, chartType: string) => {
+  const handleCreateChart = useCallback((instance: AnalysisInstance, chartType: string) => {
     const type = chartType as ChartType;
+    resetFieldTracker();
     const autoConfig = autoConfigureWidget(type, columns, data);
 
-    // Override with the recommended fields
     if (instance.fields.dimension) {
       if (['bar', 'line', 'area', 'scatter', 'combo', 'stackedBar'].includes(type)) {
         autoConfig.xAxis = instance.fields.dimension;
@@ -121,7 +125,8 @@ export function AnalyticsChatbot({ columns, data, datasetId, onAddWidget }: Anal
           autoConfig.xAxis as string || '',
           autoConfig.yAxis as string || '',
           autoConfig.labelField as string || '',
-          autoConfig.valueField as string || ''
+          autoConfig.valueField as string || '',
+          autoConfig.aggregation as string
         ),
         datasetId,
         xAxis: (autoConfig.xAxis as string) || '',
@@ -138,15 +143,15 @@ export function AnalyticsChatbot({ columns, data, datasetId, onAddWidget }: Anal
 
     onAddWidget(widget);
 
-    const confirmMsg: ChatMessage = {
+    setMessages(prev => [...prev, {
       id: uuidv4(),
       role: 'assistant',
-      content: `✅ **${chartType.charAt(0).toUpperCase() + chartType.slice(1)} chart created!** — "${instance.title}" has been added to your dashboard. You can configure it further by clicking on the widget.`,
+      content: `✅ **${chartType.charAt(0).toUpperCase() + chartType.slice(1)} chart created!** — "${instance.title}" has been added to your dashboard.`,
       timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, confirmMsg]);
-  };
+    }]);
+  }, [columns, data, datasetId, onAddWidget]);
 
+  // Closed state - floating button
   if (!isOpen) {
     return (
       <Button
@@ -159,24 +164,45 @@ export function AnalyticsChatbot({ columns, data, datasetId, onAddWidget }: Anal
     );
   }
 
+  // Minimized state
+  if (isMinimized) {
+    return (
+      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full border border-border bg-card shadow-lg px-4 py-2">
+        <Bot className="h-5 w-5 text-primary" />
+        <span className="text-sm font-medium text-foreground">Analytics Advisor</span>
+        <Button variant="ghost" size="sm" onClick={() => setIsMinimized(false)} className="h-6 w-6 p-0">
+          <Maximize2 className="h-3.5 w-3.5" />
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)} className="h-6 w-6 p-0">
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-[420px] h-[600px] flex flex-col rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
+    <div className="fixed bottom-6 right-6 z-50 w-[400px] h-[560px] flex flex-col rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 gradient-bg">
+      <div className="flex items-center justify-between px-4 py-3 gradient-bg shrink-0">
         <div className="flex items-center gap-2">
           <Bot className="h-5 w-5 text-white" />
           <div>
             <h3 className="text-sm font-semibold text-white">Analytics Advisor</h3>
-            <p className="text-[10px] text-white/70">Powered by rule-based intelligence</p>
+            <p className="text-[10px] text-white/70">Rule-based intelligence</p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)} className="h-7 w-7 p-0 text-white hover:bg-white/20">
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" onClick={() => setIsMinimized(true)} className="h-7 w-7 p-0 text-white hover:bg-white/20">
+            <Minimize2 className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)} className="h-7 w-7 p-0 text-white hover:bg-white/20">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      <div className="flex-1 overflow-y-auto p-4" ref={scrollRef}>
         <div className="space-y-4">
           {messages.map((msg) => (
             <div key={msg.id} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
@@ -186,7 +212,6 @@ export function AnalyticsChatbot({ columns, data, datasetId, onAddWidget }: Anal
                   ? 'bg-primary text-primary-foreground rounded-br-md'
                   : 'bg-muted text-foreground rounded-bl-md'
               )}>
-                {/* Render markdown-like bold */}
                 <div className="whitespace-pre-wrap leading-relaxed">
                   {msg.content.split('\n').map((line, i) => (
                     <p key={i} className={i > 0 ? 'mt-1' : ''}>
@@ -195,13 +220,12 @@ export function AnalyticsChatbot({ columns, data, datasetId, onAddWidget }: Anal
                           ? <strong key={j}>{part.slice(2, -2)}</strong>
                           : part.startsWith('*') && part.endsWith('*')
                             ? <em key={j}>{part.slice(1, -1)}</em>
-                            : part
+                            : <span key={j}>{part}</span>
                       )}
                     </p>
                   ))}
                 </div>
 
-                {/* Recommendation Cards */}
                 {msg.recommendations && msg.recommendations.length > 0 && (
                   <div className="mt-3 space-y-3">
                     {msg.recommendations.map((rec, idx) => (
@@ -214,7 +238,7 @@ export function AnalyticsChatbot({ columns, data, datasetId, onAddWidget }: Anal
                           </div>
                         </div>
                         <div className="space-y-1.5">
-                          {rec.recommendedCharts.filter(c => c.available).map((chart, ci) => (
+                          {rec.recommendedCharts.filter(c => c.available).slice(0, 3).map((chart, ci) => (
                             <div key={ci} className="flex items-center gap-2">
                               <Badge
                                 variant="outline"
@@ -254,11 +278,11 @@ export function AnalyticsChatbot({ columns, data, datasetId, onAddWidget }: Anal
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Quick Prompts */}
       {messages.length <= 1 && (
-        <div className="px-4 py-2 border-t border-border/30">
+        <div className="px-4 py-2 border-t border-border/30 shrink-0">
           <p className="text-[10px] font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
             <Sparkles className="h-3 w-3" /> Quick questions
           </p>
@@ -277,7 +301,7 @@ export function AnalyticsChatbot({ columns, data, datasetId, onAddWidget }: Anal
       )}
 
       {/* Input */}
-      <div className="border-t border-border/50 px-3 py-2">
+      <div className="border-t border-border/50 px-3 py-2 shrink-0">
         <div className="flex items-center gap-2">
           <input
             ref={inputRef}

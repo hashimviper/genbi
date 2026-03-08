@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { LogIn, Eye, EyeOff, UserPlus, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,13 +9,15 @@ import { useAuthStore, STATIC_ORG } from '@/stores/authStore';
 import { toast } from '@/hooks/use-toast';
 import { registerUser, authenticateUser, getAllUsers, type StoredUser } from '@/lib/localDB';
 
-// Static passwords for built-in org members
-const MEMBER_PASSWORDS: Record<string, string> = {
-  'viper': 'viper@123',
-  'thaslee': 'thaslee@123',
-  'naveen': 'naveen@123',
-  'abd': 'abd@123',
-};
+// Only Viper is static (owner). All others are dynamic localDB accounts.
+const OWNER_PASSWORD = 'viper@123';
+
+// Seed built-in team members into localDB on first load
+const SEED_MEMBERS = [
+  { username: 'Thaslee', password: 'thaslee@123', role: 'editor' as const },
+  { username: 'Naveen', password: 'naveen@123', role: 'editor' as const },
+  { username: 'Abd', password: 'abd@123', role: 'editor' as const },
+];
 
 type AuthMode = 'login' | 'register' | 'forgot';
 
@@ -30,6 +32,15 @@ export default function AuthPage() {
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+
+  // Seed built-in members into localDB once
+  useEffect(() => {
+    const seeded = localStorage.getItem('visorybi-db:seeded');
+    if (!seeded) {
+      SEED_MEMBERS.forEach((m) => registerUser(m.username, m.password, m.role));
+      localStorage.setItem('visorybi-db:seeded', 'true');
+    }
+  }, []);
 
   const resetFields = () => {
     setUsername('');
@@ -53,20 +64,16 @@ export default function AuthPage() {
     if (!trimmed) { setError('Please enter your username'); return; }
     if (!password) { setError('Please enter your password'); return; }
 
-    // Check static org members first
-    const member = STATIC_ORG.members.find(
-      (m) => m.username.toLowerCase() === trimmed.toLowerCase()
-    );
-    if (member) {
-      const expected = MEMBER_PASSWORDS[member.username.toLowerCase()];
-      if (password !== expected) { setError('Incorrect password.'); return; }
-      login(member.username, member.role);
-      toast({ title: `Welcome back, ${member.username}!`, description: `Signed in as ${member.role}${member.isOwner ? ' (Owner)' : ''}` });
+    // Static owner check (Viper only)
+    if (trimmed.toLowerCase() === 'viper') {
+      if (password !== OWNER_PASSWORD) { setError('Incorrect password.'); return; }
+      login('Viper', 'admin');
+      toast({ title: 'Welcome back, Viper!', description: 'Signed in as admin (Owner)' });
       navigate('/');
       return;
     }
 
-    // Check locally registered users
+    // All other users are in localDB
     const localUser = authenticateUser(trimmed, password);
     if (!localUser) { setError('Invalid username or password.'); return; }
     login(localUser.username, localUser.role);
@@ -84,8 +91,8 @@ export default function AuthPage() {
     if (!password || password.length < 6) { setError('Password must be at least 6 characters'); return; }
     if (password !== confirmPassword) { setError('Passwords do not match'); return; }
 
-    // Block if username matches a static org member
-    if (STATIC_ORG.members.some((m) => m.username.toLowerCase() === trimmed.toLowerCase())) {
+    // Block registering as "Viper" (reserved owner)
+    if (trimmed.toLowerCase() === 'viper') {
       setError('This username is reserved.');
       return;
     }
@@ -106,25 +113,19 @@ export default function AuthPage() {
     if (!trimmed) { setError('Enter your username to reset password'); return; }
     if (!newPassword || newPassword.length < 6) { setError('New password must be at least 6 characters'); return; }
 
-    // Check static members — cannot reset
-    if (STATIC_ORG.members.some((m) => m.username.toLowerCase() === trimmed.toLowerCase())) {
-      setError('Built-in accounts cannot be reset from here.');
+    // Owner account cannot be reset
+    if (trimmed.toLowerCase() === 'viper') {
+      setError('Owner account cannot be reset from here.');
       return;
     }
 
-    // Find in local DB and re-register (overwrite)
-    const users = getAllUsers();
-    const existing = users.find((u) => u.username.toLowerCase() === trimmed.toLowerCase());
-    if (!existing) { setError('Username not found.'); return; }
-
-    // Update password by overwriting the entry
+    // Find and update in local DB
     const key = 'visorybi-db:users';
     const all: StoredUser[] = JSON.parse(localStorage.getItem(key) || '[]');
-    const idx = all.findIndex((u) => u.id === existing.id);
-    if (idx >= 0) {
-      all[idx].passwordHash = btoa(newPassword);
-      localStorage.setItem(key, JSON.stringify(all));
-    }
+    const idx = all.findIndex((u) => u.username.toLowerCase() === trimmed.toLowerCase());
+    if (idx < 0) { setError('Username not found.'); return; }
+    all[idx].passwordHash = btoa(newPassword);
+    localStorage.setItem(key, JSON.stringify(all));
 
     toast({ title: 'Password reset!', description: 'You can now sign in with your new password.' });
     switchMode('login');

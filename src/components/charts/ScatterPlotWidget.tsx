@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
   ZAxis,
 } from 'recharts';
+import { formatAxisValue } from '@/lib/chartUtils';
 
 interface ScatterPlotWidgetProps {
   data: Record<string, unknown>[];

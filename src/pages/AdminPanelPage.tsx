@@ -555,6 +555,7 @@ export default function AdminPanelPage() {
             </div>
           </div>
         </div>
+        )}
       </div>
     </MainLayout>
   );

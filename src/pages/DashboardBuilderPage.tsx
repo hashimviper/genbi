@@ -136,6 +136,25 @@ export default function DashboardBuilderPage() {
     return () => document.removeEventListener('fullscreenchange', h);
   }, []);
 
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        handleRedo();
+      }
+      if (e.key === 'Escape' && isFullscreen) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo, isFullscreen]);
+
   const saveStateForUndo = useCallback(() => {
     if (currentDashboard) pushState(currentDashboard);
   }, [currentDashboard, pushState]);

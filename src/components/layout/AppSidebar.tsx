@@ -13,17 +13,19 @@ import {
   Plus,
   LogIn,
   LogOut,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { VisoryBILogo } from '@/components/VisoryBILogo';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, STATIC_ORG } from '@/stores/authStore';
 
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   href: string;
   color: string;
+  ownerOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -33,12 +35,23 @@ const navItems: NavItem[] = [
   { icon: FileText, label: 'Templates', href: '/templates', color: 'text-[hsl(38,95%,55%)]' },
   { icon: FolderOpen, label: 'My Dashboards', href: '/dashboards', color: 'text-[hsl(155,75%,45%)]' },
   { icon: Database, label: 'Data Sources', href: '/data', color: 'text-[hsl(330,85%,60%)]' },
+  { icon: ShieldCheck, label: 'Admin Panel', href: '/admin', color: 'text-[hsl(45,100%,50%)]', ownerOnly: true },
 ];
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const { currentUser, isAuthenticated, logout } = useAuthStore();
+
+  // Check if current user is the owner
+  const isOwner = STATIC_ORG.members.some(
+    (m) => m.isOwner && m.username.toLowerCase() === currentUser?.username?.toLowerCase()
+  );
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.ownerOnly) return isOwner;
+    return true;
+  });
 
   return (
     <aside
@@ -62,7 +75,7 @@ export function AppSidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-3">
-        {navItems.map((item, index) => {
+        {visibleNavItems.map((item, index) => {
           const isActive = location.pathname === item.href;
           return (
             <Link
@@ -72,7 +85,8 @@ export function AppSidebar() {
                 'flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200 animate-slide-in-left',
                 isActive
                   ? 'bg-primary/10 text-primary shadow-sm'
-                  : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground hover:translate-x-1'
+                  : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground hover:translate-x-1',
+                item.ownerOnly && 'border border-[hsl(45,100%,50%)]/20'
               )}
               style={{ animationDelay: `${index * 50}ms` }}
             >
@@ -80,7 +94,14 @@ export function AppSidebar() {
                 'h-5 w-5 shrink-0 transition-colors',
                 isActive ? 'text-primary' : item.color
               )} />
-              {!collapsed && <span>{item.label}</span>}
+              {!collapsed && (
+                <span className="flex items-center gap-2">
+                  {item.label}
+                  {item.ownerOnly && (
+                    <span className="text-[9px] font-bold uppercase tracking-wider bg-[hsl(45,100%,50%)]/15 text-[hsl(45,100%,50%)] px-1.5 py-0.5 rounded">Owner</span>
+                  )}
+                </span>
+              )}
               {isActive && !collapsed && (
                 <div className="ml-auto h-2 w-2 rounded-full gradient-bg animate-pulse-soft" />
               )}
@@ -99,7 +120,7 @@ export function AppSidebar() {
               </div>
               <div className="flex-1 min-w-0">
                 <span className="text-sm text-foreground truncate block">{currentUser.username}</span>
-                <span className="text-[10px] text-muted-foreground capitalize">{currentUser.role}</span>
+                <span className="text-[10px] text-muted-foreground capitalize">{currentUser.role}{isOwner ? ' • Owner' : ''}</span>
               </div>
               <button onClick={logout} title="Sign out" className="text-muted-foreground hover:text-destructive transition-colors">
                 <LogOut className="h-4 w-4" />

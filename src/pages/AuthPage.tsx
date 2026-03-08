@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { LogIn, Eye, EyeOff } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { LogIn, Eye, EyeOff, UserPlus, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { VisoryBILogo } from '@/components/VisoryBILogo';
 import { useAuthStore, STATIC_ORG } from '@/stores/authStore';
 import { toast } from '@/hooks/use-toast';
+import { registerUser, authenticateUser, getAllUsers, type StoredUser } from '@/lib/localDB';
 
-// Static passwords for demo members
+// Static passwords for built-in org members
 const MEMBER_PASSWORDS: Record<string, string> = {
   'viper': 'viper@123',
   'thaslee': 'thaslee@123',
@@ -16,52 +17,116 @@ const MEMBER_PASSWORDS: Record<string, string> = {
   'abd': 'abd@123',
 };
 
+type AuthMode = 'login' | 'register' | 'forgot';
+
 export default function AuthPage() {
   const navigate = useNavigate();
   const { login } = useAuthStore();
+  const [mode, setMode] = useState<AuthMode>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
+  const resetFields = () => {
+    setUsername('');
+    setPassword('');
+    setConfirmPassword('');
+    setNewPassword('');
+    setError('');
+    setShowPassword(false);
+  };
+
+  const switchMode = (m: AuthMode) => {
+    resetFields();
+    setMode(m);
+  };
+
+  // ── Login ──────────────────────────────────────────────
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    const trimmed = username.trim();
+    if (!trimmed) { setError('Please enter your username'); return; }
+    if (!password) { setError('Please enter your password'); return; }
 
-    const trimmedUsername = username.trim();
-    if (!trimmedUsername) {
-      setError('Please enter your username');
-      return;
-    }
-    if (!password) {
-      setError('Please enter your password');
-      return;
-    }
-
-    // Find member in organization data (case-insensitive)
+    // Check static org members first
     const member = STATIC_ORG.members.find(
-      (m) => m.username.toLowerCase() === trimmedUsername.toLowerCase()
+      (m) => m.username.toLowerCase() === trimmed.toLowerCase()
     );
-
-    if (!member) {
-      setError('Username not found. Please check your credentials.');
+    if (member) {
+      const expected = MEMBER_PASSWORDS[member.username.toLowerCase()];
+      if (password !== expected) { setError('Incorrect password.'); return; }
+      login(member.username, member.role);
+      toast({ title: `Welcome back, ${member.username}!`, description: `Signed in as ${member.role}${member.isOwner ? ' (Owner)' : ''}` });
+      navigate('/');
       return;
     }
 
-    // Check password
-    const expectedPassword = MEMBER_PASSWORDS[member.username.toLowerCase()];
-    if (password !== expectedPassword) {
-      setError('Incorrect password. Please try again.');
-      return;
-    }
-
-    // Login with role auto-detected from organization data
-    login(member.username, member.role);
-    toast({
-      title: `Welcome back, ${member.username}!`,
-      description: `Signed in as ${member.role}${member.isOwner ? ' (Owner)' : ''}`,
-    });
+    // Check locally registered users
+    const localUser = authenticateUser(trimmed, password);
+    if (!localUser) { setError('Invalid username or password.'); return; }
+    login(localUser.username, localUser.role);
+    toast({ title: `Welcome, ${localUser.username}!`, description: `Signed in as ${localUser.role}` });
     navigate('/');
+  };
+
+  // ── Register ───────────────────────────────────────────
+  const handleRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    const trimmed = username.trim();
+    if (!trimmed) { setError('Please enter a username'); return; }
+    if (trimmed.length < 3) { setError('Username must be at least 3 characters'); return; }
+    if (!password || password.length < 6) { setError('Password must be at least 6 characters'); return; }
+    if (password !== confirmPassword) { setError('Passwords do not match'); return; }
+
+    // Block if username matches a static org member
+    if (STATIC_ORG.members.some((m) => m.username.toLowerCase() === trimmed.toLowerCase())) {
+      setError('This username is reserved.');
+      return;
+    }
+
+    const user = registerUser(trimmed, password, 'editor');
+    if (!user) { setError('Username already taken.'); return; }
+
+    login(user.username, user.role);
+    toast({ title: 'Account created!', description: `Welcome, ${user.username}` });
+    navigate('/');
+  };
+
+  // ── Forgot Password ───────────────────────────────────
+  const handleForgotPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    const trimmed = username.trim();
+    if (!trimmed) { setError('Enter your username to reset password'); return; }
+    if (!newPassword || newPassword.length < 6) { setError('New password must be at least 6 characters'); return; }
+
+    // Check static members — cannot reset
+    if (STATIC_ORG.members.some((m) => m.username.toLowerCase() === trimmed.toLowerCase())) {
+      setError('Built-in accounts cannot be reset from here.');
+      return;
+    }
+
+    // Find in local DB and re-register (overwrite)
+    const users = getAllUsers();
+    const existing = users.find((u) => u.username.toLowerCase() === trimmed.toLowerCase());
+    if (!existing) { setError('Username not found.'); return; }
+
+    // Update password by overwriting the entry
+    const key = 'visorybi-db:users';
+    const all: StoredUser[] = JSON.parse(localStorage.getItem(key) || '[]');
+    const idx = all.findIndex((u) => u.id === existing.id);
+    if (idx >= 0) {
+      all[idx].passwordHash = btoa(newPassword);
+      localStorage.setItem(key, JSON.stringify(all));
+    }
+
+    toast({ title: 'Password reset!', description: 'You can now sign in with your new password.' });
+    switchMode('login');
   };
 
   return (
@@ -81,67 +146,102 @@ export default function AuthPage() {
         </div>
 
         <div className="glass-card rounded-2xl p-6">
-          <div className="flex items-center gap-2 mb-6">
-            <LogIn className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Sign In</h2>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                value={username}
-                onChange={(e) => { setUsername(e.target.value); setError(''); }}
-                placeholder="Enter your username"
-                autoFocus
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(''); }}
-                  placeholder="Enter your password"
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+          {/* ── Sign In ── */}
+          {mode === 'login' && (
+            <>
+              <div className="flex items-center gap-2 mb-6">
+                <LogIn className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold text-foreground">Sign In</h2>
               </div>
-            </div>
-
-            {error && (
-              <p className="text-sm text-destructive font-medium">{error}</p>
-            )}
-
-            <Button type="submit" className="w-full gradient-bg">
-              Sign In
-            </Button>
-          </form>
-
-          <div className="mt-5 rounded-lg bg-muted/50 p-4">
-            <p className="text-xs font-medium text-muted-foreground mb-2">Demo Credentials:</p>
-            <div className="grid grid-cols-2 gap-1.5 text-xs text-muted-foreground">
-              {STATIC_ORG.members.map((m) => (
-                <div key={m.id} className="flex items-center gap-1.5">
-                  <span className="font-medium text-foreground">{m.username}</span>
-                  <span className="text-muted-foreground/60">({m.role})</span>
+              <form onSubmit={handleLogin} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input id="username" value={username} onChange={(e) => { setUsername(e.target.value); setError(''); }} placeholder="Enter your username" autoFocus />
                 </div>
-              ))}
-            </div>
-            <p className="text-[10px] text-muted-foreground/60 mt-2">
-              Password format: username@123
-            </p>
-          </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Input id="password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => { setPassword(e.target.value); setError(''); }} placeholder="Enter your password" className="pr-10" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+                <Button type="submit" className="w-full gradient-bg">Sign In</Button>
+              </form>
+              <div className="mt-4 flex items-center justify-between text-sm">
+                <button onClick={() => switchMode('forgot')} className="text-muted-foreground hover:text-primary transition-colors">Forgot password?</button>
+                <button onClick={() => switchMode('register')} className="text-primary font-medium hover:underline">Create account</button>
+              </div>
+            </>
+          )}
+
+          {/* ── Register ── */}
+          {mode === 'register' && (
+            <>
+              <div className="flex items-center gap-2 mb-6">
+                <UserPlus className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold text-foreground">Create Account</h2>
+              </div>
+              <form onSubmit={handleRegister} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="reg-username">Username</Label>
+                  <Input id="reg-username" value={username} onChange={(e) => { setUsername(e.target.value); setError(''); }} placeholder="Choose a username" autoFocus />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reg-password">Password</Label>
+                  <div className="relative">
+                    <Input id="reg-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => { setPassword(e.target.value); setError(''); }} placeholder="Min 6 characters" className="pr-10" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reg-confirm">Confirm Password</Label>
+                  <Input id="reg-confirm" type="password" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }} placeholder="Re-enter password" />
+                </div>
+                {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+                <Button type="submit" className="w-full gradient-bg">Create Account</Button>
+              </form>
+              <div className="mt-4 text-center text-sm">
+                <span className="text-muted-foreground">Already have an account? </span>
+                <button onClick={() => switchMode('login')} className="text-primary font-medium hover:underline">Sign in</button>
+              </div>
+            </>
+          )}
+
+          {/* ── Forgot Password ── */}
+          {mode === 'forgot' && (
+            <>
+              <div className="flex items-center gap-2 mb-6">
+                <KeyRound className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold text-foreground">Reset Password</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mb-5">Enter your username and a new password to reset access.</p>
+              <form onSubmit={handleForgotPassword} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="forgot-username">Username</Label>
+                  <Input id="forgot-username" value={username} onChange={(e) => { setUsername(e.target.value); setError(''); }} placeholder="Your username" autoFocus />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="forgot-newpass">New Password</Label>
+                  <div className="relative">
+                    <Input id="forgot-newpass" type={showPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setError(''); }} placeholder="Min 6 characters" className="pr-10" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+                <Button type="submit" className="w-full gradient-bg">Reset Password</Button>
+              </form>
+              <div className="mt-4 text-center text-sm">
+                <button onClick={() => switchMode('login')} className="text-primary font-medium hover:underline">Back to sign in</button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -94,7 +94,7 @@ export const financeKPITemplate: DashboardTemplate = {
   name: 'Finance KPI Dashboard',
   description: 'Financial metrics with gauges, waterfalls, and budget tracking',
   category: 'Finance',
-  icon: 'DollarSign',
+  icon: 'PieChart',
   color: 'hsl(120, 60%, 45%)',
   sampleColumns: [
     { name: 'category', type: 'string' },

@@ -265,17 +265,15 @@ export default function DashboardOutputPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Branding Header - sticky on scroll */}
+      {/* Branding + Action Header - single sticky block */}
       <div className="sticky top-0 z-[60]">
         <DashboardHeader
           branding={currentDashboard.branding}
           onBrandingChange={() => {}}
           editable={false}
         />
-      </div>
-
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        {/* Action Header */}
+        <header className="border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
             <Link to="/dashboards">

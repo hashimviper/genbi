@@ -26,6 +26,7 @@ export default function AuthPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [selectedRole, setSelectedRole] = useState<'editor' | 'viewer'>('editor');
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -89,7 +90,7 @@ export default function AuthPage() {
       return;
     }
 
-    const user = registerUser(trimmed, password, 'editor');
+    const user = registerUser(trimmed, password, selectedRole);
     if (!user) { setError('Username already taken.'); return; }
 
     login(user.username, user.role);
@@ -201,6 +202,35 @@ export default function AuthPage() {
                 <div className="space-y-2">
                   <Label htmlFor="reg-confirm">Confirm Password</Label>
                   <Input id="reg-confirm" type="password" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }} placeholder="Re-enter password" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Account Type</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRole('editor')}
+                      className={`rounded-lg border p-3 text-center transition-all ${
+                        selectedRole === 'editor'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/40'
+                      }`}
+                    >
+                      <p className="text-sm font-semibold">Editor</p>
+                      <p className="text-[10px] mt-0.5">Create & edit dashboards</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRole('viewer')}
+                      className={`rounded-lg border p-3 text-center transition-all ${
+                        selectedRole === 'viewer'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/40'
+                      }`}
+                    >
+                      <p className="text-sm font-semibold">Viewer</p>
+                      <p className="text-[10px] mt-0.5">View-only access (client)</p>
+                    </button>
+                  </div>
                 </div>
                 {error && <p className="text-sm text-destructive font-medium">{error}</p>}
                 <Button type="submit" className="w-full gradient-bg">Create Account</Button>

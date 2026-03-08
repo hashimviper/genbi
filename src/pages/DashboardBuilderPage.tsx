@@ -773,6 +773,14 @@ export default function DashboardBuilderPage() {
                 )}
               </DragDropContext>
             )}
+
+            {/* Data Analytics Panel (Insight Report, Ranking, Data Table) - after charts */}
+            {!isFullscreen && getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (
+              <DataAnalyticsPanel
+                columns={getCurrentDataset()?.columns || []}
+                data={getDatasetData(getCurrentDataset()?.id || '')}
+              />
+            )}
           </div>
         </div>
       </div>

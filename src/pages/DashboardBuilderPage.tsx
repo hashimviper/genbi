@@ -406,6 +406,17 @@ export default function DashboardBuilderPage() {
     }
   }, [currentDashboard, updateDashboard]);
 
+  const handleThemeChange = useCallback((theme: DashboardTheme) => {
+    if (currentDashboard) {
+      updateDashboard(currentDashboard.id, { theme: theme as DashboardThemeConfig });
+      toast({ title: 'Theme applied', description: theme.themeName });
+    }
+  }, [currentDashboard, updateDashboard]);
+
+  const currentTheme: DashboardTheme = currentDashboard?.theme || {
+    bgType: 'solid', bgColor: '', bgGradient: '', cardOpacity: 100, themeName: 'default',
+  };
+
   if (!currentDashboard) {
     return (
       <MainLayout>

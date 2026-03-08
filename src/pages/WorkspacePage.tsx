@@ -9,6 +9,7 @@ import { STATIC_ORG, useAuthStore, UserRole } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useDashboardStore } from '@/stores/dashboardStore';
 import { toast } from '@/hooks/use-toast';
+import { updatePresence, isUserOnline } from '@/lib/localDB';
 import {
   Dialog,
   DialogContent,

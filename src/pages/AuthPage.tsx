@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { LogIn, Eye, EyeOff, UserPlus, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,13 +9,15 @@ import { useAuthStore, STATIC_ORG } from '@/stores/authStore';
 import { toast } from '@/hooks/use-toast';
 import { registerUser, authenticateUser, getAllUsers, type StoredUser } from '@/lib/localDB';
 
-// Static passwords for built-in org members
-const MEMBER_PASSWORDS: Record<string, string> = {
-  'viper': 'viper@123',
-  'thaslee': 'thaslee@123',
-  'naveen': 'naveen@123',
-  'abd': 'abd@123',
-};
+// Only Viper is static (owner). All others are dynamic localDB accounts.
+const OWNER_PASSWORD = 'viper@123';
+
+// Seed built-in team members into localDB on first load
+const SEED_MEMBERS = [
+  { username: 'Thaslee', password: 'thaslee@123', role: 'editor' as const },
+  { username: 'Naveen', password: 'naveen@123', role: 'editor' as const },
+  { username: 'Abd', password: 'abd@123', role: 'editor' as const },
+];
 
 type AuthMode = 'login' | 'register' | 'forgot';
 

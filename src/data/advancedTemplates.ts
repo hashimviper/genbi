@@ -137,7 +137,7 @@ export const operationsTemplate: DashboardTemplate = {
   name: 'Operations Dashboard',
   description: 'Operations monitoring with efficiency gauges and productivity metrics',
   category: 'Manufacturing',
-  icon: 'Factory',
+  icon: 'Wrench',
   color: 'hsl(43, 96%, 56%)',
   sampleColumns: [
     { name: 'line', type: 'string' },

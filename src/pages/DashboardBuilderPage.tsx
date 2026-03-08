@@ -614,16 +614,16 @@ export default function DashboardBuilderPage() {
               />
             )}
 
-            {/* Trend Analysis */}
-            {getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (
+            {/* Trend Analysis - hidden in fullscreen */}
+            {!isFullscreen && getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (
               <TrendAnalysisPanel
                 columns={getCurrentDataset()?.columns || []}
                 data={getDatasetData(getCurrentDataset()?.id || '')}
               />
             )}
 
-            {/* Summary Metrics */}
-            {getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (() => {
+            {/* Summary Metrics - hidden in fullscreen */}
+            {!isFullscreen && getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (() => {
               const ds = getCurrentDataset()!;
               const data = getDatasetData(ds.id);
               const numericCols = ds.columns.filter(c => c.type === 'number');

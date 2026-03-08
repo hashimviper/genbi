@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
+import { formatAxisValue, formatTooltipValue } from '@/lib/chartUtils';
 
 interface HorizontalBarWidgetProps {
   data: Record<string, unknown>[];

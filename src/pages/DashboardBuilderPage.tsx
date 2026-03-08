@@ -194,7 +194,7 @@ export default function DashboardBuilderPage() {
       config: {
         id: '',
         type,
-        title: generateSmartTitle(type, autoConfig.xAxis as string, autoConfig.yAxis as string, autoConfig.labelField as string, autoConfig.valueField as string),
+        title: generateSmartTitle(type, autoConfig.xAxis as string, autoConfig.yAxis as string, autoConfig.labelField as string, autoConfig.valueField as string, autoConfig.aggregation as string),
         datasetId: defaultDataset.id,
         xAxis: (autoConfig.xAxis as string) || '',
         yAxis: (autoConfig.yAxis as string) || '',

@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { ChevronDown, ChevronRight, Table2, BarChart3, Trophy, ArrowUpDown, Download, Search, Medal, TrendingUp, TrendingDown } from 'lucide-react';
+import { ChevronDown, ChevronRight, Table2, BarChart3, Trophy, ArrowUpDown, Download, Search, Medal, TrendingUp, TrendingDown, Lightbulb, AlertTriangle, Target, Zap } from 'lucide-react';
 import { DataColumn } from '@/types/dashboard';
 import { calculateSummaries, rankData, RankingConfig } from '@/lib/rankingUtils';
 import { formatAxisValue } from '@/lib/chartUtils';
+import { detectOutliersZScore } from '@/lib/statistics';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -390,6 +391,143 @@ function RankingSection({ columns, data }: { columns: DataColumn[]; data: Record
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// INSIGHT GENERATION REPORT
+// ══════════════════════════════════════════════════════════════════════════════
+function InsightReportSection({ columns, data }: { columns: DataColumn[]; data: Record<string, unknown>[] }) {
+  const insights = useMemo(() => {
+    const numericCols = columns.filter(c => c.type === 'number');
+    const stringCols = columns.filter(c => c.type === 'string');
+    const results: { type: 'highlight' | 'anomaly' | 'correlation' | 'distribution'; icon: typeof Lightbulb; title: string; description: string; severity: 'info' | 'warning' | 'success' }[] = [];
+
+    // Key highlights per numeric field
+    numericCols.forEach(col => {
+      const values = data.map(r => Number(r[col.name]) || 0);
+      if (values.length === 0) return;
+      const total = values.reduce((a, b) => a + b, 0);
+      const avg = total / values.length;
+      const max = Math.max(...values);
+      const min = Math.min(...values);
+      const range = max - min;
+
+      // Top performer
+      if (stringCols.length > 0) {
+        const maxIndex = values.indexOf(max);
+        const topLabel = String(data[maxIndex]?.[stringCols[0].name] ?? `Row ${maxIndex + 1}`);
+        results.push({
+          type: 'highlight',
+          icon: Target,
+          title: `Top ${col.name}`,
+          description: `"${topLabel}" leads with ${formatAxisValue(max)} (${((max / total) * 100).toFixed(1)}% of total ${formatAxisValue(total)})`,
+          severity: 'success',
+        });
+      }
+
+      // High variance detection
+      const variance = values.reduce((sum, v) => sum + (v - avg) ** 2, 0) / values.length;
+      const cv = avg !== 0 ? (Math.sqrt(variance) / avg) * 100 : 0;
+      if (cv > 50) {
+        results.push({
+          type: 'distribution',
+          icon: AlertTriangle,
+          title: `High Variability in ${col.name}`,
+          description: `Coefficient of variation is ${cv.toFixed(1)}% — data ranges from ${formatAxisValue(min)} to ${formatAxisValue(max)} (range: ${formatAxisValue(range)})`,
+          severity: 'warning',
+        });
+      }
+
+      // Anomalies
+      const outliers = detectOutliersZScore(values, 2.0, stringCols.length > 0 ? data.map(r => String(r[stringCols[0].name] ?? '')) : undefined);
+      if (outliers.length > 0) {
+        const labels = outliers.map(o => o.label || `Row ${o.index + 1}`).join(', ');
+        results.push({
+          type: 'anomaly',
+          icon: Zap,
+          title: `${outliers.length} Outlier${outliers.length > 1 ? 's' : ''} in ${col.name}`,
+          description: `Unusual values detected for: ${labels}. These are statistically significant deviations from the mean.`,
+          severity: 'warning',
+        });
+      }
+    });
+
+    // Growth/decline insight (compare first half vs second half)
+    numericCols.slice(0, 3).forEach(col => {
+      const values = data.map(r => Number(r[col.name]) || 0);
+      if (values.length < 4) return;
+      const half = Math.floor(values.length / 2);
+      const firstAvg = values.slice(0, half).reduce((a, b) => a + b, 0) / half;
+      const secondAvg = values.slice(half).reduce((a, b) => a + b, 0) / (values.length - half);
+      const changePercent = firstAvg !== 0 ? ((secondAvg - firstAvg) / firstAvg) * 100 : 0;
+
+      if (Math.abs(changePercent) > 10) {
+        results.push({
+          type: 'highlight',
+          icon: changePercent > 0 ? TrendingUp : TrendingDown,
+          title: `${col.name} ${changePercent > 0 ? 'Growth' : 'Decline'} Detected`,
+          description: `${col.name} shows a ${changePercent > 0 ? '+' : ''}${changePercent.toFixed(1)}% change comparing first half (avg ${formatAxisValue(firstAvg)}) to second half (avg ${formatAxisValue(secondAvg)}).`,
+          severity: changePercent > 0 ? 'success' : 'warning',
+        });
+      }
+    });
+
+    // Data completeness
+    const totalCells = data.length * columns.length;
+    const emptyCells = data.reduce((count, row) => {
+      return count + columns.filter(c => row[c.name] === null || row[c.name] === undefined || row[c.name] === '').length;
+    }, 0);
+    const completeness = ((totalCells - emptyCells) / totalCells) * 100;
+    results.push({
+      type: 'distribution',
+      icon: Lightbulb,
+      title: 'Data Completeness',
+      description: `Dataset is ${completeness.toFixed(1)}% complete with ${data.length} rows and ${columns.length} columns (${numericCols.length} numeric, ${columns.length - numericCols.length} categorical).`,
+      severity: completeness >= 95 ? 'success' : completeness >= 80 ? 'info' : 'warning',
+    });
+
+    return results;
+  }, [columns, data]);
+
+  if (insights.length === 0) return <p className="text-sm text-muted-foreground">No insights available.</p>;
+
+  return (
+    <div className="space-y-3">
+      {insights.map((insight, i) => {
+        const Icon = insight.icon;
+        return (
+          <div
+            key={i}
+            className={cn(
+              'flex items-start gap-3 rounded-lg border p-3 transition-all',
+              insight.severity === 'success' && 'border-emerald-500/20 bg-emerald-500/5',
+              insight.severity === 'warning' && 'border-amber-500/20 bg-amber-500/5',
+              insight.severity === 'info' && 'border-primary/20 bg-primary/5',
+            )}
+          >
+            <div className={cn(
+              'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+              insight.severity === 'success' && 'bg-emerald-500/10',
+              insight.severity === 'warning' && 'bg-amber-500/10',
+              insight.severity === 'info' && 'bg-primary/10',
+            )}>
+              <Icon className={cn(
+                'h-4 w-4',
+                insight.severity === 'success' && 'text-emerald-500',
+                insight.severity === 'warning' && 'text-amber-500',
+                insight.severity === 'info' && 'text-primary',
+              )} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">{insight.title}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{insight.description}</p>
+            </div>
+            <Badge variant="secondary" className="text-[9px] shrink-0 capitalize">{insight.type}</Badge>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // MAIN PANEL
 // ══════════════════════════════════════════════════════════════════════════════
 export function DataAnalyticsPanel({ columns, data }: DataAnalyticsPanelProps) {
@@ -398,17 +536,7 @@ export function DataAnalyticsPanel({ columns, data }: DataAnalyticsPanelProps) {
   const numericCols = columns.filter(c => c.type === 'number');
 
   return (
-    <div className="mb-6 space-y-3">
-      {/* Data Table Section */}
-      <ExpandableSection
-        title="Data Table"
-        icon={<Table2 className="h-4 w-4 text-primary" />}
-        badge={`${data.length} rows`}
-        defaultOpen={false}
-      >
-        <DataTableSection columns={columns} data={data} />
-      </ExpandableSection>
-
+    <div className="mt-8 space-y-3">
       {/* Summary Metrics Section */}
       {numericCols.length > 0 && (
         <ExpandableSection
@@ -421,17 +549,37 @@ export function DataAnalyticsPanel({ columns, data }: DataAnalyticsPanelProps) {
         </ExpandableSection>
       )}
 
+      {/* Insight Generation Report */}
+      <ExpandableSection
+        title="Insight Report"
+        icon={<Lightbulb className="h-4 w-4 text-primary" />}
+        badge="Auto-generated"
+        defaultOpen={true}
+      >
+        <InsightReportSection columns={columns} data={data} />
+      </ExpandableSection>
+
       {/* Ranking Section */}
       {numericCols.length > 0 && (
         <ExpandableSection
           title="Ranking"
           icon={<Trophy className="h-4 w-4 text-primary" />}
           badge="Best → Worst"
-          defaultOpen={false}
+          defaultOpen={true}
         >
           <RankingSection columns={columns} data={data} />
         </ExpandableSection>
       )}
+
+      {/* Data Table Section */}
+      <ExpandableSection
+        title="Data Table"
+        icon={<Table2 className="h-4 w-4 text-primary" />}
+        badge={`${data.length} rows`}
+        defaultOpen={true}
+      >
+        <DataTableSection columns={columns} data={data} />
+      </ExpandableSection>
     </div>
   );
 }

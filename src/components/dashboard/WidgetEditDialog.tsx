@@ -26,8 +26,10 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { getPreviewPage } from '@/lib/dataModel';
+import { CHART_THEMES, THEME_CATEGORIES, ChartColorTheme } from '@/lib/chartThemes';
+import { cn } from '@/lib/utils';
 
 interface WidgetEditDialogProps {
   open: boolean;

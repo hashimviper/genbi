@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { autoConfigureWidget, generateSmartTitle } from '@/lib/fieldMapping';
 import {
   Users,
   Globe,
@@ -157,6 +158,7 @@ export default function TemplatesPage() {
     if (!selectedTemplate || !dashboardName.trim()) return;
 
     let datasetId = selectedDataset;
+    let targetColumns = selectedTemplate.sampleColumns || [];
 
     if (useSampleData && selectedTemplate.sampleData && selectedTemplate.sampleColumns) {
       const newDataset = addDataset({
@@ -165,18 +167,47 @@ export default function TemplatesPage() {
         data: selectedTemplate.sampleData,
       });
       datasetId = newDataset.id;
+      targetColumns = selectedTemplate.sampleColumns;
+    } else if (selectedDataset) {
+      // User's own dataset - get its columns for auto-remapping
+      const userDataset = datasets.find(d => d.id === selectedDataset);
+      if (userDataset) {
+        targetColumns = userDataset.columns;
+      }
     }
 
     const dashboard = createDashboard(dashboardName.trim(), selectedTemplate.description);
 
+    const needsRemap = !useSampleData && targetColumns.length > 0;
+
     selectedTemplate.widgets.forEach((widget) => {
+      let config = {
+        ...widget.config,
+        id: uuidv4(),
+        datasetId: datasetId || '',
+      };
+
+      // Auto-remap fields when using user's dataset (not sample data)
+      if (needsRemap) {
+        const autoFields = autoConfigureWidget(widget.type, targetColumns);
+        const smartTitle = generateSmartTitle(
+          widget.type,
+          autoFields.xAxis as string | undefined,
+          autoFields.yAxis as string | undefined,
+          autoFields.labelField as string | undefined,
+          autoFields.valueField as string | undefined,
+        );
+
+        config = {
+          ...config,
+          ...autoFields,
+          title: smartTitle !== 'New Widget' ? smartTitle : config.title,
+        };
+      }
+
       const newWidget = {
         ...widget,
-        config: {
-          ...widget.config,
-          id: uuidv4(),
-          datasetId: datasetId || '',
-        },
+        config,
       };
       addWidget(dashboard.id, newWidget);
     });

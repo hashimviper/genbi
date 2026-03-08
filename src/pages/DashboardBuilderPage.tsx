@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { DashboardBranding } from '@/types/dashboard';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, Save, Undo, Redo, GripVertical, Database, RotateCcw, Maximize2, Minimize2, Home, PanelLeftOpen, PanelLeftClose, BarChart3, LineChart, PieChart, AreaChart, ScatterChart, Table2, Hash, Gauge, Circle, GitBranch, Layers, TrendingUp, ArrowDownUp, Activity, Target, Search } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
@@ -46,6 +47,7 @@ import { autoConfigureWidget, generateSmartTitle } from '@/lib/fieldMapping';
 import { autoAggregate, clearAggregationCache } from '@/lib/dataModel';
 import { QueryDialog } from '@/components/dashboard/QueryDialog';
 import { LazyWidget } from '@/components/dashboard/LazyWidget';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 
 const chartTypes: { type: ChartType; icon: React.ComponentType<{ className?: string }>; label: string; category: string }[] = [
   { type: 'bar', icon: BarChart3, label: 'Bar', category: 'Standard' },
@@ -393,6 +395,13 @@ export default function DashboardBuilderPage() {
     return <div className="text-muted-foreground">Invalid configuration</div>;
   };
 
+  const handleBrandingChange = useCallback((branding: DashboardBranding) => {
+    if (currentDashboard) {
+      updateDashboard(currentDashboard.id, { branding });
+      toast({ title: 'Branding updated' });
+    }
+  }, [currentDashboard, updateDashboard]);
+
   if (!currentDashboard) {
     return (
       <MainLayout>
@@ -408,9 +417,17 @@ export default function DashboardBuilderPage() {
   const userCanEdit = canEdit();
   const userCanDelete = canDelete();
 
+
   return (
     <MainLayout>
       <div ref={dashboardRef} className={cn("flex h-full flex-col", isFullscreen && "bg-background")}>
+        {/* Dashboard Branding Header */}
+        <DashboardHeader
+          branding={currentDashboard.branding}
+          onBrandingChange={handleBrandingChange}
+          editable={userCanEdit}
+        />
+
         <div className="flex flex-wrap items-center justify-between border-b border-border/50 px-6 py-4 gap-2">
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" onClick={() => setSliderOpen(!sliderOpen)} className="gap-2">

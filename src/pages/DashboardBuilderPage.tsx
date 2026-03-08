@@ -339,6 +339,44 @@ export default function DashboardBuilderPage() {
     setQaDialogOpen(true);
   }, []);
 
+  // Clone widget
+  const handleCloneWidget = useCallback((widget: DashboardWidget) => {
+    if (!currentDashboard) return;
+    saveStateForUndo();
+    const cloned: Omit<DashboardWidget, 'id'> = {
+      type: widget.type,
+      config: { ...JSON.parse(JSON.stringify(widget.config)), title: `${widget.config.title} (Copy)` },
+      gridPosition: { ...widget.gridPosition, y: widget.gridPosition.y + widget.gridPosition.h },
+    };
+    addWidget(currentDashboard.id, cloned);
+    toast({ title: 'Widget cloned' });
+  }, [currentDashboard, saveStateForUndo, addWidget]);
+
+  // Dark/Light toggle
+  const toggleDarkMode = useCallback(() => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    document.documentElement.classList.toggle('dark', newMode);
+    localStorage.setItem('visorybi-dark-mode', newMode ? 'dark' : 'light');
+  }, [isDarkMode]);
+
+  // Version restore
+  const handleVersionRestore = useCallback((restored: any) => {
+    if (currentDashboard) {
+      updateDashboard(currentDashboard.id, { widgets: restored.widgets, branding: restored.branding, theme: restored.theme });
+    }
+  }, [currentDashboard, updateDashboard]);
+
+  // Data transform apply
+  const handleTransformApply = useCallback((data: Record<string, unknown>[], columns: any[]) => {
+    const ds = getCurrentDataset();
+    if (!ds) return;
+    const { datasets: allDs } = useDashboardStore.getState();
+    const updatedDatasets = allDs.map(d => d.id === ds.id ? { ...d, data, columns } : d);
+    useDashboardStore.setState({ datasets: updatedDatasets });
+    toast({ title: 'Transformation applied' });
+  }, [getCurrentDataset]);
+
   const renderWidget = (widget: DashboardWidget) => {
     const config = widget.config;
     const datasetId = config.datasetId;

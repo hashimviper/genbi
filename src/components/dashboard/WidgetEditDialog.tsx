@@ -270,53 +270,110 @@ export function WidgetEditDialog({
 
           {/* ── Colors Tab ── */}
           <TabsContent value="colors" className="flex-1 overflow-y-auto mt-4 min-h-0">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <ColorPickerRow label="Primary Chart Color" value={cfg.primaryColor || '#6366f1'} onChange={(v) => updateConfig({ primaryColor: v })} />
-              <ColorPickerRow label="Chart Background" value={cfg.chartBgColor || '#ffffff'} onChange={(v) => updateConfig({ chartBgColor: v === '#ffffff' ? undefined : v })} />
-              <ColorPickerRow label="Axis Color" value={cfg.axisColor || '#e2e8f0'} onChange={(v) => updateConfig({ axisColor: v })} />
-              <ColorPickerRow label="Gridline Color" value={cfg.gridColor || '#e2e8f0'} onChange={(v) => updateConfig({ gridColor: v })} />
+            {/* ── Chart Color Theme Picker ── */}
+            <div className="space-y-3 mb-6">
+              <Label className="text-sm font-semibold">Chart Color Theme</Label>
+              {THEME_CATEGORIES.map((cat) => {
+                const themes = CHART_THEMES.filter(t => t.category === cat.id);
+                return (
+                  <div key={cat.id} className="space-y-1.5">
+                    <p className="text-xs text-muted-foreground font-medium">{cat.label}</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {themes.map((theme) => {
+                        const isActive = cfg.chartThemeId === theme.id;
+                        return (
+                          <button
+                            key={theme.id}
+                            onClick={() => {
+                              updateConfig({
+                                chartThemeId: theme.id,
+                                primaryColor: theme.primaryColor,
+                                chartBgColor: theme.bgColor || undefined,
+                                axisColor: theme.axisColor,
+                                gridColor: theme.gridColor,
+                                labelColor: theme.labelColor,
+                                titleColor: theme.titleColor,
+                                colors: theme.colors,
+                              });
+                            }}
+                            className={cn(
+                              'rounded-lg border-2 p-1.5 transition-all hover:shadow-md',
+                              isActive ? 'border-primary ring-2 ring-primary/20' : 'border-border/50 hover:border-primary/30'
+                            )}
+                          >
+                            <div
+                              className="rounded-md h-8 w-full flex items-center justify-center gap-0.5 overflow-hidden"
+                              style={{ backgroundColor: theme.bgColor || 'hsl(var(--background))' }}
+                            >
+                              {theme.colors.slice(0, 5).map((c, i) => (
+                                <div key={i} className="h-5 flex-1 rounded-sm" style={{ backgroundColor: c }} />
+                              ))}
+                            </div>
+                            <p className="text-[9px] font-medium text-foreground mt-1 text-center truncate">{theme.name}</p>
+                            {isActive && (
+                              <div className="flex justify-center">
+                                <Check className="h-3 w-3 text-primary" />
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
 
-              <div className="space-y-2">
-                <Label>Show Labels</Label>
-                <Select
-                  value={cfg.showDataLabels === true ? 'true' : 'false'}
-                  onValueChange={(v) => updateConfig({ showDataLabels: v === 'true' })}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">Yes</SelectItem>
-                    <SelectItem value="false">No</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="border-t border-border pt-4">
+              <Label className="text-sm font-semibold mb-3 block">Fine-tune Colors</Label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <ColorPickerRow label="Primary Chart Color" value={cfg.primaryColor || '#6366f1'} onChange={(v) => updateConfig({ primaryColor: v })} />
+                <ColorPickerRow label="Chart Background" value={cfg.chartBgColor || '#ffffff'} onChange={(v) => updateConfig({ chartBgColor: v === '#ffffff' ? undefined : v })} />
+                <ColorPickerRow label="Axis Color" value={cfg.axisColor || '#e2e8f0'} onChange={(v) => updateConfig({ axisColor: v })} />
+                <ColorPickerRow label="Gridline Color" value={cfg.gridColor || '#e2e8f0'} onChange={(v) => updateConfig({ gridColor: v })} />
+
+                <div className="space-y-2">
+                  <Label>Show Labels</Label>
+                  <Select
+                    value={cfg.showDataLabels === true ? 'true' : 'false'}
+                    onValueChange={(v) => updateConfig({ showDataLabels: v === 'true' })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">Yes</SelectItem>
+                      <SelectItem value="false">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Line chart extras */}
+                {editedWidget.type === 'line' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Line Thickness</Label>
+                      <Select value={String(cfg.lineThickness || 2)} onValueChange={(v) => updateConfig({ lineThickness: Number(v) })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">Thin (1px)</SelectItem>
+                          <SelectItem value="2">Normal (2px)</SelectItem>
+                          <SelectItem value="3">Thick (3px)</SelectItem>
+                          <SelectItem value="4">Extra Thick (4px)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Area Fill</Label>
+                      <Select value={cfg.areaFill ? 'true' : 'false'} onValueChange={(v) => updateConfig({ areaFill: v === 'true' })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">Enabled</SelectItem>
+                          <SelectItem value="false">Disabled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
               </div>
-
-              {/* Line chart extras */}
-              {editedWidget.type === 'line' && (
-                <>
-                  <div className="space-y-2">
-                    <Label>Line Thickness</Label>
-                    <Select value={String(cfg.lineThickness || 2)} onValueChange={(v) => updateConfig({ lineThickness: Number(v) })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">Thin (1px)</SelectItem>
-                        <SelectItem value="2">Normal (2px)</SelectItem>
-                        <SelectItem value="3">Thick (3px)</SelectItem>
-                        <SelectItem value="4">Extra Thick (4px)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Area Fill</Label>
-                    <Select value={cfg.areaFill ? 'true' : 'false'} onValueChange={(v) => updateConfig({ areaFill: v === 'true' })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="true">Enabled</SelectItem>
-                        <SelectItem value="false">Disabled</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
-              )}
             </div>
 
             {/* Per-category color pickers */}

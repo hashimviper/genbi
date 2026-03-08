@@ -391,6 +391,46 @@ export const sampleDatasets: DataSet[] = [
     ],
     createdAt: new Date(),
   },
+  {
+    id: 'time-series-dataset',
+    name: 'Time Series (24 Months)',
+    columns: [
+      { name: 'month', type: 'string' },
+      { name: 'revenue', type: 'number' },
+      { name: 'orders', type: 'number' },
+      { name: 'customers', type: 'number' },
+      { name: 'avg_order_value', type: 'number' },
+      { name: 'churn_rate', type: 'number' },
+      { name: 'support_tickets', type: 'number' },
+    ],
+    data: [
+      { month: 'Jan 2023', revenue: 125000, orders: 342, customers: 1200, avg_order_value: 365, churn_rate: 5.2, support_tickets: 89 },
+      { month: 'Feb 2023', revenue: 132000, orders: 368, customers: 1250, avg_order_value: 359, churn_rate: 4.8, support_tickets: 95 },
+      { month: 'Mar 2023', revenue: 148000, orders: 412, customers: 1340, avg_order_value: 359, churn_rate: 4.5, support_tickets: 78 },
+      { month: 'Apr 2023', revenue: 141000, orders: 389, customers: 1310, avg_order_value: 362, churn_rate: 5.1, support_tickets: 102 },
+      { month: 'May 2023', revenue: 158000, orders: 445, customers: 1420, avg_order_value: 355, churn_rate: 4.2, support_tickets: 85 },
+      { month: 'Jun 2023', revenue: 172000, orders: 478, customers: 1510, avg_order_value: 360, churn_rate: 3.9, support_tickets: 72 },
+      { month: 'Jul 2023', revenue: 165000, orders: 456, customers: 1480, avg_order_value: 362, churn_rate: 4.3, support_tickets: 91 },
+      { month: 'Aug 2023', revenue: 178000, orders: 498, customers: 1560, avg_order_value: 357, churn_rate: 3.7, support_tickets: 68 },
+      { month: 'Sep 2023', revenue: 192000, orders: 534, customers: 1650, avg_order_value: 360, churn_rate: 3.4, support_tickets: 75 },
+      { month: 'Oct 2023', revenue: 205000, orders: 568, customers: 1720, avg_order_value: 361, churn_rate: 3.1, support_tickets: 82 },
+      { month: 'Nov 2023', revenue: 238000, orders: 652, customers: 1890, avg_order_value: 365, churn_rate: 2.8, support_tickets: 110 },
+      { month: 'Dec 2023', revenue: 275000, orders: 745, customers: 2100, avg_order_value: 369, churn_rate: 2.5, support_tickets: 125 },
+      { month: 'Jan 2024', revenue: 198000, orders: 542, customers: 1950, avg_order_value: 365, churn_rate: 3.8, support_tickets: 98 },
+      { month: 'Feb 2024', revenue: 212000, orders: 578, customers: 2020, avg_order_value: 367, churn_rate: 3.5, support_tickets: 88 },
+      { month: 'Mar 2024', revenue: 228000, orders: 618, customers: 2150, avg_order_value: 369, churn_rate: 3.2, support_tickets: 76 },
+      { month: 'Apr 2024', revenue: 215000, orders: 589, customers: 2080, avg_order_value: 365, churn_rate: 3.6, support_tickets: 105 },
+      { month: 'May 2024', revenue: 245000, orders: 668, customers: 2280, avg_order_value: 367, churn_rate: 2.9, support_tickets: 82 },
+      { month: 'Jun 2024', revenue: 262000, orders: 712, customers: 2400, avg_order_value: 368, churn_rate: 2.6, support_tickets: 70 },
+      { month: 'Jul 2024', revenue: 251000, orders: 685, customers: 2350, avg_order_value: 366, churn_rate: 3.0, support_tickets: 88 },
+      { month: 'Aug 2024', revenue: 272000, orders: 738, customers: 2480, avg_order_value: 369, churn_rate: 2.4, support_tickets: 65 },
+      { month: 'Sep 2024', revenue: 289000, orders: 782, customers: 2600, avg_order_value: 370, churn_rate: 2.2, support_tickets: 71 },
+      { month: 'Oct 2024', revenue: 312000, orders: 842, customers: 2780, avg_order_value: 371, churn_rate: 2.0, support_tickets: 79 },
+      { month: 'Nov 2024', revenue: 358000, orders: 965, customers: 3050, avg_order_value: 371, churn_rate: 1.8, support_tickets: 115 },
+      { month: 'Dec 2024', revenue: 405000, orders: 1095, customers: 3400, avg_order_value: 370, churn_rate: 1.5, support_tickets: 132 },
+    ],
+    createdAt: new Date(),
+  },
 ];
 
 // Map template IDs to their corresponding dataset IDs
@@ -414,6 +454,7 @@ export const templateDatasetMap: Record<string, string> = {
   'finance-dashboard': 'finance-expenses-dataset',
   'general-report': 'executive-kpi-dataset',
   'growth-dashboard': 'growth-dashboard-dataset',
+  'time-series-forecasting': 'time-series-dataset',
 };
 
 export const getDatasetForTemplate = (templateId: string): DataSet | undefined => {

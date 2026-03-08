@@ -237,7 +237,7 @@ export default function AdminPanelPage() {
 
         {adminTab === 'database' ? (
           <div className="flex-1 glass-card rounded-xl overflow-hidden">
-            <DatabasePanel />
+            <IndexedDBViewer />
           </div>
         ) : (
         <div className="grid flex-1 gap-6 lg:grid-cols-3">

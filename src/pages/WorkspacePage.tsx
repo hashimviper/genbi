@@ -303,7 +303,7 @@ export default function WorkspacePage() {
                     <p className="text-sm font-semibold text-foreground">{team.name}</p>
                     <p className="text-xs text-muted-foreground">{team.members.join(', ')}</p>
                   </div>
-                  <button onClick={() => handleDeleteTeam(team.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                  <button onClick={() => handleDeleteTeam(team.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
                     <X className="h-4 w-4" />
                   </button>
                 </div>

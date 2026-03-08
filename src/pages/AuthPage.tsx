@@ -119,14 +119,13 @@ export default function AuthPage() {
       return;
     }
 
-    // Update password by overwriting the entry
+    // Find and update in local DB
     const key = 'visorybi-db:users';
     const all: StoredUser[] = JSON.parse(localStorage.getItem(key) || '[]');
-    const idx = all.findIndex((u) => u.id === existing.id);
-    if (idx >= 0) {
-      all[idx].passwordHash = btoa(newPassword);
-      localStorage.setItem(key, JSON.stringify(all));
-    }
+    const idx = all.findIndex((u) => u.username.toLowerCase() === trimmed.toLowerCase());
+    if (idx < 0) { setError('Username not found.'); return; }
+    all[idx].passwordHash = btoa(newPassword);
+    localStorage.setItem(key, JSON.stringify(all));
 
     toast({ title: 'Password reset!', description: 'You can now sign in with your new password.' });
     switchMode('login');

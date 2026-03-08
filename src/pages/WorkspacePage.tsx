@@ -235,7 +235,7 @@ export default function WorkspacePage() {
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">Team Members</h3>
             {STATIC_ORG.members.map((member) => {
-              const online = isOnline(member.username);
+              const online = checkOnline(member.username);
               return (
                 <div
                   key={member.id}

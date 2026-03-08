@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAdminStore } from '@/stores/adminStore';
+import { DatabasePanel } from '@/components/admin/DatabasePanel';
 import {
   BarChart3,
   LineChart,

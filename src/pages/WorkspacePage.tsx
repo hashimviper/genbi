@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Users, Building2, Shield, Edit3, Crown, Plus, Share2, UserPlus, X } from 'lucide-react';
+import { Users, Building2, Shield, Edit3, Crown, Plus, Share2, UserPlus, X, Building, Trash2 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,14 @@ import { STATIC_ORG, useAuthStore, UserRole } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useDashboardStore } from '@/stores/dashboardStore';
 import { toast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 interface Team {
   id: string;
@@ -16,8 +24,16 @@ interface Team {
   members: string[];
 }
 
+interface Organization {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+}
+
 const TEAMS_STORAGE_KEY = 'visorybi-teams';
 const SHARED_DASHBOARDS_KEY = 'visorybi-shared-dashboards';
+const ORGS_STORAGE_KEY = 'visorybi-organizations';
 
 function loadTeams(): Team[] {
   try { return JSON.parse(localStorage.getItem(TEAMS_STORAGE_KEY) || '[]'); } catch { return []; }
@@ -31,6 +47,12 @@ function loadSharedIds(): string[] {
 function saveSharedIds(ids: string[]) {
   localStorage.setItem(SHARED_DASHBOARDS_KEY, JSON.stringify(ids));
 }
+function loadOrgs(): Organization[] {
+  try { return JSON.parse(localStorage.getItem(ORGS_STORAGE_KEY) || '[]'); } catch { return []; }
+}
+function saveOrgs(orgs: Organization[]) {
+  localStorage.setItem(ORGS_STORAGE_KEY, JSON.stringify(orgs));
+}
 
 export default function WorkspacePage() {
   const { currentUser } = useAuthStore();
@@ -41,6 +63,12 @@ export default function WorkspacePage() {
   const [newTeamName, setNewTeamName] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [sharedIds, setSharedIds] = useState<string[]>(loadSharedIds);
+
+  // Organization state
+  const [organizations, setOrganizations] = useState<Organization[]>(loadOrgs);
+  const [showCreateOrg, setShowCreateOrg] = useState(false);
+  const [newOrgName, setNewOrgName] = useState('');
+  const [newOrgDesc, setNewOrgDesc] = useState('');
 
   const isOnline = (username: string) => username === 'Viper';
 
@@ -92,6 +120,31 @@ export default function WorkspacePage() {
     toast({ title: 'Dashboard shared', description: dashboardName });
   };
 
+  const handleCreateOrg = () => {
+    if (!newOrgName.trim()) { toast({ title: 'Enter an organization name', variant: 'destructive' }); return; }
+    const org: Organization = {
+      id: Date.now().toString(36),
+      name: newOrgName.trim(),
+      description: newOrgDesc.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [...organizations, org];
+    setOrganizations(updated);
+    saveOrgs(updated);
+    setNewOrgName('');
+    setNewOrgDesc('');
+    setShowCreateOrg(false);
+    addNotification('Organization Created', `Organization "${org.name}" has been created.`);
+    toast({ title: 'Organization created', description: org.name });
+  };
+
+  const handleDeleteOrg = (id: string) => {
+    const updated = organizations.filter(o => o.id !== id);
+    setOrganizations(updated);
+    saveOrgs(updated);
+    toast({ title: 'Organization deleted' });
+  };
+
   return (
     <MainLayout>
       <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -103,7 +156,57 @@ export default function WorkspacePage() {
           <p className="text-sm text-muted-foreground mt-1">Team workspace & member roles (UI simulation)</p>
         </div>
 
-        {/* Organization Card */}
+        {/* Organizations */}
+        <div className="glass-card rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+              <Building className="h-4 w-4" /> Organizations
+            </h3>
+            <Button size="sm" onClick={() => setShowCreateOrg(true)} className="gap-1.5">
+              <Plus className="h-3.5 w-3.5" /> Create Organization
+            </Button>
+          </div>
+
+          {/* Default org */}
+          <div className="rounded-lg bg-primary/5 border border-primary/20 px-4 py-3 mb-3">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Building2 className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  {STATIC_ORG.name}
+                  <Badge variant="secondary" className="text-[10px]">Default</Badge>
+                </p>
+                <p className="text-xs text-muted-foreground">{STATIC_ORG.members.length} members</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Custom orgs */}
+          {organizations.map((org) => (
+            <div key={org.id} className="rounded-lg bg-muted/50 px-4 py-3 mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                  <Building className="h-5 w-5 text-accent-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{org.name}</p>
+                  <p className="text-xs text-muted-foreground">{org.description || 'No description'}</p>
+                </div>
+              </div>
+              <button onClick={() => handleDeleteOrg(org.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+
+          {organizations.length === 0 && (
+            <p className="text-xs text-muted-foreground mt-2">No custom organizations yet. Create one to organize your teams.</p>
+          )}
+        </div>
+
+        {/* Organization Card (Members) */}
         <div className="glass-card rounded-xl p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
@@ -271,6 +374,49 @@ export default function WorkspacePage() {
             </div>
           </div>
         </div>
+
+        {/* Create Organization Dialog */}
+        <Dialog open={showCreateOrg} onOpenChange={setShowCreateOrg}>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Building className="h-5 w-5 text-primary" />
+                Create Organization
+              </DialogTitle>
+              <DialogDescription>
+                Create a new organization to group teams and manage access.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="org-name">Organization Name</Label>
+                <Input
+                  id="org-name"
+                  value={newOrgName}
+                  onChange={(e) => setNewOrgName(e.target.value)}
+                  placeholder="e.g. Acme Corp"
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="org-desc">Description (optional)</Label>
+                <Input
+                  id="org-desc"
+                  value={newOrgDesc}
+                  onChange={(e) => setNewOrgDesc(e.target.value)}
+                  placeholder="e.g. Main analytics division"
+                  className="bg-background"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCreateOrg(false)}>Cancel</Button>
+              <Button onClick={handleCreateOrg} disabled={!newOrgName.trim()} className="gap-2">
+                <Plus className="h-4 w-4" /> Create
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );

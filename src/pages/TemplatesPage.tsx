@@ -119,10 +119,10 @@ const categoryColors: Record<string, string> = {
 };
 
 function getTemplateIcon(template: DashboardTemplate): React.ComponentType<{ className?: string }> {
-  // First try department-specific icon
-  if (departmentIconMap[template.category]) return departmentIconMap[template.category];
-  // Then try template's icon string
+  // First try template's own icon string (unique per template)
   if (iconMap[template.icon]) return iconMap[template.icon];
+  // Then try department-specific icon
+  if (departmentIconMap[template.category]) return departmentIconMap[template.category];
   // Fallback
   return FileBarChart;
 }

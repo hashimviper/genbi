@@ -6,7 +6,7 @@ export const salesPerformanceTemplate: DashboardTemplate = {
   name: 'Sales Performance',
   description: 'Comprehensive sales analytics with KPIs, gauges, and advanced charts',
   category: 'Sales',
-  icon: 'TrendingUp',
+  icon: 'Target',
   color: 'hsl(142, 71%, 45%)',
   sampleColumns: [
     { name: 'region', type: 'string' },
@@ -50,7 +50,7 @@ export const hrInsightsTemplate: DashboardTemplate = {
   name: 'HR Insights',
   description: 'Employee analytics with gauges, donuts, and workforce metrics',
   category: 'Human Resources',
-  icon: 'Users',
+  icon: 'Activity',
   color: 'hsl(262, 83%, 60%)',
   sampleColumns: [
     { name: 'department', type: 'string' },
@@ -94,7 +94,7 @@ export const financeKPITemplate: DashboardTemplate = {
   name: 'Finance KPI Dashboard',
   description: 'Financial metrics with gauges, waterfalls, and budget tracking',
   category: 'Finance',
-  icon: 'DollarSign',
+  icon: 'PieChart',
   color: 'hsl(120, 60%, 45%)',
   sampleColumns: [
     { name: 'category', type: 'string' },
@@ -137,7 +137,7 @@ export const operationsTemplate: DashboardTemplate = {
   name: 'Operations Dashboard',
   description: 'Operations monitoring with efficiency gauges and productivity metrics',
   category: 'Manufacturing',
-  icon: 'Factory',
+  icon: 'Wrench',
   color: 'hsl(43, 96%, 56%)',
   sampleColumns: [
     { name: 'line', type: 'string' },
@@ -180,7 +180,7 @@ export const executiveKPITemplate: DashboardTemplate = {
   name: 'Executive KPI Dashboard',
   description: 'High-level executive metrics with gauges and trend analysis',
   category: 'General',
-  icon: 'FileBarChart',
+  icon: 'Briefcase',
   color: 'hsl(280, 70%, 55%)',
   sampleColumns: [
     { name: 'metric', type: 'string' },
@@ -222,7 +222,7 @@ export const marketingAnalysisTemplate: DashboardTemplate = {
   name: 'Marketing Analysis',
   description: 'Campaign performance with ROI gauges and channel analytics',
   category: 'Digital Marketing',
-  icon: 'Globe',
+  icon: 'Megaphone',
   color: 'hsl(173, 80%, 50%)',
   sampleColumns: [
     { name: 'channel', type: 'string' },
@@ -265,7 +265,7 @@ export const blankCanvasTemplate: DashboardTemplate = {
   name: 'Blank Canvas',
   description: 'Start from scratch - add your own data and build custom visualizations',
   category: 'General',
-  icon: 'FileBarChart',
+  icon: 'Database',
   color: 'hsl(220, 70%, 50%)',
   sampleColumns: [
     { name: 'category', type: 'string' },
@@ -287,7 +287,7 @@ export const growthDashboardTemplate: DashboardTemplate = {
   name: 'Growth Dashboard',
   description: 'Track user acquisition, retention, and growth metrics across channels',
   category: 'Sales',
-  icon: 'TrendingUp',
+  icon: 'LineChart',
   color: 'hsl(160, 70%, 45%)',
   sampleColumns: [
     { name: 'channel', type: 'string' },

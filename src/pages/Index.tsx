@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Database, 
   LayoutGrid, 
@@ -15,10 +15,14 @@ import {
   Check,
   X,
   Trash2,
+  LogIn,
+  LogOut,
+  User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VisoryBILogo } from '@/components/VisoryBILogo';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { useAuthStore } from '@/stores/authStore';
 
 const features = [
   { 

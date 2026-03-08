@@ -66,8 +66,10 @@ function isQualitativeField(fieldName: string, colType: string): boolean {
   // Date fields are not qualitative labels
   if (dateKeywords.some(kw => lower.includes(kw))) return false;
   
-  // Check against quantitative exclusion list
-  if (quantitativeExclusions.some(kw => lower === kw || lower.endsWith(`_${kw}`) || lower.startsWith(`${kw}_`))) return false;
+  // Check against quantitative exclusion list (exact match or compound match)
+  for (const kw of quantitativeExclusions) {
+    if (lower === kw || lower === `${kw}s` || lower.endsWith(`_${kw}`) || lower.startsWith(`${kw}_`)) return false;
+  }
   
   // Explicit qualitative match
   if (qualitativePrimary.some(kw => lower.includes(kw))) return true;

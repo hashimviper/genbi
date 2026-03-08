@@ -33,17 +33,20 @@ const DEFAULT_THEME: DashboardTheme = {
 
 const PRESET_THEMES: { name: string; label: string; bgType: DashboardTheme['bgType']; bgColor: string; bgGradient: string; preview: string }[] = [
   { name: 'default', label: 'Default', bgType: 'solid', bgColor: '', bgGradient: '', preview: 'bg-background' },
-  { name: 'midnight', label: 'Midnight Blue', bgType: 'gradient', bgColor: '', bgGradient: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', preview: 'bg-gradient-to-br from-slate-900 to-slate-800' },
-  { name: 'ocean', label: 'Ocean Depth', bgType: 'gradient', bgColor: '', bgGradient: 'linear-gradient(135deg, #0c4a6e 0%, #164e63 50%, #134e4a 100%)', preview: 'bg-gradient-to-br from-sky-900 to-teal-900' },
-  { name: 'corporate', label: 'Corporate', bgType: 'solid', bgColor: '#f8fafc', bgGradient: '', preview: 'bg-slate-50' },
-  { name: 'charcoal', label: 'Charcoal', bgType: 'solid', bgColor: '#1c1c1e', bgGradient: '', preview: 'bg-zinc-900' },
-  { name: 'aurora', label: 'Aurora', bgType: 'gradient', bgColor: '', bgGradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)', preview: 'bg-gradient-to-br from-indigo-950 to-blue-900' },
-  { name: 'sunset', label: 'Sunset Warm', bgType: 'gradient', bgColor: '', bgGradient: 'linear-gradient(135deg, #1a0000 0%, #2d1b00 50%, #1a0a00 100%)', preview: 'bg-gradient-to-br from-red-950 to-amber-950' },
-  { name: 'forest', label: 'Forest', bgType: 'gradient', bgColor: '', bgGradient: 'linear-gradient(135deg, #052e16 0%, #14532d 50%, #022c22 100%)', preview: 'bg-gradient-to-br from-green-950 to-emerald-950' },
-  { name: 'lavender', label: 'Lavender', bgType: 'gradient', bgColor: '', bgGradient: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%)', preview: 'bg-gradient-to-br from-indigo-950 to-indigo-900' },
-  { name: 'clean-white', label: 'Clean White', bgType: 'solid', bgColor: '#ffffff', bgGradient: '', preview: 'bg-white' },
+  { name: 'midnight', label: 'Midnight Blue', bgType: 'gradient', bgColor: '', bgGradient: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%)', preview: 'bg-gradient-to-br from-slate-900 to-blue-900' },
+  { name: 'ocean', label: 'Ocean Depth', bgType: 'gradient', bgColor: '', bgGradient: 'linear-gradient(135deg, #0c4a6e 0%, #0e7490 50%, #134e4a 100%)', preview: 'bg-gradient-to-br from-sky-900 to-teal-800' },
+  { name: 'corporate', label: 'Corporate', bgType: 'solid', bgColor: '#f1f5f9', bgGradient: '', preview: 'bg-slate-100' },
+  { name: 'charcoal', label: 'Charcoal', bgType: 'solid', bgColor: '#18181b', bgGradient: '', preview: 'bg-zinc-900' },
+  { name: 'aurora', label: 'Aurora Borealis', bgType: 'gradient', bgColor: '', bgGradient: 'linear-gradient(135deg, #0f0c29 0%, #302b63 40%, #24243e 100%)', preview: 'bg-gradient-to-br from-indigo-950 to-purple-900' },
+  { name: 'sunset', label: 'Ember Glow', bgType: 'gradient', bgColor: '', bgGradient: 'linear-gradient(135deg, #1a0000 0%, #441a00 40%, #661a00 70%, #1a0000 100%)', preview: 'bg-gradient-to-br from-red-950 to-orange-900' },
+  { name: 'forest', label: 'Deep Forest', bgType: 'gradient', bgColor: '', bgGradient: 'linear-gradient(135deg, #022c22 0%, #064e3b 50%, #052e16 100%)', preview: 'bg-gradient-to-br from-emerald-950 to-green-900' },
+  { name: 'lavender', label: 'Lavender Mist', bgType: 'gradient', bgColor: '', bgGradient: 'linear-gradient(135deg, #1e1b4b 0%, #4c1d95 50%, #1e1b4b 100%)', preview: 'bg-gradient-to-br from-indigo-950 to-violet-900' },
+  { name: 'clean-white', label: 'Clean White', bgType: 'solid', bgColor: '#ffffff', bgGradient: '', preview: 'bg-white border border-border/30' },
   { name: 'slate', label: 'Warm Slate', bgType: 'solid', bgColor: '#1e1e2e', bgGradient: '', preview: 'bg-[#1e1e2e]' },
-  { name: 'executive', label: 'Executive Dark', bgType: 'gradient', bgColor: '', bgGradient: 'linear-gradient(180deg, #0a0a0a 0%, #171717 50%, #0a0a0a 100%)', preview: 'bg-gradient-to-b from-neutral-950 to-neutral-900' },
+  { name: 'executive', label: 'Executive Dark', bgType: 'gradient', bgColor: '', bgGradient: 'linear-gradient(180deg, #09090b 0%, #18181b 50%, #09090b 100%)', preview: 'bg-gradient-to-b from-zinc-950 to-zinc-900' },
+  { name: 'neon-noir', label: 'Neon Noir', bgType: 'gradient', bgColor: '', bgGradient: 'linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 40%, #0a1628 70%, #0a0a0a 100%)', preview: 'bg-gradient-to-br from-black to-purple-950' },
+  { name: 'rose-gold', label: 'Rose Gold', bgType: 'gradient', bgColor: '', bgGradient: 'linear-gradient(135deg, #1c1917 0%, #44403c 40%, #292524 100%)', preview: 'bg-gradient-to-br from-stone-900 to-stone-700' },
+  { name: 'arctic', label: 'Arctic Ice', bgType: 'gradient', bgColor: '', bgGradient: 'linear-gradient(135deg, #ecfeff 0%, #cffafe 40%, #e0f2fe 100%)', preview: 'bg-gradient-to-br from-cyan-50 to-sky-100' },
 ];
 
 const SOLID_COLORS = [
@@ -132,7 +135,7 @@ export function ThemeConfigDialog({ open, onOpenChange, theme, onSave }: ThemeCo
         {/* Content */}
         <div className="space-y-4 py-2">
           {tab === 'presets' && (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {PRESET_THEMES.map((preset) => (
                 <button
                   key={preset.name}
@@ -270,6 +273,6 @@ export function isLightBg(theme: DashboardTheme): boolean {
       return (r * 299 + g * 587 + b * 114) / 1000 > 128;
     }
   }
-  if (theme.themeName === 'corporate' || theme.themeName === 'clean-white') return true;
+  if (theme.themeName === 'corporate' || theme.themeName === 'clean-white' || theme.themeName === 'arctic') return true;
   return false;
 }

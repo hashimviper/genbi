@@ -154,6 +154,22 @@ export default function DashboardBuilderPage() {
     }
   }, [currentDashboard, canRedo, redo, updateDashboard]);
 
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo]);
+
   const getDatasetData = (datasetId: string, widgetId?: string) => {
     const dataset = allDatasets.find((d) => d.id === datasetId);
     let rawData = dataset?.data || [];
@@ -436,56 +452,86 @@ export default function DashboardBuilderPage() {
   return (
     <MainLayout>
       <div ref={dashboardRef} className={cn("flex h-full flex-col", isFullscreen && "bg-background")}>
-        {/* Dashboard Branding Header */}
-        <DashboardHeader
-          branding={currentDashboard.branding}
-          onBrandingChange={handleBrandingChange}
-          editable={userCanEdit}
-        />
+        {/* Dashboard Branding Header - hidden in fullscreen */}
+        {!isFullscreen && (
+          <DashboardHeader
+            branding={currentDashboard.branding}
+            onBrandingChange={handleBrandingChange}
+            editable={userCanEdit}
+          />
+        )}
 
-        <div className="flex flex-wrap items-center justify-between border-b border-border/50 px-6 py-4 gap-2">
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={() => setSliderOpen(!sliderOpen)} className="gap-2">
-              {sliderOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
-              {sliderOpen ? 'Close' : 'Charts'}
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">{currentDashboard.name}</h1>
-              <p className="text-sm text-muted-foreground">{currentDashboard.widgets.length} widgets • Double-click for insights</p>
+        {/* Toolbar */}
+        <div className={cn(
+          "border-b border-border/50 px-4 py-3",
+          isFullscreen && "bg-background/95 backdrop-blur-sm"
+        )}>
+          {/* Top row: title + primary actions */}
+          <div className="flex items-center justify-between gap-3 min-w-0">
+            <div className="flex items-center gap-3 min-w-0 shrink">
+              {!isFullscreen && (
+                <Button variant="outline" size="sm" onClick={() => setSliderOpen(!sliderOpen)} className="gap-1.5 shrink-0">
+                  {sliderOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+                  <span className="hidden sm:inline">{sliderOpen ? 'Close' : 'Charts'}</span>
+                </Button>
+              )}
+              <div className="min-w-0">
+                <h1 className="text-lg font-bold text-foreground truncate">{currentDashboard.name}</h1>
+                <p className="text-xs text-muted-foreground">{currentDashboard.widgets.length} widgets</p>
+              </div>
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => setQaDialogOpen(true)}>
-              <Search className="h-4 w-4" /> Ask Data
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => setThemeDialogOpen(true)}>
-              <Palette className="h-4 w-4" /> Theme
-            </Button>
-            {Object.keys(mergedCrossFilters).length > 0 && (
-              <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => { clearAllCrossFilters(); setLocalCrossFilters({}); }}>
-                <RotateCcw className="h-3 w-3" /> Clear Filters
+
+            {/* Action buttons - responsive grid */}
+            <div className="flex items-center gap-1.5 flex-wrap justify-end shrink-0">
+              {/* Undo/Redo group */}
+              <div className="flex items-center border border-border/50 rounded-md overflow-hidden">
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-none" onClick={handleUndo} disabled={!canUndo()} title="Undo (Ctrl+Z)">
+                  <Undo className="h-4 w-4" />
+                </Button>
+                <div className="w-px h-5 bg-border/50" />
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-none" onClick={handleRedo} disabled={!canRedo()} title="Redo (Ctrl+Y)">
+                  <Redo className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {!isFullscreen && (
+                <>
+                  <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => setQaDialogOpen(true)}>
+                    <Search className="h-3.5 w-3.5" /> <span className="hidden md:inline">Ask Data</span>
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => setThemeDialogOpen(true)}>
+                    <Palette className="h-3.5 w-3.5" /> <span className="hidden md:inline">Theme</span>
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => setShowDatasetSwitcher(true)}>
+                    <Database className="h-3.5 w-3.5" /> <span className="hidden lg:inline">Dataset</span>
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => setFilters([])}>
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </Button>
+                  <ShareMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardId={currentDashboard.id} datasetId={getCurrentDataset()?.id} filters={Object.fromEntries(filters.map(f => [f.field, f.values]))} drillState={drillStates} />
+                  <ExportMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardData={currentDashboard} />
+                </>
+              )}
+
+              {Object.keys(mergedCrossFilters).length > 0 && (
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => { clearAllCrossFilters(); setLocalCrossFilters({}); }}>
+                  <RotateCcw className="h-3 w-3" /> Clear Filters
+                </Button>
+              )}
+
+              <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={toggleFullscreen}>
+                {isFullscreen ? <><Minimize2 className="h-3.5 w-3.5" /> Exit</> : <><Maximize2 className="h-3.5 w-3.5" /> Full</>}
               </Button>
-            )}
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowDatasetSwitcher(true)}>
-              <Database className="h-4 w-4" /> Switch Dataset
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => setFilters([])}>
-              <RotateCcw className="h-4 w-4" /> Reset
-            </Button>
-            <ShareMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardId={currentDashboard.id} datasetId={getCurrentDataset()?.id} filters={Object.fromEntries(filters.map(f => [f.field, f.values]))} drillState={drillStates} />
-            <ExportMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardData={currentDashboard} />
-            <Button variant="outline" size="sm" className="gap-2" onClick={handleUndo} disabled={!canUndo()}><Undo className="h-4 w-4" /></Button>
-            <Button variant="outline" size="sm" className="gap-2" onClick={handleRedo} disabled={!canRedo()}><Redo className="h-4 w-4" /></Button>
-            <Button variant="outline" size="sm" className="gap-2" onClick={toggleFullscreen}>
-              {isFullscreen ? <><Minimize2 className="h-4 w-4" /> Exit</> : <><Maximize2 className="h-4 w-4" /> Full</>}
-            </Button>
-            <Button size="sm" className="gap-2" onClick={handleSave}><Save className="h-4 w-4" /> Save</Button>
+              {!isFullscreen && (
+                <Button size="sm" className="gap-1.5 h-8" onClick={handleSave}><Save className="h-3.5 w-3.5" /> Save</Button>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Cross-filter badges */}
         {Object.keys(mergedCrossFilters).length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap px-6 py-2 border-b border-border/30 bg-muted/30">
+          <div className="flex items-center gap-2 flex-wrap px-4 py-2 border-b border-border/30 bg-muted/30">
             <span className="text-xs font-medium text-muted-foreground">Active filters:</span>
             {Object.entries(mergedCrossFilters).map(([field, value]) => (
               <Badge key={field} variant="secondary" className="gap-1 cursor-pointer text-xs" onClick={() => handleCrossFilterClick(field, value)}>
@@ -497,62 +543,64 @@ export default function DashboardBuilderPage() {
 
         {/* Main area: Slider + Dashboard */}
         <div className="flex flex-1 min-h-0 overflow-hidden">
-          {/* Chart Library Slider */}
-          <div
-            className={cn(
-              "shrink-0 border-r border-border/50 bg-card/50 transition-all duration-300 overflow-y-auto",
-              sliderOpen ? "w-56" : "w-0"
-            )}
-            style={{ minWidth: sliderOpen ? '14rem' : 0 }}
-          >
-            {sliderOpen && (
-              <div className="p-3 space-y-4">
-                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Chart Library</h3>
-                {['Standard', 'Metrics', 'Advanced'].map(cat => (
-                  <div key={cat}>
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-2">{cat}</p>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {chartTypes.filter(c => c.category === cat).map(({ type, icon: Icon, label }) => (
-                        <button
-                          key={type}
-                          onClick={() => handleAddChartFromSlider(type)}
-                          className="flex flex-col items-center gap-1 rounded-lg border border-border/50 p-2 text-[10px] font-medium text-foreground transition-all hover:border-primary/50 hover:bg-primary/5"
-                        >
-                          <Icon className="h-4 w-4 text-primary" />
-                          {label}
-                        </button>
-                      ))}
+          {/* Chart Library Slider - hidden in fullscreen */}
+          {!isFullscreen && (
+            <div
+              className={cn(
+                "shrink-0 border-r border-border/50 bg-card/50 transition-all duration-300 overflow-y-auto",
+                sliderOpen ? "w-56" : "w-0"
+              )}
+              style={{ minWidth: sliderOpen ? '14rem' : 0 }}
+            >
+              {sliderOpen && (
+                <div className="p-3 space-y-4">
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Chart Library</h3>
+                  {['Standard', 'Metrics', 'Advanced'].map(cat => (
+                    <div key={cat}>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-2">{cat}</p>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {chartTypes.filter(c => c.category === cat).map(({ type, icon: Icon, label }) => (
+                          <button
+                            key={type}
+                            onClick={() => handleAddChartFromSlider(type)}
+                            className="flex flex-col items-center gap-1 rounded-lg border border-border/50 p-2 text-[10px] font-medium text-foreground transition-all hover:border-primary/50 hover:bg-primary/5"
+                          >
+                            <Icon className="h-4 w-4 text-primary" />
+                            {label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
+                  ))}
+
+                  {/* 3D toggle */}
+                  <div className="border-t border-border/50 pt-3">
+                    <label className="flex items-center justify-between cursor-pointer text-xs">
+                      <span className="text-foreground font-medium">3D Charts</span>
+                      <input
+                        type="checkbox"
+                        checked={enable3DCharts}
+                        onChange={(e) => toggle3DCharts(e.target.checked)}
+                        className="h-4 w-4 rounded border-primary text-primary"
+                      />
+                    </label>
                   </div>
-                ))}
 
-                {/* 3D toggle */}
-                <div className="border-t border-border/50 pt-3">
-                  <label className="flex items-center justify-between cursor-pointer text-xs">
-                    <span className="text-foreground font-medium">3D Charts</span>
-                    <input
-                      type="checkbox"
-                      checked={enable3DCharts}
-                      onChange={(e) => toggle3DCharts(e.target.checked)}
-                      className="h-4 w-4 rounded border-primary text-primary"
-                    />
-                  </label>
+                  {/* Dataset selector */}
+                  <div className="border-t border-border/50 pt-3 space-y-2">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase">Active Dataset</p>
+                    <p className="text-xs text-foreground truncate">{getCurrentDataset()?.name || 'None'}</p>
+                    <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => setShowDatasetSwitcher(true)}>
+                      Switch
+                    </Button>
+                  </div>
                 </div>
-
-                {/* Dataset selector */}
-                <div className="border-t border-border/50 pt-3 space-y-2">
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase">Active Dataset</p>
-                  <p className="text-xs text-foreground truncate">{getCurrentDataset()?.name || 'None'}</p>
-                  <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => setShowDatasetSwitcher(true)}>
-                    Switch
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Dashboard Canvas */}
-          <div id="dashboard-canvas" className="flex-1 overflow-auto p-6 min-w-0 select-none" onDoubleClick={handleCanvasDoubleClick} style={getThemeStyle(currentTheme)}>
+          <div id="dashboard-canvas" className="flex-1 overflow-auto p-6 min-w-0 select-none" onDoubleClick={!isFullscreen ? handleCanvasDoubleClick : undefined} style={getThemeStyle(currentTheme)}>
             {getCurrentDataset() && (
               <GlobalFilterBar
                 columns={getCurrentDataset()?.columns || []}
@@ -563,16 +611,16 @@ export default function DashboardBuilderPage() {
               />
             )}
 
-            {/* Trend Analysis */}
-            {getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (
+            {/* Trend Analysis - hidden in fullscreen */}
+            {!isFullscreen && getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (
               <TrendAnalysisPanel
                 columns={getCurrentDataset()?.columns || []}
                 data={getDatasetData(getCurrentDataset()?.id || '')}
               />
             )}
 
-            {/* Summary Metrics */}
-            {getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (() => {
+            {/* Summary Metrics - hidden in fullscreen */}
+            {!isFullscreen && getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (() => {
               const ds = getCurrentDataset()!;
               const data = getDatasetData(ds.id);
               const numericCols = ds.columns.filter(c => c.type === 'number');

@@ -125,7 +125,7 @@ export function GlobalFilterBar({
     return (
       <div 
         key={index} 
-        className="flex items-center gap-2 rounded-lg border border-border/50 bg-secondary/30 px-3 py-2"
+        className="flex items-center gap-2 rounded-lg border border-border/50 bg-secondary/30 px-2 py-1.5 min-w-0 shrink-0"
       >
         <span className="text-sm font-medium text-foreground">
           {filter.field.replace(/_/g, ' ')}

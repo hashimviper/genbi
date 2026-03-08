@@ -88,6 +88,7 @@ export default function AdminPanelPage() {
   const { enable3DCharts, toggle3DCharts } = useAdminStore();
   const [selectedDashboard, setSelectedDashboard] = useState<string>('');
   const [configs, setConfigs] = useState<ChartConfiguration[]>([]);
+  const [adminTab, setAdminTab] = useState<'widgets' | 'database'>('widgets');
   
   // Combine user datasets with sample datasets
   const allDatasets = [...datasets, ...sampleDatasets];

@@ -85,6 +85,10 @@ export default function DashboardBuilderPage() {
   const [sliderOpen, setSliderOpen] = useState(false);
   const [qaDialogOpen, setQaDialogOpen] = useState(false);
   const [themeDialogOpen, setThemeDialogOpen] = useState(false);
+  const [versionDialogOpen, setVersionDialogOpen] = useState(false);
+  const [presentationMode, setPresentationMode] = useState(false);
+  const [transformDialogOpen, setTransformDialogOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
   const dashboardRef = useRef<HTMLDivElement>(null);
   
   const [insightWidget, setInsightWidget] = useState<DashboardWidget | null>(null);

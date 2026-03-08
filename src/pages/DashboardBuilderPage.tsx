@@ -394,6 +394,7 @@ export default function DashboardBuilderPage() {
     const gridColor = (config as any).gridColor as string | undefined;
     const lineThickness = (config as any).lineThickness as number | undefined;
     const areaFill = (config as any).areaFill as boolean | undefined;
+    const themeColors = (config as any).colors as string[] | undefined;
 
     if (!data || data.length === 0) {
       return <div className="flex h-full items-center justify-center text-muted-foreground">No data available</div>;

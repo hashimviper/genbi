@@ -31,11 +31,11 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: Home, label: 'Home', href: '/', color: 'text-[hsl(200,90%,50%)]' },
-  { icon: Users, label: 'Collaboration', href: '/workspace', color: 'text-[hsl(170,80%,45%)]' },
-  { icon: Wrench, label: 'Dashboard Builder', href: '/builder', color: 'text-accent' },
+  { icon: Users, label: 'Collaboration', href: '/workspace', color: 'text-[hsl(170,80%,45%)]', editorOnly: true },
+  { icon: Wrench, label: 'Dashboard Builder', href: '/builder', color: 'text-accent', editorOnly: true },
   { icon: FileText, label: 'Templates', href: '/templates', color: 'text-[hsl(38,95%,55%)]' },
   { icon: FolderOpen, label: 'My Dashboards', href: '/dashboards', color: 'text-[hsl(155,75%,45%)]' },
-  { icon: Database, label: 'Data Sources', href: '/data', color: 'text-[hsl(330,85%,60%)]' },
+  { icon: Database, label: 'Data Sources', href: '/data', color: 'text-[hsl(330,85%,60%)]', editorOnly: true },
   { icon: ShieldCheck, label: 'Admin Panel', href: '/admin', color: 'text-[hsl(45,100%,50%)]', ownerOnly: true },
 ];
 

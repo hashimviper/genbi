@@ -53,6 +53,7 @@ import { LazyWidget } from '@/components/dashboard/LazyWidget';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { AnalyticsChatbot } from '@/components/dashboard/AnalyticsChatbot';
 import { TrendAnalysisPanel } from '@/components/dashboard/TrendAnalysisPanel';
+import { DataAnalyticsPanel } from '@/components/dashboard/DataAnalyticsPanel';
 import { ThemeConfigDialog, getThemeStyle, DashboardTheme } from '@/components/dashboard/ThemeConfig';
 
 const chartTypes: { type: ChartType; icon: React.ComponentType<{ className?: string }>; label: string; category: string }[] = [
@@ -672,30 +673,13 @@ export default function DashboardBuilderPage() {
               />
             )}
 
-            {/* Summary Metrics - hidden in fullscreen */}
-            {!isFullscreen && getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (() => {
-              const ds = getCurrentDataset()!;
-              const data = getDatasetData(ds.id);
-              const numericCols = ds.columns.filter(c => c.type === 'number');
-              if (numericCols.length === 0) return null;
-              const primaryField = numericCols[0].name;
-              const summaries = calculateSummaries(data, { metrics: ['total', 'average', 'min', 'max', 'count'], valueField: primaryField });
-              return (
-                <div className="mb-6 glass-card rounded-xl p-4">
-                  <h3 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                    Summary — {primaryField.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </h3>
-                  <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-                    {(['total', 'average', 'min', 'max', 'count'] as const).map(key => (
-                      <div key={key} className="rounded-lg bg-primary/5 p-3 text-center min-w-0">
-                        <p className="text-xs text-muted-foreground capitalize">{key}</p>
-                        <p className="text-lg font-bold text-foreground">{typeof summaries[key] === 'number' ? (summaries[key] as number).toLocaleString() : summaries[key]}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
+            {/* Data Analytics Panel (Data Table, Summary, Ranking) - hidden in fullscreen */}
+            {!isFullscreen && getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (
+              <DataAnalyticsPanel
+                columns={getCurrentDataset()?.columns || []}
+                data={getDatasetData(getCurrentDataset()?.id || '')}
+              />
+            )}
 
             {currentDashboard.widgets.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center">

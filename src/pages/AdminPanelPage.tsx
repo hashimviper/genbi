@@ -202,13 +202,44 @@ export default function AdminPanelPage() {
     <MainLayout>
       <div className="flex h-full flex-col p-6">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Admin Panel</h1>
-          <p className="mt-1 text-muted-foreground">
-            Configure charts and widgets for your dashboards
-          </p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Admin Panel</h1>
+            <p className="mt-1 text-muted-foreground">
+              Manage widgets, users, and system data
+            </p>
+          </div>
+          <div className="flex gap-1 rounded-xl border border-border bg-secondary/30 p-1">
+            <button
+              onClick={() => setAdminTab('widgets')}
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                adminTab === 'widgets'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Settings2 className="h-4 w-4" />
+              Widget Builder
+            </button>
+            <button
+              onClick={() => setAdminTab('database')}
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                adminTab === 'database'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Hash className="h-4 w-4" />
+              Database
+            </button>
+          </div>
         </div>
 
+        {adminTab === 'database' ? (
+          <div className="flex-1 glass-card rounded-xl overflow-hidden">
+            <DatabasePanel />
+          </div>
+        ) : (
         <div className="grid flex-1 gap-6 lg:grid-cols-3">
           {/* Chart Types Panel */}
           <div className="lg:col-span-1">

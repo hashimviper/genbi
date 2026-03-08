@@ -234,6 +234,13 @@ export default function DashboardOutputPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Branding Header */}
+      <DashboardHeader
+        branding={currentDashboard.branding}
+        onBrandingChange={() => {}}
+        editable={false}
+      />
+
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center justify-between px-6 py-4">

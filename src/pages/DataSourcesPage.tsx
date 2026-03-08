@@ -100,7 +100,7 @@ export default function DataSourcesPage() {
                     <button
                       key={dataset.id}
                       onClick={() => { setCurrentDataset(dataset); setPreviewPage(1); }}
-                      className={`group flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors ${
+                      className={`group relative flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors ${
                         currentDataset?.id === dataset.id
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-secondary'

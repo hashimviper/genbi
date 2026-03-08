@@ -298,7 +298,7 @@ export default function WorkspacePage() {
             <div className="mt-6 space-y-2">
               <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Your Teams</h4>
               {teams.map((team) => (
-                <div key={team.id} className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
+                <div key={team.id} className="group flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
                   <div>
                     <p className="text-sm font-semibold text-foreground">{team.name}</p>
                     <p className="text-xs text-muted-foreground">{team.members.join(', ')}</p>

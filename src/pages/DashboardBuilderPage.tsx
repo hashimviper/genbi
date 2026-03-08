@@ -395,6 +395,13 @@ export default function DashboardBuilderPage() {
     return <div className="text-muted-foreground">Invalid configuration</div>;
   };
 
+  const handleBrandingChange = useCallback((branding: DashboardBranding) => {
+    if (currentDashboard) {
+      updateDashboard(currentDashboard.id, { branding });
+      toast({ title: 'Branding updated' });
+    }
+  }, [currentDashboard, updateDashboard]);
+
   if (!currentDashboard) {
     return (
       <MainLayout>
@@ -410,12 +417,6 @@ export default function DashboardBuilderPage() {
   const userCanEdit = canEdit();
   const userCanDelete = canDelete();
 
-  const handleBrandingChange = useCallback((branding: DashboardBranding) => {
-    if (currentDashboard) {
-      updateDashboard(currentDashboard.id, { branding });
-      toast({ title: 'Branding updated' });
-    }
-  }, [currentDashboard, updateDashboard]);
 
   return (
     <MainLayout>

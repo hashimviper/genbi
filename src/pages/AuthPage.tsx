@@ -26,6 +26,7 @@ export default function AuthPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [selectedRole, setSelectedRole] = useState<'editor' | 'viewer'>('editor');
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');

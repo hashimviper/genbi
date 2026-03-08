@@ -273,6 +273,6 @@ export function isLightBg(theme: DashboardTheme): boolean {
       return (r * 299 + g * 587 + b * 114) / 1000 > 128;
     }
   }
-  if (theme.themeName === 'corporate' || theme.themeName === 'clean-white') return true;
+  if (theme.themeName === 'corporate' || theme.themeName === 'clean-white' || theme.themeName === 'arctic') return true;
   return false;
 }

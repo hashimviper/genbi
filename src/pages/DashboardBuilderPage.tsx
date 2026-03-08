@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { DashboardBranding } from '@/types/dashboard';
+import { DashboardBranding, DashboardThemeConfig } from '@/types/dashboard';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Save, Undo, Redo, GripVertical, Database, RotateCcw, Maximize2, Minimize2, Home, PanelLeftOpen, PanelLeftClose, BarChart3, LineChart, PieChart, AreaChart, ScatterChart, Table2, Hash, Gauge, Circle, GitBranch, Layers, TrendingUp, ArrowDownUp, Activity, Target, Search } from 'lucide-react';
+import { Plus, Save, Undo, Redo, GripVertical, Database, RotateCcw, Maximize2, Minimize2, Home, PanelLeftOpen, PanelLeftClose, BarChart3, LineChart, PieChart, AreaChart, ScatterChart, Table2, Hash, Gauge, Circle, GitBranch, Layers, TrendingUp, ArrowDownUp, Activity, Target, Search, Palette } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useDashboardStore } from '@/stores/dashboardStore';
@@ -49,6 +49,8 @@ import { QueryDialog } from '@/components/dashboard/QueryDialog';
 import { LazyWidget } from '@/components/dashboard/LazyWidget';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { AnalyticsChatbot } from '@/components/dashboard/AnalyticsChatbot';
+import { TrendAnalysisPanel } from '@/components/dashboard/TrendAnalysisPanel';
+import { ThemeConfigDialog, getThemeStyle, DashboardTheme } from '@/components/dashboard/ThemeConfig';
 
 const chartTypes: { type: ChartType; icon: React.ComponentType<{ className?: string }>; label: string; category: string }[] = [
   { type: 'bar', icon: BarChart3, label: 'Bar', category: 'Standard' },
@@ -79,6 +81,7 @@ export default function DashboardBuilderPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [sliderOpen, setSliderOpen] = useState(false);
   const [qaDialogOpen, setQaDialogOpen] = useState(false);
+  const [themeDialogOpen, setThemeDialogOpen] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
   
   const [insightWidget, setInsightWidget] = useState<DashboardWidget | null>(null);
@@ -403,6 +406,17 @@ export default function DashboardBuilderPage() {
     }
   }, [currentDashboard, updateDashboard]);
 
+  const handleThemeChange = useCallback((theme: DashboardTheme) => {
+    if (currentDashboard) {
+      updateDashboard(currentDashboard.id, { theme: theme as DashboardThemeConfig });
+      toast({ title: 'Theme applied', description: theme.themeName });
+    }
+  }, [currentDashboard, updateDashboard]);
+
+  const currentTheme: DashboardTheme = currentDashboard?.theme || {
+    bgType: 'solid', bgColor: '', bgGradient: '', cardOpacity: 100, themeName: 'default',
+  };
+
   if (!currentDashboard) {
     return (
       <MainLayout>
@@ -443,6 +457,9 @@ export default function DashboardBuilderPage() {
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setQaDialogOpen(true)}>
               <Search className="h-4 w-4" /> Ask Data
+            </Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setThemeDialogOpen(true)}>
+              <Palette className="h-4 w-4" /> Theme
             </Button>
             {Object.keys(mergedCrossFilters).length > 0 && (
               <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => { clearAllCrossFilters(); setLocalCrossFilters({}); }}>
@@ -535,7 +552,7 @@ export default function DashboardBuilderPage() {
           </div>
 
           {/* Dashboard Canvas */}
-          <div id="dashboard-canvas" className="flex-1 overflow-auto p-6 min-w-0 select-none" onDoubleClick={handleCanvasDoubleClick}>
+          <div id="dashboard-canvas" className="flex-1 overflow-auto p-6 min-w-0 select-none" onDoubleClick={handleCanvasDoubleClick} style={getThemeStyle(currentTheme)}>
             {getCurrentDataset() && (
               <GlobalFilterBar
                 columns={getCurrentDataset()?.columns || []}
@@ -543,6 +560,14 @@ export default function DashboardBuilderPage() {
                 filters={filters}
                 onFiltersChange={setFilters}
                 className="mb-6"
+              />
+            )}
+
+            {/* Trend Analysis */}
+            {getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (
+              <TrendAnalysisPanel
+                columns={getCurrentDataset()?.columns || []}
+                data={getDatasetData(getCurrentDataset()?.id || '')}
               />
             )}
 
@@ -734,6 +759,14 @@ export default function DashboardBuilderPage() {
           }}
         />
       )}
+
+      {/* Theme Config Dialog */}
+      <ThemeConfigDialog
+        open={themeDialogOpen}
+        onOpenChange={setThemeDialogOpen}
+        theme={currentTheme}
+        onSave={handleThemeChange}
+      />
     </MainLayout>
   );
 }

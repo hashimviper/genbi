@@ -9,6 +9,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { formatAxisValue, formatTooltipValue } from '@/lib/chartUtils';
 
 interface ComboChartWidgetProps {
   data: Record<string, unknown>[];

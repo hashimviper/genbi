@@ -552,7 +552,7 @@ export default function DashboardBuilderPage() {
           </div>
 
           {/* Dashboard Canvas */}
-          <div id="dashboard-canvas" className="flex-1 overflow-auto p-6 min-w-0 select-none" onDoubleClick={handleCanvasDoubleClick}>
+          <div id="dashboard-canvas" className="flex-1 overflow-auto p-6 min-w-0 select-none" onDoubleClick={handleCanvasDoubleClick} style={getThemeStyle(currentTheme)}>
             {getCurrentDataset() && (
               <GlobalFilterBar
                 columns={getCurrentDataset()?.columns || []}

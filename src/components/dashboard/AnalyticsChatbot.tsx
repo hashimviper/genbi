@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DataColumn, ChartType, DashboardWidget } from '@/types/dashboard';
 import { ChatMessage, generateBotResponse, getQuickPrompts, AnalysisInstance } from '@/lib/analyticsAdvisor';
-import { autoConfigureWidget, generateSmartTitle } from '@/lib/fieldMapping';
+import { autoConfigureWidget, generateSmartTitle, resetFieldTracker } from '@/lib/fieldMapping';
 import { cn } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 

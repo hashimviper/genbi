@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { ChevronDown, ChevronRight, Table2, BarChart3, Trophy, ArrowUpDown, Download, Search, Medal, TrendingUp, TrendingDown } from 'lucide-react';
+import { ChevronDown, ChevronRight, Table2, BarChart3, Trophy, ArrowUpDown, Download, Search, Medal, TrendingUp, TrendingDown, Lightbulb, AlertTriangle, Target, Zap } from 'lucide-react';
 import { DataColumn } from '@/types/dashboard';
 import { calculateSummaries, rankData, RankingConfig } from '@/lib/rankingUtils';
 import { formatAxisValue } from '@/lib/chartUtils';
+import { detectOutliersZScore } from '@/lib/statistics';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';

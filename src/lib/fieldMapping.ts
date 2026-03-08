@@ -130,10 +130,28 @@ export function analyzeDatasetFields(columns: DataColumn[], data: Record<string,
     }
 
     // Qualitative classification (for primary labels)
-    if (isQualitativeField(col.name, col.type)) {
+    if (isQualitativeField(col.name, col.type, data)) {
       qualitativeFields.push(col.name);
     }
   });
+
+  // If no qualitative fields found, do a deeper scan of string columns
+  // to find the one with the most distinct non-numeric values
+  if (qualitativeFields.length === 0 && data.length > 0) {
+    let bestField: string | null = null;
+    let bestDistinctCount = 0;
+    
+    for (const col of columns) {
+      if (col.type !== 'string') continue;
+      const vals = new Set(data.slice(0, 50).map(r => String(r[col.name] ?? '')));
+      const nonNumericVals = [...vals].filter(v => v && isNaN(Number(v)));
+      if (nonNumericVals.length > bestDistinctCount) {
+        bestDistinctCount = nonNumericVals.length;
+        bestField = col.name;
+      }
+    }
+    if (bestField) qualitativeFields.push(bestField);
+  }
 
   // Primary label: MUST be qualitative (department, region, name, etc.)
   // Never use year, age, salary, date fields as primary label

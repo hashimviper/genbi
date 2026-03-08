@@ -230,8 +230,8 @@ export function GlobalFilterBar({
   };
 
   return (
-    <div className={cn('rounded-lg border border-border/50 bg-card/50 p-4', className)}>
-      <div className="flex items-center justify-between mb-3">
+    <div className={cn('rounded-lg border border-border/50 bg-card/50 p-3 overflow-hidden', className)}>
+      <div className="flex items-center justify-between gap-2 mb-3 min-w-0">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-primary" />
           <span className="font-medium text-foreground">Filters</span>

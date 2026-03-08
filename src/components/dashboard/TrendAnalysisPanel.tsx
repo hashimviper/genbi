@@ -75,7 +75,7 @@ export function TrendAnalysisPanel({ columns, data }: TrendAnalysisPanelProps) {
         <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">First half vs Second half</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {trends.map((t) => (
           <div
             key={t.field}

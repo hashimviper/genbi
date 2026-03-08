@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { DashboardBranding } from '@/types/dashboard';
+import { DashboardBranding, DashboardThemeConfig } from '@/types/dashboard';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Save, Undo, Redo, GripVertical, Database, RotateCcw, Maximize2, Minimize2, Home, PanelLeftOpen, PanelLeftClose, BarChart3, LineChart, PieChart, AreaChart, ScatterChart, Table2, Hash, Gauge, Circle, GitBranch, Layers, TrendingUp, ArrowDownUp, Activity, Target, Search } from 'lucide-react';
+import { Plus, Save, Undo, Redo, GripVertical, Database, RotateCcw, Maximize2, Minimize2, Home, PanelLeftOpen, PanelLeftClose, BarChart3, LineChart, PieChart, AreaChart, ScatterChart, Table2, Hash, Gauge, Circle, GitBranch, Layers, TrendingUp, ArrowDownUp, Activity, Target, Search, Palette } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useDashboardStore } from '@/stores/dashboardStore';

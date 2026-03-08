@@ -10,6 +10,7 @@ import {
   Area,
 } from 'recharts';
 import { useMemo } from 'react';
+import { formatAxisValue, formatTooltipValue } from '@/lib/chartUtils';
 
 interface LineChartWidgetProps {
   data: Record<string, unknown>[];

@@ -49,8 +49,11 @@ export function AppSidebar() {
     (m) => m.isOwner && m.username.toLowerCase() === currentUser?.username?.toLowerCase()
   );
 
+  const isEditor = currentUser?.role === 'admin' || currentUser?.role === 'editor';
+
   const visibleNavItems = navItems.filter((item) => {
     if (item.ownerOnly) return isOwner;
+    if (item.editorOnly) return isEditor;
     return true;
   });
 

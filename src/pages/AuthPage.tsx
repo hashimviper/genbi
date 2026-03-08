@@ -64,20 +64,16 @@ export default function AuthPage() {
     if (!trimmed) { setError('Please enter your username'); return; }
     if (!password) { setError('Please enter your password'); return; }
 
-    // Check static org members first
-    const member = STATIC_ORG.members.find(
-      (m) => m.username.toLowerCase() === trimmed.toLowerCase()
-    );
-    if (member) {
-      const expected = MEMBER_PASSWORDS[member.username.toLowerCase()];
-      if (password !== expected) { setError('Incorrect password.'); return; }
-      login(member.username, member.role);
-      toast({ title: `Welcome back, ${member.username}!`, description: `Signed in as ${member.role}${member.isOwner ? ' (Owner)' : ''}` });
+    // Static owner check (Viper only)
+    if (trimmed.toLowerCase() === 'viper') {
+      if (password !== OWNER_PASSWORD) { setError('Incorrect password.'); return; }
+      login('Viper', 'admin');
+      toast({ title: 'Welcome back, Viper!', description: 'Signed in as admin (Owner)' });
       navigate('/');
       return;
     }
 
-    // Check locally registered users
+    // All other users are in localDB
     const localUser = authenticateUser(trimmed, password);
     if (!localUser) { setError('Invalid username or password.'); return; }
     login(localUser.username, localUser.role);

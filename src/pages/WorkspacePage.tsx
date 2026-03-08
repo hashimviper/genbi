@@ -70,7 +70,7 @@ export default function WorkspacePage() {
   const [newOrgName, setNewOrgName] = useState('');
   const [newOrgDesc, setNewOrgDesc] = useState('');
 
-  const isOnline = (username: string) => username === 'Viper';
+  const isOnline = (username: string) => currentUser?.username === username;
 
   const roleColor = (role: UserRole) => {
     switch (role) {

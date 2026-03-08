@@ -533,20 +533,36 @@ export default function DashboardBuilderPage() {
 
             {!isFullscreen && (
               <>
-                <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setQaDialogOpen(true)}>
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setQaDialogOpen(true)} title="Ask Data (Q&A)">
                   <Search className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setThemeDialogOpen(true)}>
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setThemeDialogOpen(true)} title="Theme">
                   <Palette className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setShowDatasetSwitcher(true)}>
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setShowDatasetSwitcher(true)} title="Switch Dataset">
                   <Database className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="outline" size="sm" className="h-8 w-8 p-0 shrink-0" onClick={() => setFilters([])}>
+                {getCurrentDataset() && (
+                  <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setTransformDialogOpen(true)} title="Data Transforms">
+                    <Wand2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setVersionDialogOpen(true)} title="Version History">
+                  <History className="h-3.5 w-3.5" />
+                </Button>
+                {currentDashboard.widgets.length > 0 && (
+                  <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setPresentationMode(true)} title="Presentation Mode">
+                    <Play className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0 shrink-0" onClick={toggleDarkMode} title={isDarkMode ? 'Light Mode' : 'Dark Mode'}>
+                  {isDarkMode ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+                </Button>
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0 shrink-0" onClick={() => setFilters([])} title="Clear Filters">
                   <RotateCcw className="h-3.5 w-3.5" />
                 </Button>
                 <ShareMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardId={currentDashboard.id} datasetId={getCurrentDataset()?.id} filters={Object.fromEntries(filters.map(f => [f.field, f.values]))} drillState={drillStates} />
-                <ExportMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardData={currentDashboard} />
+                <ExportMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardData={currentDashboard} widgetTitles={currentDashboard.widgets.map(w => w.config.title)} />
               </>
             )}
 

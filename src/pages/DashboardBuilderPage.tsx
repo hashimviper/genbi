@@ -463,69 +463,62 @@ export default function DashboardBuilderPage() {
 
         {/* Toolbar */}
         <div className={cn(
-          "border-b border-border/50 px-4 py-3",
+          "shrink-0 border-b border-border/50 px-4 py-2",
           isFullscreen && "bg-background/95 backdrop-blur-sm"
         )}>
-          {/* Top row: title + primary actions */}
-          <div className="flex items-center justify-between gap-3 min-w-0">
-            <div className="flex items-center gap-3 min-w-0 shrink">
-              {!isFullscreen && (
-                <Button variant="outline" size="sm" onClick={() => setSliderOpen(!sliderOpen)} className="gap-1.5 shrink-0">
-                  {sliderOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
-                  <span className="hidden sm:inline">{sliderOpen ? 'Close' : 'Charts'}</span>
-                </Button>
-              )}
-              <div className="min-w-0">
-                <h1 className="text-lg font-bold text-foreground truncate">{currentDashboard.name}</h1>
-                <p className="text-xs text-muted-foreground">{currentDashboard.widgets.length} widgets</p>
-              </div>
-            </div>
-
-            {/* Action buttons - responsive grid */}
-            <div className="flex items-center gap-1.5 flex-wrap justify-end shrink-0">
-              {/* Undo/Redo group */}
-              <div className="flex items-center border border-border/50 rounded-md overflow-hidden">
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-none" onClick={handleUndo} disabled={!canUndo()} title="Undo (Ctrl+Z)">
-                  <Undo className="h-4 w-4" />
-                </Button>
-                <div className="w-px h-5 bg-border/50" />
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-none" onClick={handleRedo} disabled={!canRedo()} title="Redo (Ctrl+Y)">
-                  <Redo className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {!isFullscreen && (
-                <>
-                  <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => setQaDialogOpen(true)}>
-                    <Search className="h-3.5 w-3.5" /> <span className="hidden md:inline">Ask Data</span>
-                  </Button>
-                  <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => setThemeDialogOpen(true)}>
-                    <Palette className="h-3.5 w-3.5" /> <span className="hidden md:inline">Theme</span>
-                  </Button>
-                  <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => setShowDatasetSwitcher(true)}>
-                    <Database className="h-3.5 w-3.5" /> <span className="hidden lg:inline">Dataset</span>
-                  </Button>
-                  <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => setFilters([])}>
-                    <RotateCcw className="h-3.5 w-3.5" />
-                  </Button>
-                  <ShareMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardId={currentDashboard.id} datasetId={getCurrentDataset()?.id} filters={Object.fromEntries(filters.map(f => [f.field, f.values]))} drillState={drillStates} />
-                  <ExportMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardData={currentDashboard} />
-                </>
-              )}
-
-              {Object.keys(mergedCrossFilters).length > 0 && (
-                <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => { clearAllCrossFilters(); setLocalCrossFilters({}); }}>
-                  <RotateCcw className="h-3 w-3" /> Clear Filters
-                </Button>
-              )}
-
-              <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={toggleFullscreen}>
-                {isFullscreen ? <><Minimize2 className="h-3.5 w-3.5" /> Exit</> : <><Maximize2 className="h-3.5 w-3.5" /> Full</>}
+          <div className="flex items-center gap-2 min-w-0 overflow-x-auto scrollbar-hide">
+            {/* Left: slider toggle + title */}
+            {!isFullscreen && (
+              <Button variant="outline" size="sm" onClick={() => setSliderOpen(!sliderOpen)} className="gap-1.5 shrink-0 h-8">
+                {sliderOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
               </Button>
-              {!isFullscreen && (
-                <Button size="sm" className="gap-1.5 h-8" onClick={handleSave}><Save className="h-3.5 w-3.5" /> Save</Button>
-              )}
+            )}
+            <div className="min-w-0 shrink mr-auto">
+              <h1 className="text-sm font-bold text-foreground truncate">{currentDashboard.name}</h1>
             </div>
+
+            {/* Undo/Redo group */}
+            <div className="flex items-center border border-border/50 rounded-md overflow-hidden shrink-0">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-none" onClick={handleUndo} disabled={!canUndo()} title="Undo (Ctrl+Z)">
+                <Undo className="h-3.5 w-3.5" />
+              </Button>
+              <div className="w-px h-5 bg-border/50" />
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-none" onClick={handleRedo} disabled={!canRedo()} title="Redo (Ctrl+Y)">
+                <Redo className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+
+            {!isFullscreen && (
+              <>
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setQaDialogOpen(true)}>
+                  <Search className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setThemeDialogOpen(true)}>
+                  <Palette className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setShowDatasetSwitcher(true)}>
+                  <Database className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0 shrink-0" onClick={() => setFilters([])}>
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </Button>
+                <ShareMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardId={currentDashboard.id} datasetId={getCurrentDataset()?.id} filters={Object.fromEntries(filters.map(f => [f.field, f.values]))} drillState={drillStates} />
+                <ExportMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardData={currentDashboard} />
+              </>
+            )}
+
+            {Object.keys(mergedCrossFilters).length > 0 && (
+              <Button variant="outline" size="sm" className="gap-1 h-8 text-xs shrink-0" onClick={() => { clearAllCrossFilters(); setLocalCrossFilters({}); }}>
+                <RotateCcw className="h-3 w-3" /> Clear
+              </Button>
+            )}
+
+            <Button variant="outline" size="sm" className="h-8 shrink-0 gap-1" onClick={toggleFullscreen}>
+              {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            </Button>
+            {!isFullscreen && (
+              <Button size="sm" className="gap-1 h-8 shrink-0" onClick={handleSave}><Save className="h-3.5 w-3.5" /> Save</Button>
+            )}
           </div>
         </div>
 

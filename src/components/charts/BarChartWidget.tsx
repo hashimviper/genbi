@@ -9,6 +9,7 @@ import {
   LabelList,
   Cell,
 } from 'recharts';
+import { formatAxisValue, formatTooltipValue } from '@/lib/chartUtils';
 
 interface BarChartWidgetProps {
   data: Record<string, unknown>[];

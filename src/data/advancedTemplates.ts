@@ -222,7 +222,7 @@ export const marketingAnalysisTemplate: DashboardTemplate = {
   name: 'Marketing Analysis',
   description: 'Campaign performance with ROI gauges and channel analytics',
   category: 'Digital Marketing',
-  icon: 'Globe',
+  icon: 'Megaphone',
   color: 'hsl(173, 80%, 50%)',
   sampleColumns: [
     { name: 'channel', type: 'string' },

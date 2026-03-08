@@ -48,6 +48,7 @@ import { autoAggregate, clearAggregationCache } from '@/lib/dataModel';
 import { QueryDialog } from '@/components/dashboard/QueryDialog';
 import { LazyWidget } from '@/components/dashboard/LazyWidget';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { AnalyticsChatbot } from '@/components/dashboard/AnalyticsChatbot';
 
 const chartTypes: { type: ChartType; icon: React.ComponentType<{ className?: string }>; label: string; category: string }[] = [
   { type: 'bar', icon: BarChart3, label: 'Bar', category: 'Standard' },

@@ -287,7 +287,7 @@ export const growthDashboardTemplate: DashboardTemplate = {
   name: 'Growth Dashboard',
   description: 'Track user acquisition, retention, and growth metrics across channels',
   category: 'Sales',
-  icon: 'TrendingUp',
+  icon: 'LineChart',
   color: 'hsl(160, 70%, 45%)',
   sampleColumns: [
     { name: 'channel', type: 'string' },

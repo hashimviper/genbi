@@ -210,12 +210,12 @@ export default function Index() {
             and watch VisoryBI generate beautiful visualizations—all processed locally.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-4 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-            <Link to="/templates">
+            <Link to={isAuthenticated ? '/templates' : '/auth'}>
               <Button size="lg" className="gap-2 gradient-bg hover:opacity-90 shadow-lg hover:shadow-xl hover-scale transition-all h-12 px-8 text-base">
                 Browse Templates <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <Link to="/data">
+            <Link to={isAuthenticated ? '/data' : '/auth'}>
               <Button size="lg" variant="outline" className="gap-2 hover-lift h-12 px-8 text-base border-2">
                 <Zap className="h-4 w-4 text-primary" /> Import Data
               </Button>

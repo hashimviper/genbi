@@ -8,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { formatAxisValue, formatTooltipValue } from '@/lib/chartUtils';
 
 interface AreaChartWidgetProps {
   data: Record<string, unknown>[];

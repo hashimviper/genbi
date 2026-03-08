@@ -759,6 +759,14 @@ export default function DashboardBuilderPage() {
           }}
         />
       )}
+
+      {/* Theme Config Dialog */}
+      <ThemeConfigDialog
+        open={themeDialogOpen}
+        onOpenChange={setThemeDialogOpen}
+        theme={currentTheme}
+        onSave={handleThemeChange}
+      />
     </MainLayout>
   );
 }

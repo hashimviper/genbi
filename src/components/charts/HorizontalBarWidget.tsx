@@ -52,6 +52,7 @@ export function HorizontalBarWidget({ data, labelField, valueField, showRanking 
           tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
           axisLine={{ stroke: 'hsl(var(--border))' }}
           tickLine={{ stroke: 'hsl(var(--border))' }}
+          tickFormatter={(v) => formatAxisValue(v)}
         />
         <YAxis
           type="category"

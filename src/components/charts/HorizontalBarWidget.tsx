@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
+import { formatAxisValue, formatTooltipValue } from '@/lib/chartUtils';
 
 interface HorizontalBarWidgetProps {
   data: Record<string, unknown>[];
@@ -51,6 +52,7 @@ export function HorizontalBarWidget({ data, labelField, valueField, showRanking 
           tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
           axisLine={{ stroke: 'hsl(var(--border))' }}
           tickLine={{ stroke: 'hsl(var(--border))' }}
+          tickFormatter={(v) => formatAxisValue(v)}
         />
         <YAxis
           type="category"
@@ -67,6 +69,7 @@ export function HorizontalBarWidget({ data, labelField, valueField, showRanking 
             borderRadius: '8px',
             color: 'hsl(var(--foreground))',
           }}
+          formatter={(value: number) => [formatTooltipValue(value), valueField]}
         />
         <Bar
           dataKey="value"

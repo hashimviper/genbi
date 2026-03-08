@@ -9,6 +9,7 @@ import {
   LabelList,
   Cell,
 } from 'recharts';
+import { formatAxisValue, formatTooltipValue } from '@/lib/chartUtils';
 
 interface BarChartWidgetProps {
   data: Record<string, unknown>[];
@@ -45,6 +46,7 @@ export function BarChartWidget({ data, xAxis, yAxis, primaryColor, labelColor, s
           tick={{ fill: labelFill, fontSize: 11 }}
           axisLine={{ stroke: axFill }}
           tickLine={{ stroke: axFill }}
+          tickFormatter={(v) => formatAxisValue(v)}
         />
         <Tooltip
           contentStyle={{
@@ -53,6 +55,7 @@ export function BarChartWidget({ data, xAxis, yAxis, primaryColor, labelColor, s
             borderRadius: '8px',
             color: 'hsl(var(--foreground))',
           }}
+          formatter={(value: number) => [formatTooltipValue(value), yAxis]}
         />
         <Bar
           dataKey={yAxis}

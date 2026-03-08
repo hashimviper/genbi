@@ -46,6 +46,7 @@ export function BarChartWidget({ data, xAxis, yAxis, primaryColor, labelColor, s
           tick={{ fill: labelFill, fontSize: 11 }}
           axisLine={{ stroke: axFill }}
           tickLine={{ stroke: axFill }}
+          tickFormatter={(v) => formatAxisValue(v)}
         />
         <Tooltip
           contentStyle={{

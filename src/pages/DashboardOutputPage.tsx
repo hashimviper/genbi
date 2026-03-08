@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Download, Maximize2, Minimize2, X } from 'lucide-react';
+import { ArrowLeft, Download, Maximize2, Minimize2, X, Lightbulb, TrendingUp, BarChart3, Target } from 'lucide-react';
 import { useDashboardStore } from '@/stores/dashboardStore';
 import { InsightModal } from '@/components/dashboard/InsightModal';
 import { ChartCard } from '@/components/charts/ChartCard';
@@ -34,6 +34,7 @@ import { toast } from '@/hooks/use-toast';
 import { autoAggregate } from '@/lib/dataModel';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { VisoryBILogo } from '@/components/VisoryBILogo';
+import { analyzeDataset, type AnalysisInstance } from '@/lib/analyticsAdvisor';
 
 export default function DashboardOutputPage() {
   const { id } = useParams<{ id: string }>();

@@ -91,8 +91,8 @@ export default function AuthPage() {
     if (!password || password.length < 6) { setError('Password must be at least 6 characters'); return; }
     if (password !== confirmPassword) { setError('Passwords do not match'); return; }
 
-    // Block if username matches a static org member
-    if (STATIC_ORG.members.some((m) => m.username.toLowerCase() === trimmed.toLowerCase())) {
+    // Block registering as "Viper" (reserved owner)
+    if (trimmed.toLowerCase() === 'viper') {
       setError('This username is reserved.');
       return;
     }

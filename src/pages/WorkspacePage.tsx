@@ -185,7 +185,7 @@ export default function WorkspacePage() {
 
           {/* Custom orgs */}
           {organizations.map((org) => (
-            <div key={org.id} className="rounded-lg bg-muted/50 px-4 py-3 mb-2 flex items-center justify-between">
+            <div key={org.id} className="group rounded-lg bg-muted/50 px-4 py-3 mb-2 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
                   <Building className="h-5 w-5 text-accent-foreground" />

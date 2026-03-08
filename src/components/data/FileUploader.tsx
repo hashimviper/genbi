@@ -46,7 +46,9 @@ export function FileUploader({ onSuccess }: FileUploaderProps) {
       
       toast({
         title: 'Dataset imported successfully',
-        description: `${data.length} rows and ${columns.length} columns imported.`,
+        description: wasTruncated
+          ? `${normalizedData.length} of ${data.length} rows imported (capped at ${MAX_ROWS}). ${columns.length} columns.`
+          : `${normalizedData.length} rows and ${columns.length} columns imported.`,
       });
       
       onSuccess?.();

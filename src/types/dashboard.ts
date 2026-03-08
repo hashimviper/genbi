@@ -83,7 +83,16 @@ export interface DashboardWidget {
 export interface DashboardBranding {
   companyName: string;
   dashboardTitle: string;
-  logoUrl?: string; // base64 data URL or external URL
+  logoUrl?: string;
+}
+
+export interface DashboardThemeConfig {
+  bgType: 'solid' | 'gradient' | 'image';
+  bgColor: string;
+  bgGradient: string;
+  bgImageUrl?: string;
+  cardOpacity: number;
+  themeName: string;
 }
 
 export interface Dashboard {
@@ -92,6 +101,7 @@ export interface Dashboard {
   description?: string;
   widgets: DashboardWidget[];
   branding?: DashboardBranding;
+  theme?: DashboardThemeConfig;
   createdAt: Date;
   updatedAt: Date;
 }

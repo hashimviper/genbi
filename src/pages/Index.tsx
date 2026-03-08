@@ -195,8 +195,8 @@ export default function Index() {
         </div>
       </nav>
 
-      {/* Hero */}
-      <header className="relative px-6 py-24 md:py-32 text-center">
+      {/* Hero - add padding-top for fixed navbar */}
+      <header className="relative px-6 pt-32 pb-24 md:pt-40 md:pb-32 text-center">
         <div className="relative mx-auto max-w-4xl">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-5 py-2 text-sm font-medium text-primary animate-fade-in">
             <Sparkles className="h-4 w-4 animate-pulse" /> Business Intelligence Made Simple

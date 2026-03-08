@@ -32,6 +32,8 @@ import { decodeShareState, DashboardShareState } from '@/lib/shareUtils';
 import { calculateSummaries } from '@/lib/rankingUtils';
 import { toast } from '@/hooks/use-toast';
 import { autoAggregate } from '@/lib/dataModel';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { VisoryBILogo } from '@/components/VisoryBILogo';
 
 export default function DashboardOutputPage() {
   const { id } = useParams<{ id: string }>();

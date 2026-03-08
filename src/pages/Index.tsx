@@ -68,9 +68,11 @@ const stats = [
 ];
 
 export default function Index() {
+  const navigate = useNavigate();
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
   const { notifications, markRead, markAllRead, removeNotification, clearAll, unreadCount } = useNotificationStore();
+  const { isAuthenticated, currentUser, logout } = useAuthStore();
   const count = unreadCount();
 
   useEffect(() => {

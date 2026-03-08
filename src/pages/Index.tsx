@@ -300,7 +300,7 @@ export default function Index() {
             <p className="mt-4 text-lg text-white/80">
               Start building professional dashboards with our pre-built templates
             </p>
-            <Link to="/templates" className="mt-8 inline-block">
+            <Link to={isAuthenticated ? '/templates' : '/auth'} className="mt-8 inline-block">
               <Button size="lg" className="gap-2 bg-white text-primary hover:bg-white/90 shadow-lg h-12 px-8">
                 Explore Templates <ArrowRight className="h-4 w-4" />
               </Button>

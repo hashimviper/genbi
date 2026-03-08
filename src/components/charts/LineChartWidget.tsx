@@ -56,6 +56,7 @@ export function LineChartWidget({ data, xAxis, yAxis, primaryColor, labelColor, 
           tick={{ fill: labelFill, fontSize: 11 }}
           axisLine={{ stroke: axFill }}
           tickLine={{ stroke: axFill }}
+          tickFormatter={(v) => formatAxisValue(v)}
         />
         <Tooltip
           contentStyle={{
@@ -64,6 +65,7 @@ export function LineChartWidget({ data, xAxis, yAxis, primaryColor, labelColor, 
             borderRadius: '8px',
             color: 'hsl(var(--foreground))',
           }}
+          formatter={(value: number) => [formatTooltipValue(value), yAxis]}
         />
         {areaFill && (
           <Area type="monotone" dataKey={yAxis} stroke="none" fill={`url(#${gradientId})`} />

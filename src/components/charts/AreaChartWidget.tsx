@@ -48,6 +48,7 @@ export function AreaChartWidget({ data, xAxis, yAxis, primaryColor, labelColor, 
           tick={{ fill: labelFill, fontSize: 11 }}
           axisLine={{ stroke: axFill }}
           tickLine={{ stroke: axFill }}
+          tickFormatter={(v) => formatAxisValue(v)}
         />
         <Tooltip
           contentStyle={{
@@ -56,6 +57,7 @@ export function AreaChartWidget({ data, xAxis, yAxis, primaryColor, labelColor, 
             borderRadius: '8px',
             color: 'hsl(var(--foreground))',
           }}
+          formatter={(value: number) => [formatTooltipValue(value), yAxis]}
         />
         <Area
           type="monotone"

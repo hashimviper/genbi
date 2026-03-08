@@ -39,6 +39,7 @@ export function StackedBarChartWidget({ data, xAxis, stackFields }: StackedBarCh
           tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
           axisLine={{ stroke: 'hsl(var(--border))' }}
           tickLine={{ stroke: 'hsl(var(--border))' }}
+          tickFormatter={(v) => formatAxisValue(v)}
         />
         <Tooltip
           contentStyle={{

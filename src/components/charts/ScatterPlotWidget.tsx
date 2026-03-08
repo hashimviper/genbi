@@ -35,6 +35,7 @@ export function ScatterPlotWidget({ data, xAxis, yAxis, sizeField }: ScatterPlot
           tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
           axisLine={{ stroke: 'hsl(var(--border))' }}
           tickLine={{ stroke: 'hsl(var(--border))' }}
+          tickFormatter={(v) => formatAxisValue(v)}
         />
         <YAxis
           type="number"
@@ -43,6 +44,7 @@ export function ScatterPlotWidget({ data, xAxis, yAxis, sizeField }: ScatterPlot
           tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
           axisLine={{ stroke: 'hsl(var(--border))' }}
           tickLine={{ stroke: 'hsl(var(--border))' }}
+          tickFormatter={(v) => formatAxisValue(v)}
         />
         {sizeField && <ZAxis type="number" dataKey="z" range={[50, 400]} name={sizeField} />}
         <Tooltip

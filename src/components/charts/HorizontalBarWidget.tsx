@@ -69,6 +69,7 @@ export function HorizontalBarWidget({ data, labelField, valueField, showRanking 
             borderRadius: '8px',
             color: 'hsl(var(--foreground))',
           }}
+          formatter={(value: number) => [formatTooltipValue(value), valueField]}
         />
         <Bar
           dataKey="value"

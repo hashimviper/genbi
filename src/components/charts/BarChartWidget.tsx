@@ -55,6 +55,7 @@ export function BarChartWidget({ data, xAxis, yAxis, primaryColor, labelColor, s
             borderRadius: '8px',
             color: 'hsl(var(--foreground))',
           }}
+          formatter={(value: number) => [formatTooltipValue(value), yAxis]}
         />
         <Bar
           dataKey={yAxis}

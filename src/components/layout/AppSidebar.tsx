@@ -26,6 +26,7 @@ interface NavItem {
   href: string;
   color: string;
   ownerOnly?: boolean;
+  editorOnly?: boolean;
 }
 
 const navItems: NavItem[] = [

@@ -458,6 +458,9 @@ export default function DashboardBuilderPage() {
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setQaDialogOpen(true)}>
               <Search className="h-4 w-4" /> Ask Data
             </Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setThemeDialogOpen(true)}>
+              <Palette className="h-4 w-4" /> Theme
+            </Button>
             {Object.keys(mergedCrossFilters).length > 0 && (
               <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => { clearAllCrossFilters(); setLocalCrossFilters({}); }}>
                 <RotateCcw className="h-3 w-3" /> Clear Filters

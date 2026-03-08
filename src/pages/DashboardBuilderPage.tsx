@@ -673,13 +673,6 @@ export default function DashboardBuilderPage() {
               />
             )}
 
-            {/* Data Analytics Panel (Data Table, Summary, Ranking) - hidden in fullscreen */}
-            {!isFullscreen && getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (
-              <DataAnalyticsPanel
-                columns={getCurrentDataset()?.columns || []}
-                data={getDatasetData(getCurrentDataset()?.id || '')}
-              />
-            )}
 
             {currentDashboard.widgets.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center">

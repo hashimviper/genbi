@@ -43,7 +43,7 @@ import { cn } from '@/lib/utils';
 import { sampleDatasets } from '@/data/sampleDatasets';
 import { deriveHierarchies, applyDrillFilters, getCurrentDrillField, canDrillDown, canDrillUp, aggregateForDrillLevel } from '@/lib/drillDown';
 import { calculateSummaries } from '@/lib/rankingUtils';
-import { autoConfigureWidget, generateSmartTitle } from '@/lib/fieldMapping';
+import { autoConfigureWidget, generateSmartTitle, resetFieldTracker } from '@/lib/fieldMapping';
 import { autoAggregate, clearAggregationCache } from '@/lib/dataModel';
 import { QueryDialog } from '@/components/dashboard/QueryDialog';
 import { LazyWidget } from '@/components/dashboard/LazyWidget';
@@ -194,7 +194,7 @@ export default function DashboardBuilderPage() {
       config: {
         id: '',
         type,
-        title: generateSmartTitle(type, autoConfig.xAxis as string, autoConfig.yAxis as string, autoConfig.labelField as string, autoConfig.valueField as string),
+        title: generateSmartTitle(type, autoConfig.xAxis as string, autoConfig.yAxis as string, autoConfig.labelField as string, autoConfig.valueField as string, autoConfig.aggregation as string),
         datasetId: defaultDataset.id,
         xAxis: (autoConfig.xAxis as string) || '',
         yAxis: (autoConfig.yAxis as string) || '',

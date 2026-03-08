@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { autoConfigureWidget, generateSmartTitle } from '@/lib/fieldMapping';
+import { autoConfigureWidget, generateSmartTitle, resetFieldTracker } from '@/lib/fieldMapping';
 import {
   Users,
   Globe,
@@ -180,6 +180,9 @@ export default function TemplatesPage() {
 
     const needsRemap = !useSampleData && targetColumns.length > 0;
 
+    // Reset field tracker so each widget gets a unique measure
+    resetFieldTracker();
+
     selectedTemplate.widgets.forEach((widget) => {
       let config = {
         ...widget.config,
@@ -189,13 +192,15 @@ export default function TemplatesPage() {
 
       // Auto-remap fields when using user's dataset (not sample data)
       if (needsRemap) {
-        const autoFields = autoConfigureWidget(widget.type, targetColumns);
+        const userDataset = datasets.find(d => d.id === selectedDataset);
+        const autoFields = autoConfigureWidget(widget.type, targetColumns, userDataset?.data || []);
         const smartTitle = generateSmartTitle(
           widget.type,
           autoFields.xAxis as string | undefined,
           autoFields.yAxis as string | undefined,
           autoFields.labelField as string | undefined,
           autoFields.valueField as string | undefined,
+          autoFields.aggregation as string | undefined,
         );
 
         config = {

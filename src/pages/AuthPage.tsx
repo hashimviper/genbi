@@ -113,16 +113,11 @@ export default function AuthPage() {
     if (!trimmed) { setError('Enter your username to reset password'); return; }
     if (!newPassword || newPassword.length < 6) { setError('New password must be at least 6 characters'); return; }
 
-    // Check static members — cannot reset
-    if (STATIC_ORG.members.some((m) => m.username.toLowerCase() === trimmed.toLowerCase())) {
-      setError('Built-in accounts cannot be reset from here.');
+    // Owner account cannot be reset
+    if (trimmed.toLowerCase() === 'viper') {
+      setError('Owner account cannot be reset from here.');
       return;
     }
-
-    // Find in local DB and re-register (overwrite)
-    const users = getAllUsers();
-    const existing = users.find((u) => u.username.toLowerCase() === trimmed.toLowerCase());
-    if (!existing) { setError('Username not found.'); return; }
 
     // Update password by overwriting the entry
     const key = 'visorybi-db:users';

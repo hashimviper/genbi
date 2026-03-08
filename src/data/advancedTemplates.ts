@@ -6,7 +6,7 @@ export const salesPerformanceTemplate: DashboardTemplate = {
   name: 'Sales Performance',
   description: 'Comprehensive sales analytics with KPIs, gauges, and advanced charts',
   category: 'Sales',
-  icon: 'TrendingUp',
+  icon: 'Target',
   color: 'hsl(142, 71%, 45%)',
   sampleColumns: [
     { name: 'region', type: 'string' },

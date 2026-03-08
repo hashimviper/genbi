@@ -448,3 +448,42 @@
     display: none;
   }
 }
+
+/* Print-optimized CSS */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  nav, aside, header, footer,
+  .no-print,
+  [data-radix-popper-content-wrapper],
+  .fixed {
+    display: none !important;
+  }
+
+  .glass-card {
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .recharts-responsive-container {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  main {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

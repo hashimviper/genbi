@@ -410,9 +410,23 @@ export default function DashboardBuilderPage() {
   const userCanEdit = canEdit();
   const userCanDelete = canDelete();
 
+  const handleBrandingChange = useCallback((branding: DashboardBranding) => {
+    if (currentDashboard) {
+      updateDashboard(currentDashboard.id, { branding });
+      toast({ title: 'Branding updated' });
+    }
+  }, [currentDashboard, updateDashboard]);
+
   return (
     <MainLayout>
       <div ref={dashboardRef} className={cn("flex h-full flex-col", isFullscreen && "bg-background")}>
+        {/* Dashboard Branding Header */}
+        <DashboardHeader
+          branding={currentDashboard.branding}
+          onBrandingChange={handleBrandingChange}
+          editable={userCanEdit}
+        />
+
         <div className="flex flex-wrap items-center justify-between border-b border-border/50 px-6 py-4 gap-2">
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" onClick={() => setSliderOpen(!sliderOpen)} className="gap-2">

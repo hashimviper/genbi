@@ -33,10 +33,15 @@ export function FileUploader({ onSuccess }: FileUploaderProps) {
     try {
       const { columns, data } = await parseFile(file);
       
+      // Cap large datasets at 2000 rows to prevent performance issues
+      const MAX_ROWS = 2000;
+      const normalizedData = data.length > MAX_ROWS ? data.slice(0, MAX_ROWS) : data;
+      const wasTruncated = data.length > MAX_ROWS;
+      
       addDataset({
         name: file.name.replace(/\.[^/.]+$/, ''),
         columns,
-        data,
+        data: normalizedData,
       });
       
       toast({

@@ -50,7 +50,7 @@ export const hrInsightsTemplate: DashboardTemplate = {
   name: 'HR Insights',
   description: 'Employee analytics with gauges, donuts, and workforce metrics',
   category: 'Human Resources',
-  icon: 'Users',
+  icon: 'Activity',
   color: 'hsl(262, 83%, 60%)',
   sampleColumns: [
     { name: 'department', type: 'string' },

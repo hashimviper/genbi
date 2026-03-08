@@ -37,6 +37,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         {showLoader && <CinematicLoader onComplete={handleLoaderComplete} />}
+        <OnboardingTour />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />

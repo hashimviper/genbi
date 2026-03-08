@@ -135,7 +135,7 @@ export function ThemeConfigDialog({ open, onOpenChange, theme, onSave }: ThemeCo
         {/* Content */}
         <div className="space-y-4 py-2">
           {tab === 'presets' && (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {PRESET_THEMES.map((preset) => (
                 <button
                   key={preset.name}

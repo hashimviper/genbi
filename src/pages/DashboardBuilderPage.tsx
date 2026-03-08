@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { DashboardBranding, DashboardThemeConfig } from '@/types/dashboard';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Save, Undo, Redo, GripVertical, Database, RotateCcw, Maximize2, Minimize2, Home, PanelLeftOpen, PanelLeftClose, BarChart3, LineChart, PieChart, AreaChart, ScatterChart, Table2, Hash, Gauge, Circle, GitBranch, Layers, TrendingUp, ArrowDownUp, Activity, Target, Search, Palette } from 'lucide-react';
+import { Plus, Save, Undo, Redo, GripVertical, Database, RotateCcw, Maximize2, Minimize2, Home, PanelLeftOpen, PanelLeftClose, BarChart3, LineChart, PieChart, AreaChart, ScatterChart, Table2, Hash, Gauge, Circle, GitBranch, Layers, TrendingUp, ArrowDownUp, Activity, Target, Search, Palette, Copy, History, Play, Wand2, Moon, Sun } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useDashboardStore } from '@/stores/dashboardStore';
@@ -33,6 +33,9 @@ import { ShareMenu } from '@/components/dashboard/ShareMenu';
 import { GlobalFilterBar, FilterConfig, applyFilters } from '@/components/dashboard/GlobalFilterBar';
 import { DatasetSwitcher } from '@/components/dashboard/DatasetSwitcher';
 import { InsightModal } from '@/components/dashboard/InsightModal';
+import { VersionManager } from '@/components/dashboard/VersionManager';
+import { PresentationMode } from '@/components/dashboard/PresentationMode';
+import { DataTransformDialog } from '@/components/dashboard/DataTransformDialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -82,6 +85,10 @@ export default function DashboardBuilderPage() {
   const [sliderOpen, setSliderOpen] = useState(false);
   const [qaDialogOpen, setQaDialogOpen] = useState(false);
   const [themeDialogOpen, setThemeDialogOpen] = useState(false);
+  const [versionDialogOpen, setVersionDialogOpen] = useState(false);
+  const [presentationMode, setPresentationMode] = useState(false);
+  const [transformDialogOpen, setTransformDialogOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
   const dashboardRef = useRef<HTMLDivElement>(null);
   
   const [insightWidget, setInsightWidget] = useState<DashboardWidget | null>(null);
@@ -332,6 +339,44 @@ export default function DashboardBuilderPage() {
     setQaDialogOpen(true);
   }, []);
 
+  // Clone widget
+  const handleCloneWidget = useCallback((widget: DashboardWidget) => {
+    if (!currentDashboard) return;
+    saveStateForUndo();
+    const cloned: Omit<DashboardWidget, 'id'> = {
+      type: widget.type,
+      config: { ...JSON.parse(JSON.stringify(widget.config)), title: `${widget.config.title} (Copy)` },
+      gridPosition: { ...widget.gridPosition, y: widget.gridPosition.y + widget.gridPosition.h },
+    };
+    addWidget(currentDashboard.id, cloned);
+    toast({ title: 'Widget cloned' });
+  }, [currentDashboard, saveStateForUndo, addWidget]);
+
+  // Dark/Light toggle
+  const toggleDarkMode = useCallback(() => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    document.documentElement.classList.toggle('dark', newMode);
+    localStorage.setItem('visorybi-dark-mode', newMode ? 'dark' : 'light');
+  }, [isDarkMode]);
+
+  // Version restore
+  const handleVersionRestore = useCallback((restored: any) => {
+    if (currentDashboard) {
+      updateDashboard(currentDashboard.id, { widgets: restored.widgets, branding: restored.branding, theme: restored.theme });
+    }
+  }, [currentDashboard, updateDashboard]);
+
+  // Data transform apply
+  const handleTransformApply = useCallback((data: Record<string, unknown>[], columns: any[]) => {
+    const ds = getCurrentDataset();
+    if (!ds) return;
+    const { datasets: allDs } = useDashboardStore.getState();
+    const updatedDatasets = allDs.map(d => d.id === ds.id ? { ...d, data, columns } : d);
+    useDashboardStore.setState({ datasets: updatedDatasets });
+    toast({ title: 'Transformation applied' });
+  }, [getCurrentDataset]);
+
   const renderWidget = (widget: DashboardWidget) => {
     const config = widget.config;
     const datasetId = config.datasetId;
@@ -488,20 +533,36 @@ export default function DashboardBuilderPage() {
 
             {!isFullscreen && (
               <>
-                <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setQaDialogOpen(true)}>
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setQaDialogOpen(true)} title="Ask Data (Q&A)">
                   <Search className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setThemeDialogOpen(true)}>
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setThemeDialogOpen(true)} title="Theme">
                   <Palette className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setShowDatasetSwitcher(true)}>
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setShowDatasetSwitcher(true)} title="Switch Dataset">
                   <Database className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="outline" size="sm" className="h-8 w-8 p-0 shrink-0" onClick={() => setFilters([])}>
+                {getCurrentDataset() && (
+                  <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setTransformDialogOpen(true)} title="Data Transforms">
+                    <Wand2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setVersionDialogOpen(true)} title="Version History">
+                  <History className="h-3.5 w-3.5" />
+                </Button>
+                {currentDashboard.widgets.length > 0 && (
+                  <Button variant="outline" size="sm" className="gap-1.5 h-8 shrink-0" onClick={() => setPresentationMode(true)} title="Presentation Mode">
+                    <Play className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0 shrink-0" onClick={toggleDarkMode} title={isDarkMode ? 'Light Mode' : 'Dark Mode'}>
+                  {isDarkMode ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+                </Button>
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0 shrink-0" onClick={() => setFilters([])} title="Clear Filters">
                   <RotateCcw className="h-3.5 w-3.5" />
                 </Button>
                 <ShareMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardId={currentDashboard.id} datasetId={getCurrentDataset()?.id} filters={Object.fromEntries(filters.map(f => [f.field, f.values]))} drillState={drillStates} />
-                <ExportMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardData={currentDashboard} />
+                <ExportMenu elementId="dashboard-canvas" dashboardName={currentDashboard.name} dashboardData={currentDashboard} widgetTitles={currentDashboard.widgets.map(w => w.config.title)} />
               </>
             )}
 
@@ -806,6 +867,36 @@ export default function DashboardBuilderPage() {
         theme={currentTheme}
         onSave={handleThemeChange}
       />
+
+      {/* Version Manager */}
+      {currentDashboard && (
+        <VersionManager
+          open={versionDialogOpen}
+          onOpenChange={setVersionDialogOpen}
+          dashboard={currentDashboard}
+          onRestore={handleVersionRestore}
+        />
+      )}
+
+      {/* Presentation Mode */}
+      {presentationMode && currentDashboard && (
+        <PresentationMode
+          widgets={currentDashboard.widgets}
+          renderWidget={renderWidget}
+          onClose={() => setPresentationMode(false)}
+        />
+      )}
+
+      {/* Data Transform Dialog */}
+      {getCurrentDataset() && (
+        <DataTransformDialog
+          open={transformDialogOpen}
+          onOpenChange={setTransformDialogOpen}
+          dataset={getCurrentDataset()!}
+          allDatasets={allDatasets}
+          onApply={handleTransformApply}
+        />
+      )}
     </MainLayout>
   );
 }

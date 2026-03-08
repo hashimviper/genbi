@@ -718,6 +718,22 @@ export default function DashboardBuilderPage() {
           onClose={() => setInsightWidget(null)}
         />
       )}
+
+      {/* Analytics Chatbot */}
+      {getCurrentDataset() && (
+        <AnalyticsChatbot
+          columns={getCurrentDataset()?.columns || []}
+          data={getRawDatasetData(getCurrentDataset()?.id || '')}
+          datasetId={getCurrentDataset()?.id || ''}
+          onAddWidget={(widget) => {
+            if (currentDashboard) {
+              saveStateForUndo();
+              addWidget(currentDashboard.id, widget);
+              toast({ title: 'Widget added from Analytics Advisor' });
+            }
+          }}
+        />
+      )}
     </MainLayout>
   );
 }

@@ -8,6 +8,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { formatAxisValue } from '@/lib/chartUtils';
 
 interface StackedBarChartWidgetProps {
   data: Record<string, unknown>[];

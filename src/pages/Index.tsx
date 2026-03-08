@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Database, 
   LayoutGrid, 
@@ -15,10 +15,14 @@ import {
   Check,
   X,
   Trash2,
+  LogIn,
+  LogOut,
+  User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VisoryBILogo } from '@/components/VisoryBILogo';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { useAuthStore } from '@/stores/authStore';
 
 const features = [
   { 
@@ -64,9 +68,11 @@ const stats = [
 ];
 
 export default function Index() {
+  const navigate = useNavigate();
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
   const { notifications, markRead, markAllRead, removeNotification, clearAll, unreadCount } = useNotificationStore();
+  const { isAuthenticated, currentUser, logout } = useAuthStore();
   const count = unreadCount();
 
   useEffect(() => {
@@ -96,75 +102,95 @@ export default function Index() {
             <span className="text-xl font-bold text-foreground">VisoryBI</span>
           </Link>
           <div className="flex items-center gap-6">
-            <Link to="/templates" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors link-underline">
+            <Link to={isAuthenticated ? '/templates' : '/auth'} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors link-underline">
               Templates
             </Link>
-            <Link to="/dashboards" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors link-underline">
+            <Link to={isAuthenticated ? '/dashboards' : '/auth'} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors link-underline">
               Dashboards
             </Link>
 
-            {/* Notification Bell */}
-            <div className="relative" ref={bellRef}>
-              <button
-                onClick={() => setBellOpen(!bellOpen)}
-                className="relative p-2 rounded-full hover:bg-muted transition-colors"
-              >
-                <Bell className="h-5 w-5 text-muted-foreground" />
-                {count > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                    {count > 9 ? '9+' : count}
-                  </span>
-                )}
-              </button>
-              {bellOpen && (
-                <div className="absolute right-0 mt-2 w-80 rounded-xl border border-border bg-card shadow-xl z-[60] animate-fade-in">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
-                    <h4 className="text-sm font-semibold text-foreground">Notifications</h4>
-                    <div className="flex items-center gap-2">
-                      {count > 0 && (
-                        <button onClick={markAllRead} className="text-xs text-primary hover:underline">
-                          Mark all read
-                        </button>
-                      )}
-                      {notifications.length > 0 && (
-                        <button onClick={clearAll} className="text-xs text-destructive hover:underline flex items-center gap-1">
-                          <Trash2 className="h-3 w-3" /> Clear
-                        </button>
+            {/* Notification Bell - only when authenticated */}
+            {isAuthenticated && (
+              <div className="relative" ref={bellRef}>
+                <button
+                  onClick={() => setBellOpen(!bellOpen)}
+                  className="relative p-2 rounded-full hover:bg-muted transition-colors"
+                >
+                  <Bell className="h-5 w-5 text-muted-foreground" />
+                  {count > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                      {count > 9 ? '9+' : count}
+                    </span>
+                  )}
+                </button>
+                {bellOpen && (
+                  <div className="absolute right-0 mt-2 w-80 rounded-xl border border-border bg-card shadow-xl z-[60] animate-fade-in">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+                      <h4 className="text-sm font-semibold text-foreground">Notifications</h4>
+                      <div className="flex items-center gap-2">
+                        {count > 0 && (
+                          <button onClick={markAllRead} className="text-xs text-primary hover:underline">
+                            Mark all read
+                          </button>
+                        )}
+                        {notifications.length > 0 && (
+                          <button onClick={clearAll} className="text-xs text-destructive hover:underline flex items-center gap-1">
+                            <Trash2 className="h-3 w-3" /> Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="max-h-72 overflow-auto">
+                      {notifications.length === 0 ? (
+                        <p className="p-4 text-sm text-muted-foreground text-center">No notifications</p>
+                      ) : (
+                        notifications.slice(0, 10).map((n) => (
+                          <div
+                            key={n.id}
+                            className={`relative w-full text-left px-4 py-3 border-b border-border/30 hover:bg-muted/50 transition-colors flex gap-3 group/notif ${!n.read ? 'bg-primary/5' : ''}`}
+                          >
+                            <button onClick={() => markRead(n.id)} className="flex-1 min-w-0 text-left">
+                              <p className={`text-sm font-medium truncate ${!n.read ? 'text-foreground' : 'text-muted-foreground'}`}>{n.title}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                            </button>
+                            <button
+                              onClick={() => removeNotification(n.id)}
+                              className="shrink-0 mt-1 opacity-0 group-hover/notif:opacity-100 transition-opacity p-0.5 rounded hover:bg-destructive/10"
+                            >
+                              <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                            </button>
+                          </div>
+                        ))
                       )}
                     </div>
                   </div>
-                  <div className="max-h-72 overflow-auto">
-                    {notifications.length === 0 ? (
-                      <p className="p-4 text-sm text-muted-foreground text-center">No notifications</p>
-                    ) : (
-                      notifications.slice(0, 10).map((n) => (
-                        <div
-                          key={n.id}
-                          className={`relative w-full text-left px-4 py-3 border-b border-border/30 hover:bg-muted/50 transition-colors flex gap-3 group/notif ${!n.read ? 'bg-primary/5' : ''}`}
-                        >
-                          <button onClick={() => markRead(n.id)} className="flex-1 min-w-0 text-left">
-                            <p className={`text-sm font-medium truncate ${!n.read ? 'text-foreground' : 'text-muted-foreground'}`}>{n.title}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
-                          </button>
-                          <button
-                            onClick={() => removeNotification(n.id)}
-                            className="shrink-0 mt-1 opacity-0 group-hover/notif:opacity-100 transition-opacity p-0.5 rounded hover:bg-destructive/10"
-                          >
-                            <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
-            <Link to="/data">
-              <Button size="sm" className="gradient-bg hover:opacity-90 shadow-lg hover:shadow-xl transition-all">
-                Get Started
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <User className="h-4 w-4 text-primary" />
+                  {currentUser?.username}
+                  <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">{currentUser?.role}</span>
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { logout(); navigate('/'); }}
+                  className="gap-1.5"
+                >
+                  <LogOut className="h-3.5 w-3.5" /> Sign Out
+                </Button>
+              </div>
+            ) : (
+              <Link to="/auth">
+                <Button size="sm" className="gradient-bg hover:opacity-90 shadow-lg hover:shadow-xl transition-all gap-1.5">
+                  <LogIn className="h-3.5 w-3.5" /> Sign In
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </nav>
@@ -184,12 +210,12 @@ export default function Index() {
             and watch VisoryBI generate beautiful visualizations—all processed locally.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-4 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-            <Link to="/templates">
+            <Link to={isAuthenticated ? '/templates' : '/auth'}>
               <Button size="lg" className="gap-2 gradient-bg hover:opacity-90 shadow-lg hover:shadow-xl hover-scale transition-all h-12 px-8 text-base">
                 Browse Templates <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <Link to="/data">
+            <Link to={isAuthenticated ? '/data' : '/auth'}>
               <Button size="lg" variant="outline" className="gap-2 hover-lift h-12 px-8 text-base border-2">
                 <Zap className="h-4 w-4 text-primary" /> Import Data
               </Button>
@@ -222,7 +248,7 @@ export default function Index() {
           {features.map(({ icon: Icon, title, description, href, color }, i) => (
             <Link
               key={title}
-              to={href}
+              to={isAuthenticated ? href : '/auth'}
               className="glass-card-hover group rounded-2xl p-6 animate-fade-in-up"
               style={{ animationDelay: `${i * 100}ms` }}
             >
@@ -274,7 +300,7 @@ export default function Index() {
             <p className="mt-4 text-lg text-white/80">
               Start building professional dashboards with our pre-built templates
             </p>
-            <Link to="/templates" className="mt-8 inline-block">
+            <Link to={isAuthenticated ? '/templates' : '/auth'} className="mt-8 inline-block">
               <Button size="lg" className="gap-2 bg-white text-primary hover:bg-white/90 shadow-lg h-12 px-8">
                 Explore Templates <ArrowRight className="h-4 w-4" />
               </Button>

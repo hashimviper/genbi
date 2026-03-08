@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CinematicLoader } from '@/components/CinematicLoader';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Index from "./pages/Index";
 import DataSourcesPage from "./pages/DataSourcesPage";
 import DashboardsPage from "./pages/DashboardsPage";
@@ -38,14 +39,14 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/data" element={<DataSourcesPage />} />
-            <Route path="/dashboards" element={<DashboardsPage />} />
-            <Route path="/builder" element={<DashboardBuilderPage />} />
-            <Route path="/view/:id" element={<DashboardOutputPage />} />
-            <Route path="/admin" element={<AdminPanelPage />} />
-            <Route path="/templates" element={<TemplatesPage />} />
             <Route path="/auth" element={<AuthPage />} />
-            <Route path="/workspace" element={<WorkspacePage />} />
+            <Route path="/data" element={<ProtectedRoute><DataSourcesPage /></ProtectedRoute>} />
+            <Route path="/dashboards" element={<ProtectedRoute><DashboardsPage /></ProtectedRoute>} />
+            <Route path="/builder" element={<ProtectedRoute><DashboardBuilderPage /></ProtectedRoute>} />
+            <Route path="/view/:id" element={<ProtectedRoute><DashboardOutputPage /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><AdminPanelPage /></ProtectedRoute>} />
+            <Route path="/templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
+            <Route path="/workspace" element={<ProtectedRoute><WorkspacePage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

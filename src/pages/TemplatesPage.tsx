@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { autoConfigureWidget, generateSmartTitle } from '@/lib/fieldMapping';
+import { autoConfigureWidget, generateSmartTitle, resetFieldTracker } from '@/lib/fieldMapping';
 import {
   Users,
   Globe,

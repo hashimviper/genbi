@@ -248,7 +248,7 @@ export default function Index() {
           {features.map(({ icon: Icon, title, description, href, color }, i) => (
             <Link
               key={title}
-              to={href}
+              to={isAuthenticated ? href : '/auth'}
               className="glass-card-hover group rounded-2xl p-6 animate-fade-in-up"
               style={{ animationDelay: `${i * 100}ms` }}
             >

@@ -867,6 +867,36 @@ export default function DashboardBuilderPage() {
         theme={currentTheme}
         onSave={handleThemeChange}
       />
+
+      {/* Version Manager */}
+      {currentDashboard && (
+        <VersionManager
+          open={versionDialogOpen}
+          onOpenChange={setVersionDialogOpen}
+          dashboard={currentDashboard}
+          onRestore={handleVersionRestore}
+        />
+      )}
+
+      {/* Presentation Mode */}
+      {presentationMode && currentDashboard && (
+        <PresentationMode
+          widgets={currentDashboard.widgets}
+          renderWidget={renderWidget}
+          onClose={() => setPresentationMode(false)}
+        />
+      )}
+
+      {/* Data Transform Dialog */}
+      {getCurrentDataset() && (
+        <DataTransformDialog
+          open={transformDialogOpen}
+          onOpenChange={setTransformDialogOpen}
+          dataset={getCurrentDataset()!}
+          allDatasets={allDatasets}
+          onApply={handleTransformApply}
+        />
+      )}
     </MainLayout>
   );
 }

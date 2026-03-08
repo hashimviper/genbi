@@ -265,7 +265,7 @@ export const blankCanvasTemplate: DashboardTemplate = {
   name: 'Blank Canvas',
   description: 'Start from scratch - add your own data and build custom visualizations',
   category: 'General',
-  icon: 'FileBarChart',
+  icon: 'Database',
   color: 'hsl(220, 70%, 50%)',
   sampleColumns: [
     { name: 'category', type: 'string' },

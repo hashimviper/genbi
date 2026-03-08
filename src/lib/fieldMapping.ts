@@ -57,7 +57,7 @@ const qualitativePrimary = [
  * Checks if a field name is qualitative (good for primary labels/x-axis).
  * Rejects numeric-like fields such as year, age, salary, etc.
  */
-function isQualitativeField(fieldName: string, colType: string): boolean {
+function isQualitativeField(fieldName: string, colType: string, data?: Record<string, unknown>[]): boolean {
   const lower = fieldName.toLowerCase();
   
   // Numeric type columns are never qualitative labels
@@ -73,6 +73,21 @@ function isQualitativeField(fieldName: string, colType: string): boolean {
   
   // Explicit qualitative match
   if (qualitativePrimary.some(kw => lower.includes(kw))) return true;
+  
+  // If we have data, check if values look like numbers or dates
+  if (data && data.length > 0 && colType === 'string') {
+    const sample = data.slice(0, 10).map(r => r[fieldName]).filter(Boolean);
+    const numericCount = sample.filter(v => !isNaN(Number(v))).length;
+    // If >60% of values are parseable numbers, it's not qualitative
+    if (sample.length > 0 && numericCount / sample.length > 0.6) return false;
+    
+    // Check if values look like dates
+    const dateCount = sample.filter(v => {
+      const s = String(v);
+      return /^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(s) || /^\d{1,2}[-/]\d{1,2}[-/]\d{2,4}/.test(s);
+    }).length;
+    if (sample.length > 0 && dateCount / sample.length > 0.6) return false;
+  }
   
   // String type fields that aren't excluded are considered qualitative
   if (colType === 'string') return true;

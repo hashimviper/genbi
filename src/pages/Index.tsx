@@ -102,75 +102,95 @@ export default function Index() {
             <span className="text-xl font-bold text-foreground">VisoryBI</span>
           </Link>
           <div className="flex items-center gap-6">
-            <Link to="/templates" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors link-underline">
+            <Link to={isAuthenticated ? '/templates' : '/auth'} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors link-underline">
               Templates
             </Link>
-            <Link to="/dashboards" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors link-underline">
+            <Link to={isAuthenticated ? '/dashboards' : '/auth'} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors link-underline">
               Dashboards
             </Link>
 
-            {/* Notification Bell */}
-            <div className="relative" ref={bellRef}>
-              <button
-                onClick={() => setBellOpen(!bellOpen)}
-                className="relative p-2 rounded-full hover:bg-muted transition-colors"
-              >
-                <Bell className="h-5 w-5 text-muted-foreground" />
-                {count > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                    {count > 9 ? '9+' : count}
-                  </span>
-                )}
-              </button>
-              {bellOpen && (
-                <div className="absolute right-0 mt-2 w-80 rounded-xl border border-border bg-card shadow-xl z-[60] animate-fade-in">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
-                    <h4 className="text-sm font-semibold text-foreground">Notifications</h4>
-                    <div className="flex items-center gap-2">
-                      {count > 0 && (
-                        <button onClick={markAllRead} className="text-xs text-primary hover:underline">
-                          Mark all read
-                        </button>
-                      )}
-                      {notifications.length > 0 && (
-                        <button onClick={clearAll} className="text-xs text-destructive hover:underline flex items-center gap-1">
-                          <Trash2 className="h-3 w-3" /> Clear
-                        </button>
+            {/* Notification Bell - only when authenticated */}
+            {isAuthenticated && (
+              <div className="relative" ref={bellRef}>
+                <button
+                  onClick={() => setBellOpen(!bellOpen)}
+                  className="relative p-2 rounded-full hover:bg-muted transition-colors"
+                >
+                  <Bell className="h-5 w-5 text-muted-foreground" />
+                  {count > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                      {count > 9 ? '9+' : count}
+                    </span>
+                  )}
+                </button>
+                {bellOpen && (
+                  <div className="absolute right-0 mt-2 w-80 rounded-xl border border-border bg-card shadow-xl z-[60] animate-fade-in">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+                      <h4 className="text-sm font-semibold text-foreground">Notifications</h4>
+                      <div className="flex items-center gap-2">
+                        {count > 0 && (
+                          <button onClick={markAllRead} className="text-xs text-primary hover:underline">
+                            Mark all read
+                          </button>
+                        )}
+                        {notifications.length > 0 && (
+                          <button onClick={clearAll} className="text-xs text-destructive hover:underline flex items-center gap-1">
+                            <Trash2 className="h-3 w-3" /> Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="max-h-72 overflow-auto">
+                      {notifications.length === 0 ? (
+                        <p className="p-4 text-sm text-muted-foreground text-center">No notifications</p>
+                      ) : (
+                        notifications.slice(0, 10).map((n) => (
+                          <div
+                            key={n.id}
+                            className={`relative w-full text-left px-4 py-3 border-b border-border/30 hover:bg-muted/50 transition-colors flex gap-3 group/notif ${!n.read ? 'bg-primary/5' : ''}`}
+                          >
+                            <button onClick={() => markRead(n.id)} className="flex-1 min-w-0 text-left">
+                              <p className={`text-sm font-medium truncate ${!n.read ? 'text-foreground' : 'text-muted-foreground'}`}>{n.title}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                            </button>
+                            <button
+                              onClick={() => removeNotification(n.id)}
+                              className="shrink-0 mt-1 opacity-0 group-hover/notif:opacity-100 transition-opacity p-0.5 rounded hover:bg-destructive/10"
+                            >
+                              <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                            </button>
+                          </div>
+                        ))
                       )}
                     </div>
                   </div>
-                  <div className="max-h-72 overflow-auto">
-                    {notifications.length === 0 ? (
-                      <p className="p-4 text-sm text-muted-foreground text-center">No notifications</p>
-                    ) : (
-                      notifications.slice(0, 10).map((n) => (
-                        <div
-                          key={n.id}
-                          className={`relative w-full text-left px-4 py-3 border-b border-border/30 hover:bg-muted/50 transition-colors flex gap-3 group/notif ${!n.read ? 'bg-primary/5' : ''}`}
-                        >
-                          <button onClick={() => markRead(n.id)} className="flex-1 min-w-0 text-left">
-                            <p className={`text-sm font-medium truncate ${!n.read ? 'text-foreground' : 'text-muted-foreground'}`}>{n.title}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
-                          </button>
-                          <button
-                            onClick={() => removeNotification(n.id)}
-                            className="shrink-0 mt-1 opacity-0 group-hover/notif:opacity-100 transition-opacity p-0.5 rounded hover:bg-destructive/10"
-                          >
-                            <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
-            <Link to="/data">
-              <Button size="sm" className="gradient-bg hover:opacity-90 shadow-lg hover:shadow-xl transition-all">
-                Get Started
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <User className="h-4 w-4 text-primary" />
+                  {currentUser?.username}
+                  <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">{currentUser?.role}</span>
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { logout(); navigate('/'); }}
+                  className="gap-1.5"
+                >
+                  <LogOut className="h-3.5 w-3.5" /> Sign Out
+                </Button>
+              </div>
+            ) : (
+              <Link to="/auth">
+                <Button size="sm" className="gradient-bg hover:opacity-90 shadow-lg hover:shadow-xl transition-all gap-1.5">
+                  <LogIn className="h-3.5 w-3.5" /> Sign In
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </nav>

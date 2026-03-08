@@ -33,6 +33,15 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
+  // Seed built-in members into localDB once
+  useEffect(() => {
+    const seeded = localStorage.getItem('visorybi-db:seeded');
+    if (!seeded) {
+      SEED_MEMBERS.forEach((m) => registerUser(m.username, m.password, m.role));
+      localStorage.setItem('visorybi-db:seeded', 'true');
+    }
+  }, []);
+
   const resetFields = () => {
     setUsername('');
     setPassword('');

@@ -81,6 +81,7 @@ export default function DashboardBuilderPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [sliderOpen, setSliderOpen] = useState(false);
   const [qaDialogOpen, setQaDialogOpen] = useState(false);
+  const [themeDialogOpen, setThemeDialogOpen] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
   
   const [insightWidget, setInsightWidget] = useState<DashboardWidget | null>(null);

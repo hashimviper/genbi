@@ -219,6 +219,29 @@ export default function DashboardOutputPage() {
     return <div className="text-muted-foreground">Invalid configuration</div>;
   };
 
+  // Generate insight summary from analytics advisor
+  const insightSummary = useMemo(() => {
+    if (!currentDashboard) return null;
+    const ds = getCurrentDataset();
+    if (!ds) return null;
+    const data = getDatasetData(ds.id);
+    if (!data.length) return null;
+    const analyses = analyzeDataset(ds.columns, data);
+    const topInsights: AnalysisInstance[] = [];
+    const seenTypes = new Set<string>();
+    for (const a of analyses) {
+      if (!seenTypes.has(a.type) && topInsights.length < 4) {
+        topInsights.push(a);
+        seenTypes.add(a.type);
+      }
+    }
+    const bestChart = analyses[0]?.recommendedCharts?.[0];
+    const finalRec = bestChart
+      ? `Based on your data structure, a **${bestChart.chartType.replace(/([A-Z])/g, ' $1').trim()}** visualization is highly recommended — ${bestChart.reason}.`
+      : 'Upload more diverse data to unlock deeper analytical recommendations.';
+    return { insights: topInsights, finalRecommendation: finalRec, totalOpportunities: analyses.length };
+  }, [currentDashboard, filters, crossFilters]);
+
   if (!currentDashboard) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
@@ -233,30 +256,6 @@ export default function DashboardOutputPage() {
   const kpiWidgets = currentDashboard.widgets.filter(w => w.type === 'kpi' || w.type === 'gauge' || w.type === 'sparkline');
   const tableWidgets = currentDashboard.widgets.filter(w => w.type === 'table');
   const chartWidgets = currentDashboard.widgets.filter(w => w.type !== 'kpi' && w.type !== 'gauge' && w.type !== 'sparkline' && w.type !== 'table');
-
-  // Generate insight summary from analytics advisor
-  const insightSummary = useMemo(() => {
-    const ds = getCurrentDataset();
-    if (!ds) return null;
-    const data = getDatasetData(ds.id);
-    if (!data.length) return null;
-    const analyses = analyzeDataset(ds.columns, data);
-    // Pick top insights by type diversity
-    const topInsights: AnalysisInstance[] = [];
-    const seenTypes = new Set<string>();
-    for (const a of analyses) {
-      if (!seenTypes.has(a.type) && topInsights.length < 4) {
-        topInsights.push(a);
-        seenTypes.add(a.type);
-      }
-    }
-    // Build final recommendation
-    const bestChart = analyses[0]?.recommendedCharts?.[0];
-    const finalRec = bestChart
-      ? `Based on your data structure, a **${bestChart.chartType.replace(/([A-Z])/g, ' $1').trim()}** visualization is highly recommended — ${bestChart.reason}.`
-      : 'Upload more diverse data to unlock deeper analytical recommendations.';
-    return { insights: topInsights, finalRecommendation: finalRec, totalOpportunities: analyses.length };
-  }, [currentDashboard, filters, crossFilters]);
 
   const insightTypeIcons: Record<string, typeof Lightbulb> = {
     trend: TrendingUp,

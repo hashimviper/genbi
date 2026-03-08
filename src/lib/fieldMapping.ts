@@ -6,6 +6,8 @@ export interface FieldAnalysis {
   categoricalFields: string[];
   measureFields: string[];
   dimensionFields: string[];
+  qualitativeFields: string[];  // True categorical labels (department, name, region)
+  quantitativeFields: string[]; // Numeric measures + numeric-like fields (age, year, salary)
   suggestedXAxis: string | null;
   suggestedYAxis: string | null;
   suggestedLabelField: string | null;
@@ -29,12 +31,61 @@ const dimensionKeywords = ['name', 'category', 'type', 'status', 'region', 'coun
   'product', 'channel', 'segment', 'group', 'team', 'project', 'condition', 'line', 'page', 'account',
   'city', 'metric', 'expense_type', 'task_type', 'quarter'];
 
+// ── Fields that are NUMERIC but should NOT be used as the primary label/x-axis ──
+// These look like dimensions but are quantitative in nature
+const quantitativeExclusions = [
+  'year', 'age', 'salary', 'price', 'cost', 'amount', 'total', 'revenue', 'profit',
+  'budget', 'spend', 'score', 'rate', 'count', 'units', 'orders', 'value', 'index',
+  'temperature', 'humidity', 'wind', 'uv', 'id', 'zip', 'code', 'number', 'num',
+  'percentage', 'growth', 'target', 'current', 'previous', 'days', 'hours', 'minutes',
+  'weight', 'height', 'size', 'quantity', 'distance', 'latitude', 'longitude',
+  'impressions', 'clicks', 'conversions', 'roi', 'satisfaction', 'efficiency',
+  'stock', 'returns', 'rating', 'capacity', 'volume', 'duration',
+];
+
+// ── Fields that ARE good primary labels (qualitative categorical) ──
+const qualitativePrimary = [
+  'department', 'region', 'country', 'city', 'state', 'name', 'category', 'type',
+  'status', 'product', 'channel', 'segment', 'group', 'team', 'project', 'brand',
+  'vendor', 'supplier', 'customer', 'employee', 'manager', 'division', 'unit',
+  'industry', 'sector', 'condition', 'grade', 'level', 'tier', 'class',
+  'location', 'store', 'branch', 'office', 'campus', 'facility',
+  'expense_type', 'task_type', 'metric', 'phase', 'stage', 'priority',
+];
+
+/**
+ * Checks if a field name is qualitative (good for primary labels/x-axis).
+ * Rejects numeric-like fields such as year, age, salary, etc.
+ */
+function isQualitativeField(fieldName: string, colType: string): boolean {
+  const lower = fieldName.toLowerCase();
+  
+  // Numeric type columns are never qualitative labels
+  if (colType === 'number') return false;
+  
+  // Date fields are not qualitative labels
+  if (dateKeywords.some(kw => lower.includes(kw))) return false;
+  
+  // Check against quantitative exclusion list
+  if (quantitativeExclusions.some(kw => lower === kw || lower.endsWith(`_${kw}`) || lower.startsWith(`${kw}_`))) return false;
+  
+  // Explicit qualitative match
+  if (qualitativePrimary.some(kw => lower.includes(kw))) return true;
+  
+  // String type fields that aren't excluded are considered qualitative
+  if (colType === 'string') return true;
+  
+  return false;
+}
+
 export function analyzeDatasetFields(columns: DataColumn[], data: Record<string, unknown>[] = []): FieldAnalysis {
   const dateFields: string[] = [];
   const numericFields: string[] = [];
   const categoricalFields: string[] = [];
   const measureFields: string[] = [];
   const dimensionFields: string[] = [];
+  const qualitativeFields: string[] = [];
+  const quantitativeFields: string[] = [];
 
   columns.forEach(col => {
     const lowerName = col.name.toLowerCase();
@@ -48,37 +99,36 @@ export function analyzeDatasetFields(columns: DataColumn[], data: Record<string,
     // Numeric fields
     if (col.type === 'number') {
       numericFields.push(col.name);
-      
-      // Check if it's a measure (aggregatable numeric)
-      const isMeasure = measureKeywords.some(kw => lowerName.includes(kw));
-      if (isMeasure || col.type === 'number') {
-        measureFields.push(col.name);
-      }
+      quantitativeFields.push(col.name);
+      measureFields.push(col.name);
     }
 
     // Categorical/dimension fields
     if (col.type === 'string') {
       categoricalFields.push(col.name);
       
-      // Check if it's a dimension - all string fields can be dimensions
-      const isDimension = dimensionKeywords.some(kw => lowerName.includes(kw)) || col.type === 'string';
-      if (isDimension) {
+      if (dimensionKeywords.some(kw => lowerName.includes(kw)) || col.type === 'string') {
         dimensionFields.push(col.name);
       }
     }
+
+    // Qualitative classification (for primary labels)
+    if (isQualitativeField(col.name, col.type)) {
+      qualitativeFields.push(col.name);
+    }
   });
 
-  // Smart defaults like Tableau/Power BI
-  // X-Axis: Prefer date fields, then categorical/dimension fields
-  const suggestedXAxis = dateFields[0] || dimensionFields[0] || categoricalFields[0] || null;
+  // Primary label: MUST be qualitative (department, region, name, etc.)
+  // Never use year, age, salary, date fields as primary label
+  const suggestedLabelField = qualitativeFields[0] || dimensionFields[0] || categoricalFields[0] || null;
   
-  // Y-Axis: Prefer measure fields, then any numeric field
+  // X-Axis: prefer qualitative for category charts, date for trend charts
+  const suggestedXAxis = qualitativeFields[0] || dateFields[0] || dimensionFields[0] || null;
+  
+  // Y-Axis: Prefer measure fields
   const suggestedYAxis = measureFields[0] || numericFields[0] || null;
   
-  // Label Field: For pie/donut charts - prefer dimension fields
-  const suggestedLabelField = dimensionFields[0] || categoricalFields[0] || null;
-  
-  // Value Field: For pie/donut/gauge - prefer measure fields
+  // Value Field: For pie/donut/gauge
   const suggestedValueField = measureFields[0] || numericFields[0] || null;
 
   return {
@@ -87,6 +137,8 @@ export function analyzeDatasetFields(columns: DataColumn[], data: Record<string,
     categoricalFields,
     measureFields,
     dimensionFields,
+    qualitativeFields,
+    quantitativeFields,
     suggestedXAxis,
     suggestedYAxis,
     suggestedLabelField,
@@ -94,7 +146,43 @@ export function analyzeDatasetFields(columns: DataColumn[], data: Record<string,
   };
 }
 
-// Remap widget fields when dataset changes - IMPROVED VERSION
+// ── Unique Measure Tracker ──────────────────────────────────────────
+// Tracks which measures have been used so each chart gets a different one
+
+let _usedMeasureIndex = 0;
+let _usedAggIndex = 0;
+
+export function resetFieldTracker() {
+  _usedMeasureIndex = 0;
+  _usedAggIndex = 0;
+}
+
+const AGG_ROTATION: Array<'sum' | 'avg' | 'count' | 'max' | 'min'> = ['sum', 'avg', 'count', 'max', 'min'];
+
+function getNextMeasure(measures: string[]): string {
+  if (measures.length === 0) return '';
+  const field = measures[_usedMeasureIndex % measures.length];
+  _usedMeasureIndex++;
+  return field;
+}
+
+function getNextAggregation(): 'sum' | 'avg' | 'count' | 'max' | 'min' {
+  const agg = AGG_ROTATION[_usedAggIndex % AGG_ROTATION.length];
+  _usedAggIndex++;
+  return agg;
+}
+
+// ── Smart aggregation based on field semantics ──
+function getSmartAggregation(fieldName: string): 'sum' | 'avg' | 'count' | 'max' | 'min' {
+  const lower = fieldName.toLowerCase();
+  if (['count', 'employees', 'users', 'patients', 'orders', 'units', 'tasks'].some(k => lower.includes(k))) return 'count';
+  if (['avg', 'average', 'rate', 'percentage', 'satisfaction', 'score', 'efficiency', 'rating'].some(k => lower.includes(k))) return 'avg';
+  if (['max', 'peak', 'highest', 'top'].some(k => lower.includes(k))) return 'max';
+  if (['min', 'lowest', 'minimum'].some(k => lower.includes(k))) return 'min';
+  return 'sum';
+}
+
+// Remap widget fields when dataset changes
 export function remapWidgetFields(
   currentConfig: Record<string, unknown>,
   oldColumns: DataColumn[],
@@ -105,14 +193,10 @@ export function remapWidgetFields(
   const updatedConfig = { ...currentConfig };
   const newColumnNames = new Set(newColumns.map(c => c.name));
 
-  // Helper to find equivalent field with smart fallback
   const findEquivalentField = (oldField: string | undefined, fieldType: 'dimension' | 'measure' | 'date' | 'any'): string | null => {
     if (!oldField) return null;
-    
-    // First, try exact match
     if (newColumnNames.has(oldField)) return oldField;
     
-    // Try to find similar name (case-insensitive partial match)
     const lowerOldField = oldField.toLowerCase();
     const similarField = newColumns.find(c => 
       c.name.toLowerCase().includes(lowerOldField) || 
@@ -120,14 +204,12 @@ export function remapWidgetFields(
     );
     if (similarField) return similarField.name;
     
-    // Try to match by semantic meaning (common field patterns)
     const semanticMatch = findSemanticMatch(oldField, newColumns);
     if (semanticMatch) return semanticMatch;
     
-    // Fallback to smart defaults based on type
     switch (fieldType) {
       case 'dimension':
-        return analysis.suggestedLabelField;
+        return analysis.qualitativeFields[0] || analysis.suggestedLabelField;
       case 'measure':
         return analysis.suggestedValueField;
       case 'date':
@@ -137,7 +219,6 @@ export function remapWidgetFields(
     }
   };
 
-  // Remap common fields based on their semantic type
   if ('xAxis' in updatedConfig) {
     const oldField = updatedConfig.xAxis as string | undefined;
     const isDateField = oldField && dateKeywords.some(kw => oldField.toLowerCase().includes(kw));
@@ -159,11 +240,9 @@ export function remapWidgetFields(
   return updatedConfig;
 }
 
-// Find semantic match based on field meaning
 function findSemanticMatch(oldField: string, newColumns: DataColumn[]): string | null {
   const lowerOld = oldField.toLowerCase();
   
-  // Common semantic mappings
   const semanticGroups: Record<string, string[]> = {
     'category': ['department', 'category', 'type', 'segment', 'group', 'product', 'channel'],
     'revenue': ['revenue', 'sales', 'amount', 'total', 'value', 'profit'],
@@ -174,7 +253,6 @@ function findSemanticMatch(oldField: string, newColumns: DataColumn[]): string |
     'region': ['region', 'country', 'city', 'location', 'area'],
   };
 
-  // Find which semantic group the old field belongs to
   let oldGroup: string | null = null;
   for (const [group, keywords] of Object.entries(semanticGroups)) {
     if (keywords.some(kw => lowerOld.includes(kw))) {
@@ -185,7 +263,6 @@ function findSemanticMatch(oldField: string, newColumns: DataColumn[]): string |
 
   if (!oldGroup) return null;
 
-  // Find a new column in the same semantic group
   const groupKeywords = semanticGroups[oldGroup];
   for (const col of newColumns) {
     const lowerName = col.name.toLowerCase();
@@ -197,49 +274,81 @@ function findSemanticMatch(oldField: string, newColumns: DataColumn[]): string |
   return null;
 }
 
-// Auto-configure widget based on chart type and dataset
+// ── Auto-configure with UNIQUE fields per chart ─────────────────────
+// Each call rotates through available measures so no two charts use
+// the same measure+aggregation combination.
+
 export function autoConfigureWidget(
   chartType: string,
   columns: DataColumn[],
   data: Record<string, unknown>[] = []
 ): Record<string, unknown> {
   const analysis = analyzeDatasetFields(columns, data);
-  
   const baseConfig: Record<string, unknown> = {};
+
+  // Primary label is always qualitative (department, region, name — never year, age, salary)
+  const primaryLabel = analysis.qualitativeFields[0] || analysis.dimensionFields[0] || analysis.categoricalFields[0] || '';
+  const measures = analysis.measureFields.length > 0 ? analysis.measureFields : analysis.numericFields;
 
   switch (chartType) {
     case 'bar':
     case 'line':
     case 'area':
-    case 'scatter':
-    case 'combo':
-      baseConfig.xAxis = analysis.suggestedXAxis;
-      baseConfig.yAxis = analysis.suggestedYAxis;
+    case 'stackedBar': {
+      baseConfig.xAxis = primaryLabel;
+      baseConfig.yAxis = getNextMeasure(measures);
       break;
-    
+    }
+    case 'scatter': {
+      // Scatter uses two different numeric fields
+      const m1 = getNextMeasure(measures);
+      let m2 = getNextMeasure(measures);
+      if (m2 === m1 && measures.length > 1) m2 = measures.find(m => m !== m1) || m2;
+      baseConfig.xAxis = m1;
+      baseConfig.yAxis = m2;
+      break;
+    }
+    case 'combo': {
+      baseConfig.xAxis = primaryLabel;
+      baseConfig.yAxis = getNextMeasure(measures);
+      // Line field should be a different measure
+      const barMeasure = baseConfig.yAxis as string;
+      let lineMeasure = getNextMeasure(measures);
+      if (lineMeasure === barMeasure && measures.length > 1) {
+        lineMeasure = measures.find(m => m !== barMeasure) || lineMeasure;
+      }
+      baseConfig.valueField = lineMeasure;
+      break;
+    }
     case 'pie':
     case 'donut':
     case 'funnel':
     case 'treemap':
     case 'horizontalBar':
     case 'radar':
-    case 'waterfall':
-      baseConfig.labelField = analysis.suggestedLabelField;
-      baseConfig.valueField = analysis.suggestedValueField;
+    case 'waterfall': {
+      baseConfig.labelField = primaryLabel;
+      baseConfig.valueField = getNextMeasure(measures);
       break;
-    
-    case 'kpi':
-    case 'gauge':
-    case 'sparkline':
-      baseConfig.valueField = analysis.suggestedValueField;
-      baseConfig.aggregation = 'sum';
+    }
+    case 'kpi': {
+      const measure = getNextMeasure(measures);
+      baseConfig.valueField = measure;
+      baseConfig.aggregation = getSmartAggregation(measure);
       break;
-    
-    case 'stackedBar':
-      baseConfig.xAxis = analysis.suggestedXAxis;
-      baseConfig.yAxis = analysis.suggestedYAxis;
+    }
+    case 'gauge': {
+      const measure = getNextMeasure(measures);
+      baseConfig.valueField = measure;
+      baseConfig.aggregation = 'avg';
       break;
-    
+    }
+    case 'sparkline': {
+      const measure = getNextMeasure(measures);
+      baseConfig.valueField = measure;
+      baseConfig.aggregation = getNextAggregation();
+      break;
+    }
     default:
       break;
   }
@@ -253,10 +362,13 @@ export function generateSmartTitle(
   xAxis?: string,
   yAxis?: string,
   labelField?: string,
-  valueField?: string
+  valueField?: string,
+  aggregation?: string
 ): string {
   const formatFieldName = (name: string) => 
     name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  
+  const aggLabel = aggregation ? aggregation.charAt(0).toUpperCase() + aggregation.slice(1) : '';
 
   switch (chartType) {
     case 'bar':
@@ -266,22 +378,25 @@ export function generateSmartTitle(
       break;
     case 'pie':
     case 'donut':
-      if (labelField && valueField) return `${formatFieldName(valueField)} Distribution`;
+      if (labelField && valueField) return `${formatFieldName(valueField)} Distribution by ${formatFieldName(labelField)}`;
       break;
     case 'kpi':
-      if (valueField) return `Total ${formatFieldName(valueField)}`;
+      if (valueField) return `${aggLabel || 'Total'} ${formatFieldName(valueField)}`;
       break;
     case 'gauge':
-      if (valueField) return `${formatFieldName(valueField)} Gauge`;
+      if (valueField) return `Avg ${formatFieldName(valueField)}`;
+      break;
+    case 'sparkline':
+      if (valueField) return `${aggLabel || 'Sum'} ${formatFieldName(valueField)} Trend`;
       break;
     case 'scatter':
       if (xAxis && yAxis) return `${formatFieldName(xAxis)} vs ${formatFieldName(yAxis)}`;
       break;
     case 'funnel':
-      if (labelField) return `${formatFieldName(labelField)} Funnel`;
+      if (labelField && valueField) return `${formatFieldName(valueField)} Funnel by ${formatFieldName(labelField)}`;
       break;
     case 'treemap':
-      if (labelField && valueField) return `${formatFieldName(valueField)} Treemap`;
+      if (labelField && valueField) return `${formatFieldName(valueField)} Treemap by ${formatFieldName(labelField)}`;
       break;
     case 'horizontalBar':
       if (labelField && valueField) return `${formatFieldName(valueField)} by ${formatFieldName(labelField)}`;
@@ -290,7 +405,10 @@ export function generateSmartTitle(
       if (labelField && valueField) return `${formatFieldName(valueField)} Waterfall`;
       break;
     case 'radar':
-      if (labelField && valueField) return `${formatFieldName(valueField)} Radar`;
+      if (labelField && valueField) return `${formatFieldName(valueField)} Radar by ${formatFieldName(labelField)}`;
+      break;
+    case 'combo':
+      if (xAxis && yAxis) return `${formatFieldName(yAxis)} Combo by ${formatFieldName(xAxis)}`;
       break;
     case 'stackedBar':
       if (xAxis && yAxis) return `Stacked ${formatFieldName(yAxis)} by ${formatFieldName(xAxis)}`;
@@ -302,7 +420,7 @@ export function generateSmartTitle(
   return 'New Widget';
 }
 
-// Validate widget configuration - returns true if widget has valid field mappings
+// Validate widget configuration
 export function validateWidgetConfig(
   config: Record<string, unknown>,
   chartType: string,
@@ -317,7 +435,6 @@ export function validateWidgetConfig(
     }
   };
 
-  // Check based on chart type
   switch (chartType) {
     case 'bar':
     case 'line':

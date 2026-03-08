@@ -136,25 +136,6 @@ export default function DashboardBuilderPage() {
     return () => document.removeEventListener('fullscreenchange', h);
   }, []);
 
-  // Keyboard shortcuts for undo/redo
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        handleUndo();
-      }
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
-        e.preventDefault();
-        handleRedo();
-      }
-      if (e.key === 'Escape' && isFullscreen) {
-        e.preventDefault();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleUndo, handleRedo, isFullscreen]);
-
   const saveStateForUndo = useCallback(() => {
     if (currentDashboard) pushState(currentDashboard);
   }, [currentDashboard, pushState]);
@@ -172,6 +153,22 @@ export default function DashboardBuilderPage() {
       if (next) { updateDashboard(currentDashboard.id, { widgets: next.widgets }); toast({ title: 'Redo successful' }); }
     }
   }, [currentDashboard, canRedo, redo, updateDashboard]);
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo]);
 
   const getDatasetData = (datasetId: string, widgetId?: string) => {
     const dataset = allDatasets.find((d) => d.id === datasetId);

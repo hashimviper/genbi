@@ -90,7 +90,7 @@ export default function AuthPage() {
       return;
     }
 
-    const user = registerUser(trimmed, password, 'editor');
+    const user = registerUser(trimmed, password, selectedRole);
     if (!user) { setError('Username already taken.'); return; }
 
     login(user.username, user.role);

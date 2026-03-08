@@ -4,7 +4,6 @@ import {
   Home,
   Users,
   Wrench,
-  LayoutGrid,
   Database,
   FolderOpen,
   FileText,
@@ -14,11 +13,14 @@ import {
   LogIn,
   LogOut,
   ShieldCheck,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { VisoryBILogo } from '@/components/VisoryBILogo';
 import { useAuthStore, STATIC_ORG } from '@/stores/authStore';
+import { downloadAllDocs } from '@/lib/docExport';
+import { toast } from '@/hooks/use-toast';
 
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -143,6 +145,18 @@ export function AppSidebar() {
               New Dashboard
             </Button>
           </Link>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="w-full gap-2 text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              downloadAllDocs();
+              toast({ title: 'Downloading...', description: 'User Manual & Technical Report' });
+            }}
+          >
+            <BookOpen className="h-4 w-4" />
+            Download Docs
+          </Button>
         </div>
       )}
 

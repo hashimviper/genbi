@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Users, Building2, Shield, Edit3, Crown, Plus, Share2, UserPlus, X, Building, Trash2 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { STATIC_ORG, useAuthStore, UserRole } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useDashboardStore } from '@/stores/dashboardStore';
 import { toast } from '@/hooks/use-toast';
+import { updatePresence, isUserOnline } from '@/lib/localDB';
 import {
   Dialog,
   DialogContent,
@@ -70,7 +71,19 @@ export default function WorkspacePage() {
   const [newOrgName, setNewOrgName] = useState('');
   const [newOrgDesc, setNewOrgDesc] = useState('');
 
-  const isOnline = (username: string) => username === 'Viper';
+  // Update presence for the logged-in user
+  useEffect(() => {
+    if (currentUser) {
+      updatePresence(currentUser.id, currentUser.username);
+      const interval = setInterval(() => updatePresence(currentUser.id, currentUser.username), 30_000);
+      return () => clearInterval(interval);
+    }
+  }, [currentUser]);
+
+  const checkOnline = (username: string) => {
+    if (currentUser?.username === username) return true;
+    return isUserOnline(username);
+  };
 
   const roleColor = (role: UserRole) => {
     switch (role) {
@@ -185,7 +198,7 @@ export default function WorkspacePage() {
 
           {/* Custom orgs */}
           {organizations.map((org) => (
-            <div key={org.id} className="rounded-lg bg-muted/50 px-4 py-3 mb-2 flex items-center justify-between">
+            <div key={org.id} className="group rounded-lg bg-muted/50 px-4 py-3 mb-2 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
                   <Building className="h-5 w-5 text-accent-foreground" />
@@ -195,7 +208,7 @@ export default function WorkspacePage() {
                   <p className="text-xs text-muted-foreground">{org.description || 'No description'}</p>
                 </div>
               </div>
-              <button onClick={() => handleDeleteOrg(org.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+              <button onClick={() => handleDeleteOrg(org.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
@@ -222,7 +235,7 @@ export default function WorkspacePage() {
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">Team Members</h3>
             {STATIC_ORG.members.map((member) => {
-              const online = isOnline(member.username);
+              const online = checkOnline(member.username);
               return (
                 <div
                   key={member.id}
@@ -298,12 +311,12 @@ export default function WorkspacePage() {
             <div className="mt-6 space-y-2">
               <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Your Teams</h4>
               {teams.map((team) => (
-                <div key={team.id} className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
+                <div key={team.id} className="group flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
                   <div>
                     <p className="text-sm font-semibold text-foreground">{team.name}</p>
                     <p className="text-xs text-muted-foreground">{team.members.join(', ')}</p>
                   </div>
-                  <button onClick={() => handleDeleteTeam(team.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                  <button onClick={() => handleDeleteTeam(team.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
                     <X className="h-4 w-4" />
                   </button>
                 </div>

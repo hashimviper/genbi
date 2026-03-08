@@ -159,7 +159,7 @@ export default function DashboardsPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 opacity-0 transition-all duration-300 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
+                      className="h-8 w-8 opacity-0 transition-opacity duration-200 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => deleteDashboard(dashboard.id)}
                     >
                       <Trash2 className="h-4 w-4" />

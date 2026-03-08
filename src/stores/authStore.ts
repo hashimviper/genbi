@@ -14,6 +14,9 @@ export const STATIC_ORG = {
   name: 'VisoryBI Team',
   members: [
     { id: 'viper-001', username: 'Viper', role: 'admin' as UserRole, isOwner: true },
+    { id: 'thaslee-002', username: 'Thaslee', role: 'editor' as UserRole, isOwner: false },
+    { id: 'naveen-003', username: 'Naveen', role: 'editor' as UserRole, isOwner: false },
+    { id: 'abd-004', username: 'Abd', role: 'editor' as UserRole, isOwner: false },
   ],
 };
 

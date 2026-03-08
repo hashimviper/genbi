@@ -308,7 +308,7 @@ export function GlobalFilterBar({
       </div>
 
       {localFilters.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 overflow-x-auto">
           {localFilters.map((filter, index) => renderFilterControl(filter, index))}
         </div>
       )}

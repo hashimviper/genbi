@@ -125,7 +125,7 @@ export function GlobalFilterBar({
     return (
       <div 
         key={index} 
-        className="flex items-center gap-2 rounded-lg border border-border/50 bg-secondary/30 px-3 py-2"
+        className="flex items-center gap-2 rounded-lg border border-border/50 bg-secondary/30 px-2 py-1.5 min-w-0 shrink-0"
       >
         <span className="text-sm font-medium text-foreground">
           {filter.field.replace(/_/g, ' ')}
@@ -230,8 +230,8 @@ export function GlobalFilterBar({
   };
 
   return (
-    <div className={cn('rounded-lg border border-border/50 bg-card/50 p-4', className)}>
-      <div className="flex items-center justify-between mb-3">
+    <div className={cn('rounded-lg border border-border/50 bg-card/50 p-3 overflow-hidden', className)}>
+      <div className="flex items-center justify-between gap-2 mb-3 min-w-0">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-primary" />
           <span className="font-medium text-foreground">Filters</span>
@@ -308,7 +308,7 @@ export function GlobalFilterBar({
       </div>
 
       {localFilters.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 overflow-x-auto">
           {localFilters.map((filter, index) => renderFilterControl(filter, index))}
         </div>
       )}

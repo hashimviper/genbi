@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Download, Maximize2, Minimize2, X } from 'lucide-react';
+import { ArrowLeft, Download, Maximize2, Minimize2, X, Lightbulb, TrendingUp, BarChart3, Target } from 'lucide-react';
 import { useDashboardStore } from '@/stores/dashboardStore';
 import { InsightModal } from '@/components/dashboard/InsightModal';
 import { ChartCard } from '@/components/charts/ChartCard';
@@ -34,6 +34,7 @@ import { toast } from '@/hooks/use-toast';
 import { autoAggregate } from '@/lib/dataModel';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { VisoryBILogo } from '@/components/VisoryBILogo';
+import { analyzeDataset, type AnalysisInstance } from '@/lib/analyticsAdvisor';
 
 export default function DashboardOutputPage() {
   const { id } = useParams<{ id: string }>();
@@ -218,6 +219,29 @@ export default function DashboardOutputPage() {
     return <div className="text-muted-foreground">Invalid configuration</div>;
   };
 
+  // Generate insight summary from analytics advisor
+  const insightSummary = useMemo(() => {
+    if (!currentDashboard) return null;
+    const ds = getCurrentDataset();
+    if (!ds) return null;
+    const data = getDatasetData(ds.id);
+    if (!data.length) return null;
+    const analyses = analyzeDataset(ds.columns, data);
+    const topInsights: AnalysisInstance[] = [];
+    const seenTypes = new Set<string>();
+    for (const a of analyses) {
+      if (!seenTypes.has(a.type) && topInsights.length < 4) {
+        topInsights.push(a);
+        seenTypes.add(a.type);
+      }
+    }
+    const bestChart = analyses[0]?.recommendedCharts?.[0];
+    const finalRec = bestChart
+      ? `Based on your data structure, a **${bestChart.chartType.replace(/([A-Z])/g, ' $1').trim()}** visualization is highly recommended — ${bestChart.reason}.`
+      : 'Upload more diverse data to unlock deeper analytical recommendations.';
+    return { insights: topInsights, finalRecommendation: finalRec, totalOpportunities: analyses.length };
+  }, [currentDashboard, filters, crossFilters]);
+
   if (!currentDashboard) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
@@ -230,10 +254,17 @@ export default function DashboardOutputPage() {
   }
 
   const kpiWidgets = currentDashboard.widgets.filter(w => w.type === 'kpi' || w.type === 'gauge' || w.type === 'sparkline');
-  const chartWidgets = currentDashboard.widgets.filter(w => w.type !== 'kpi' && w.type !== 'gauge' && w.type !== 'sparkline');
+  const tableWidgets = currentDashboard.widgets.filter(w => w.type === 'table');
+  const chartWidgets = currentDashboard.widgets.filter(w => w.type !== 'kpi' && w.type !== 'gauge' && w.type !== 'sparkline' && w.type !== 'table');
+
+  const insightTypeIcons: Record<string, typeof Lightbulb> = {
+    trend: TrendingUp,
+    comparison: BarChart3,
+    performance: Target,
+  };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Branding Header - sticky on scroll */}
       <div className="sticky top-0 z-[60]">
         <DashboardHeader
@@ -270,7 +301,7 @@ export default function DashboardOutputPage() {
       </header>
 
       {/* Dashboard Content */}
-      <main id="dashboard-output-canvas" className="p-6">
+      <main id="dashboard-output-canvas" className="flex-1 p-6 flex flex-col">
         {/* Filters */}
         {getCurrentDataset() && (
           <>
@@ -342,10 +373,10 @@ export default function DashboardOutputPage() {
             </Link>
           </div>
         ) : (
-          <>
+          <div className="flex flex-col flex-1 gap-6">
             {/* KPI/Gauge/Sparkline Section */}
             {kpiWidgets.length > 0 && (
-              <div className="mb-6">
+              <div>
                 <h3 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wide">Key Metrics</h3>
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                   {kpiWidgets.map((widget) => (
@@ -357,22 +388,95 @@ export default function DashboardOutputPage() {
               </div>
             )}
 
-            {/* Charts Section */}
+            {/* Charts Section (excludes tables) */}
             {chartWidgets.length > 0 && (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {chartWidgets.map((widget) => (
-                  <div key={widget.id} onDoubleClick={(e) => handleWidgetDoubleClick(widget, e)} style={{ pointerEvents: 'auto' }}>
-                    <ChartCard
-                      title={widget.config.title}
-                      className="h-80 animate-fade-in"
-                    >
-                      {renderWidget(widget)}
-                    </ChartCard>
-                  </div>
-                ))}
+              <div>
+                <h3 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wide">Visualizations</h3>
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {chartWidgets.map((widget) => (
+                    <div key={widget.id} onDoubleClick={(e) => handleWidgetDoubleClick(widget, e)} style={{ pointerEvents: 'auto' }}>
+                      <ChartCard
+                        title={widget.config.title}
+                        className="h-80 animate-fade-in"
+                      >
+                        {renderWidget(widget)}
+                      </ChartCard>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-          </>
+
+            {/* ── Insight Summary Section (pinned above data table) ── */}
+            {insightSummary && insightSummary.insights.length > 0 && (
+              <div className="rounded-xl border border-border bg-card p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Lightbulb className="h-5 w-5 text-amber-500" />
+                  <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+                    Insight Summary & Recommendations
+                  </h3>
+                  <Badge variant="secondary" className="ml-auto text-xs">
+                    {insightSummary.totalOpportunities} opportunities detected
+                  </Badge>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 mb-4">
+                  {insightSummary.insights.map((insight, idx) => {
+                    const IconComp = insightTypeIcons[insight.type] || Lightbulb;
+                    return (
+                      <div key={idx} className="rounded-lg border border-border/50 bg-muted/30 p-3 flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2">
+                          <IconComp className="h-4 w-4 text-primary" />
+                          <span className="text-xs font-semibold text-primary uppercase">{insight.type}</span>
+                        </div>
+                        <p className="text-sm font-medium text-foreground leading-snug">{insight.title}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{insight.description}</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {insight.recommendedCharts.slice(0, 2).map((r, ri) => (
+                            <Badge key={ri} variant={r.suitability === 'highly-recommended' ? 'default' : 'outline'} className="text-[10px] px-1.5 py-0">
+                              {r.chartType}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Final Recommendation */}
+                <div className="rounded-lg bg-primary/5 border border-primary/20 p-4">
+                  <div className="flex items-start gap-2">
+                    <Target className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-1">Final Recommendation</p>
+                      <p className="text-sm text-foreground leading-relaxed"
+                         dangerouslySetInnerHTML={{ __html: insightSummary.finalRecommendation.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Data Table Section (full-width, pinned at bottom) ── */}
+            {tableWidgets.length > 0 && (
+              <div className="w-full">
+                <h3 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wide">Data Table</h3>
+                <div className="flex flex-col gap-4">
+                  {tableWidgets.map((widget) => (
+                    <div key={widget.id} onDoubleClick={(e) => handleWidgetDoubleClick(widget, e)} style={{ pointerEvents: 'auto' }}>
+                      <ChartCard
+                        title={widget.config.title}
+                        className="min-h-[400px] w-full animate-fade-in"
+                      >
+                        {renderWidget(widget)}
+                      </ChartCard>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </main>
 

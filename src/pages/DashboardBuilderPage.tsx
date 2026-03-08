@@ -452,14 +452,12 @@ export default function DashboardBuilderPage() {
   return (
     <MainLayout>
       <div ref={dashboardRef} className={cn("flex h-full flex-col", isFullscreen && "bg-background")}>
-        {/* Dashboard Branding Header - hidden in fullscreen */}
-        {!isFullscreen && (
-          <DashboardHeader
-            branding={currentDashboard.branding}
-            onBrandingChange={handleBrandingChange}
-            editable={userCanEdit}
-          />
-        )}
+        {/* Dashboard Branding Header - read-only in fullscreen */}
+        <DashboardHeader
+          branding={currentDashboard.branding}
+          onBrandingChange={handleBrandingChange}
+          editable={!isFullscreen && userCanEdit}
+        />
 
         {/* Toolbar */}
         <div className={cn(

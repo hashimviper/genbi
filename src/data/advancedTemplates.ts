@@ -180,7 +180,7 @@ export const executiveKPITemplate: DashboardTemplate = {
   name: 'Executive KPI Dashboard',
   description: 'High-level executive metrics with gauges and trend analysis',
   category: 'General',
-  icon: 'FileBarChart',
+  icon: 'Briefcase',
   color: 'hsl(280, 70%, 55%)',
   sampleColumns: [
     { name: 'metric', type: 'string' },

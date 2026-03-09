@@ -233,12 +233,24 @@ export default function WorkspacePage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">{org.name}</p>
-                  <p className="text-xs text-muted-foreground">{org.description || 'No description'}</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-2">
+                    {org.description || 'No description'}
+                    {org.members && org.members.length > 0 && (
+                      <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+                        {org.members.length} member{org.members.length !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
-              <button onClick={() => handleDeleteOrg(org.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button variant="ghost" size="icon" onClick={() => setShowAddUserOrg(org.id)} className="h-8 w-8 text-muted-foreground hover:text-primary">
+                  <UserPlus className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => handleDeleteOrg(org.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ))}
 

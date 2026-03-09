@@ -143,6 +143,7 @@ export default function WorkspacePage() {
       name: newOrgName.trim(),
       description: newOrgDesc.trim(),
       createdAt: new Date().toISOString(),
+      members: [],
     };
     const updated = [...organizations, org];
     setOrganizations(updated);

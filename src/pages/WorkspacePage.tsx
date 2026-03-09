@@ -30,6 +30,7 @@ interface Organization {
   name: string;
   description: string;
   createdAt: string;
+  members?: string[];
 }
 
 const TEAMS_STORAGE_KEY = 'visorybi-teams';
@@ -70,6 +71,8 @@ export default function WorkspacePage() {
   const [showCreateOrg, setShowCreateOrg] = useState(false);
   const [newOrgName, setNewOrgName] = useState('');
   const [newOrgDesc, setNewOrgDesc] = useState('');
+  const [showAddUserOrg, setShowAddUserOrg] = useState<string | null>(null);
+  const [newOrgUsername, setNewOrgUsername] = useState('');
 
   // Update presence for the logged-in user
   useEffect(() => {
@@ -140,6 +143,7 @@ export default function WorkspacePage() {
       name: newOrgName.trim(),
       description: newOrgDesc.trim(),
       createdAt: new Date().toISOString(),
+      members: [],
     };
     const updated = [...organizations, org];
     setOrganizations(updated);
@@ -156,6 +160,30 @@ export default function WorkspacePage() {
     setOrganizations(updated);
     saveOrgs(updated);
     toast({ title: 'Organization deleted' });
+  };
+
+  const handleAddUserToOrg = () => {
+    if (!showAddUserOrg || !newOrgUsername.trim()) return;
+    
+    const updated = organizations.map(org => {
+      if (org.id === showAddUserOrg) {
+        const members = org.members || [];
+        if (!members.includes(newOrgUsername.trim())) {
+          return { ...org, members: [...members, newOrgUsername.trim()] };
+        }
+      }
+      return org;
+    });
+    
+    setOrganizations(updated);
+    saveOrgs(updated);
+    
+    const orgName = organizations.find(o => o.id === showAddUserOrg)?.name || 'Organization';
+    toast({ title: 'User added', description: `${newOrgUsername} added to ${orgName}` });
+    addNotification('User Added', `${newOrgUsername} was added to ${orgName}.`);
+    
+    setNewOrgUsername('');
+    setShowAddUserOrg(null);
   };
 
   return (
@@ -205,12 +233,24 @@ export default function WorkspacePage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">{org.name}</p>
-                  <p className="text-xs text-muted-foreground">{org.description || 'No description'}</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-2">
+                    {org.description || 'No description'}
+                    {org.members && org.members.length > 0 && (
+                      <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+                        {org.members.length} member{org.members.length !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
-              <button onClick={() => handleDeleteOrg(org.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button variant="ghost" size="icon" onClick={() => setShowAddUserOrg(org.id)} className="h-8 w-8 text-muted-foreground hover:text-primary">
+                  <UserPlus className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => handleDeleteOrg(org.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ))}
 
@@ -426,6 +466,39 @@ export default function WorkspacePage() {
               <Button variant="outline" onClick={() => setShowCreateOrg(false)}>Cancel</Button>
               <Button onClick={handleCreateOrg} disabled={!newOrgName.trim()} className="gap-2">
                 <Plus className="h-4 w-4" /> Create
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add User to Organization Dialog */}
+        <Dialog open={!!showAddUserOrg} onOpenChange={(open) => !open && setShowAddUserOrg(null)}>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5 text-primary" />
+                Add User to Organization
+              </DialogTitle>
+              <DialogDescription>
+                Invite a new member to {organizations.find(o => o.id === showAddUserOrg)?.name}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="org-username">Username or Email</Label>
+                <Input
+                  id="org-username"
+                  value={newOrgUsername}
+                  onChange={(e) => setNewOrgUsername(e.target.value)}
+                  placeholder="e.g. john.doe or john@example.com"
+                  className="bg-background"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddUserOrg(null)}>Cancel</Button>
+              <Button onClick={handleAddUserToOrg} disabled={!newOrgUsername.trim()} className="gap-2">
+                <Plus className="h-4 w-4" /> Add User
               </Button>
             </DialogFooter>
           </DialogContent>

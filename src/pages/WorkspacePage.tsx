@@ -30,6 +30,7 @@ interface Organization {
   name: string;
   description: string;
   createdAt: string;
+  members?: string[];
 }
 
 const TEAMS_STORAGE_KEY = 'visorybi-teams';

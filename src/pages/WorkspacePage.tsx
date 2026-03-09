@@ -71,6 +71,8 @@ export default function WorkspacePage() {
   const [showCreateOrg, setShowCreateOrg] = useState(false);
   const [newOrgName, setNewOrgName] = useState('');
   const [newOrgDesc, setNewOrgDesc] = useState('');
+  const [showAddUserOrg, setShowAddUserOrg] = useState<string | null>(null);
+  const [newOrgUsername, setNewOrgUsername] = useState('');
 
   // Update presence for the logged-in user
   useEffect(() => {

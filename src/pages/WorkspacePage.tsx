@@ -162,6 +162,30 @@ export default function WorkspacePage() {
     toast({ title: 'Organization deleted' });
   };
 
+  const handleAddUserToOrg = () => {
+    if (!showAddUserOrg || !newOrgUsername.trim()) return;
+    
+    const updated = organizations.map(org => {
+      if (org.id === showAddUserOrg) {
+        const members = org.members || [];
+        if (!members.includes(newOrgUsername.trim())) {
+          return { ...org, members: [...members, newOrgUsername.trim()] };
+        }
+      }
+      return org;
+    });
+    
+    setOrganizations(updated);
+    saveOrgs(updated);
+    
+    const orgName = organizations.find(o => o.id === showAddUserOrg)?.name || 'Organization';
+    toast({ title: 'User added', description: `${newOrgUsername} added to ${orgName}` });
+    addNotification('User Added', `${newOrgUsername} was added to ${orgName}.`);
+    
+    setNewOrgUsername('');
+    setShowAddUserOrg(null);
+  };
+
   return (
     <MainLayout>
       <div className="p-6 max-w-4xl mx-auto space-y-6">

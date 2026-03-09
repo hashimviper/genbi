@@ -470,6 +470,39 @@ export default function WorkspacePage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Add User to Organization Dialog */}
+        <Dialog open={!!showAddUserOrg} onOpenChange={(open) => !open && setShowAddUserOrg(null)}>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5 text-primary" />
+                Add User to Organization
+              </DialogTitle>
+              <DialogDescription>
+                Invite a new member to {organizations.find(o => o.id === showAddUserOrg)?.name}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="org-username">Username or Email</Label>
+                <Input
+                  id="org-username"
+                  value={newOrgUsername}
+                  onChange={(e) => setNewOrgUsername(e.target.value)}
+                  placeholder="e.g. john.doe or john@example.com"
+                  className="bg-background"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddUserOrg(null)}>Cancel</Button>
+              <Button onClick={handleAddUserToOrg} disabled={!newOrgUsername.trim()} className="gap-2">
+                <Plus className="h-4 w-4" /> Add User
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );

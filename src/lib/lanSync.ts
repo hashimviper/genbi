@@ -36,7 +36,7 @@ const PEER_TIMEOUT_MS = 10000;
 
 type MessageHandler = (msg: LANMessage) => void;
 
-class LANSyncManager {
+export class LANSyncManager {
   private channel: BroadcastChannel | null = null;
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
   private pollInterval: ReturnType<typeof setInterval> | null = null;

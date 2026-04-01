@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Users, Building2, Shield, Edit3, Crown, Plus, Share2, UserPlus, X, Building, Trash2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Users, Building2, Shield, Edit3, Crown, Plus, Share2, UserPlus, X, Building, Trash2, Wifi, WifiOff, Copy, Radio } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { useNotificationStore } from '@/stores/notificationStore';
 import { useDashboardStore } from '@/stores/dashboardStore';
 import { toast } from '@/hooks/use-toast';
 import { updatePresence, isUserOnline } from '@/lib/localDB';
+import { lanSync, LANSyncManager, type LANPeer, type LANMessage } from '@/lib/lanSync';
 import {
   Dialog,
   DialogContent,
@@ -74,6 +75,12 @@ export default function WorkspacePage() {
   const [showAddUserOrg, setShowAddUserOrg] = useState<string | null>(null);
   const [newOrgUsername, setNewOrgUsername] = useState('');
 
+  // LAN Sync state
+  const [lanConnected, setLanConnected] = useState(false);
+  const [roomCode, setRoomCode] = useState('');
+  const [joinCode, setJoinCode] = useState('');
+  const [lanPeers, setLanPeers] = useState<LANPeer[]>([]);
+
   // Update presence for the logged-in user
   useEffect(() => {
     if (currentUser) {
@@ -82,6 +89,72 @@ export default function WorkspacePage() {
       return () => clearInterval(interval);
     }
   }, [currentUser]);
+
+  // LAN peer polling
+  useEffect(() => {
+    if (!lanConnected) return;
+    const interval = setInterval(() => {
+      setLanPeers(lanSync.getActivePeers());
+    }, 2000);
+    setLanPeers(lanSync.getActivePeers());
+    return () => clearInterval(interval);
+  }, [lanConnected]);
+
+  // LAN message handler
+  useEffect(() => {
+    if (!lanConnected) return;
+    const unsub = lanSync.onMessage((msg: LANMessage) => {
+      if (msg.type === 'presence') {
+        setLanPeers(lanSync.getActivePeers());
+      } else if (msg.type === 'presence-leave') {
+        setLanPeers(lanSync.getActivePeers());
+      } else if (msg.type === 'chat') {
+        toast({ title: `${msg.senderName}`, description: String(msg.payload || '') });
+      } else if (msg.type === 'dashboard-share') {
+        addNotification('Dashboard Shared via LAN', `${msg.senderName} shared a dashboard.`);
+      }
+    });
+    return unsub;
+  }, [lanConnected, addNotification]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Don't disconnect on page nav, only on full unmount
+    };
+  }, []);
+
+  const handleCreateRoom = useCallback(() => {
+    if (!currentUser) return;
+    const code = LANSyncManager.generateRoomCode();
+    setRoomCode(code);
+    lanSync.connect(currentUser.id, currentUser.username, code);
+    setLanConnected(true);
+    toast({ title: 'Network Room Created', description: `Room code: ${code}` });
+  }, [currentUser]);
+
+  const handleJoinRoom = useCallback(() => {
+    if (!currentUser || !joinCode.trim()) return;
+    const code = joinCode.trim().toUpperCase();
+    setRoomCode(code);
+    lanSync.connect(currentUser.id, currentUser.username, code);
+    setLanConnected(true);
+    setJoinCode('');
+    toast({ title: 'Joined Room', description: `Connected to room ${code}` });
+  }, [currentUser, joinCode]);
+
+  const handleDisconnect = useCallback(() => {
+    lanSync.disconnect();
+    setLanConnected(false);
+    setRoomCode('');
+    setLanPeers([]);
+    toast({ title: 'Disconnected from network room' });
+  }, []);
+
+  const handleCopyRoomCode = useCallback(() => {
+    navigator.clipboard.writeText(roomCode);
+    toast({ title: 'Room code copied!' });
+  }, [roomCode]);
 
   const checkOnline = (username: string) => {
     if (currentUser?.username === username) return true;
@@ -115,6 +188,7 @@ export default function WorkspacePage() {
     setSelectedMembers([]);
     addNotification('Team Created', `Team "${team.name}" has been created with ${team.members.length} members.`);
     toast({ title: 'Team created', description: team.name });
+    if (lanConnected) lanSync.send('team-update', { action: 'created', team });
   };
 
   const handleDeleteTeam = (id: string) => {
@@ -134,6 +208,7 @@ export default function WorkspacePage() {
     saveSharedIds(updated);
     addNotification('Dashboard Shared', `"${dashboardName}" has been shared with the team.`);
     toast({ title: 'Dashboard shared', description: dashboardName });
+    if (lanConnected) lanSync.send('dashboard-share', { dashboardId, dashboardName });
   };
 
   const handleCreateOrg = () => {
@@ -153,6 +228,7 @@ export default function WorkspacePage() {
     setShowCreateOrg(false);
     addNotification('Organization Created', `Organization "${org.name}" has been created.`);
     toast({ title: 'Organization created', description: org.name });
+    if (lanConnected) lanSync.send('org-update', { action: 'created', org });
   };
 
   const handleDeleteOrg = (id: string) => {
@@ -192,9 +268,112 @@ export default function WorkspacePage() {
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Users className="h-6 w-6 text-[hsl(var(--chart-5))]" /> Collaboration
+            <Users className="h-6 w-6 text-[hsl(var(--chart-5))]" /> LAN Network Collaboration
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Team workspace & member roles (UI simulation)</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Real-time collaboration with peers on the same network
+          </p>
+        </div>
+
+        {/* LAN Network Room */}
+        <div className="glass-card rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${lanConnected ? 'bg-[hsl(var(--success))]/10' : 'bg-muted'}`}>
+              {lanConnected ? <Wifi className="h-5 w-5 text-[hsl(var(--success))]" /> : <WifiOff className="h-5 w-5 text-muted-foreground" />}
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                Network Room
+                <Badge variant={lanConnected ? 'default' : 'secondary'} className="text-[10px]">
+                  {lanConnected ? 'Connected' : 'Offline'}
+                </Badge>
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {lanConnected
+                  ? `Room: ${roomCode} • ${lanPeers.length} peer${lanPeers.length !== 1 ? 's' : ''} connected`
+                  : 'Create or join a room to sync with peers on your network'}
+              </p>
+            </div>
+          </div>
+
+          {!lanConnected ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-3">
+                <Button onClick={handleCreateRoom} className="w-full gap-2">
+                  <Radio className="h-4 w-4" /> Create Room
+                </Button>
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Generate a room code to share with your team
+                </p>
+              </div>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    value={joinCode}
+                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                    placeholder="Enter room code"
+                    maxLength={6}
+                    className="font-mono tracking-widest text-center uppercase"
+                  />
+                  <Button onClick={handleJoinRoom} disabled={joinCode.trim().length < 4} variant="outline">
+                    Join
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Enter the code shared by a peer
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Room code & controls */}
+              <div className="flex items-center gap-3 rounded-lg bg-primary/5 border border-primary/20 px-4 py-3">
+                <span className="text-xs text-muted-foreground">Room Code:</span>
+                <span className="font-mono text-lg font-bold text-primary tracking-widest">{roomCode}</span>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopyRoomCode}>
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="outline" size="sm" className="ml-auto text-destructive" onClick={handleDisconnect}>
+                  Disconnect
+                </Button>
+              </div>
+
+              {/* Connected peers */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Connected Peers ({lanPeers.length})
+                </h4>
+                {lanPeers.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-2">
+                    Waiting for peers to join room {roomCode}...
+                  </p>
+                ) : (
+                  lanPeers.map((peer) => (
+                    <div key={peer.userId} className="flex items-center gap-3 rounded-lg bg-muted/50 px-4 py-2.5">
+                      <div className="relative">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                          {peer.username[0]?.toUpperCase()}
+                        </div>
+                        <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[hsl(var(--success))] border-2 border-card" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-foreground">
+                          {peer.username}
+                          {peer.userId === currentUser?.id && (
+                            <span className="text-[10px] font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-full ml-1.5">You</span>
+                          )}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {Date.now() - peer.lastSeen < 5000 ? 'Active now' : `${Math.floor((Date.now() - peer.lastSeen) / 1000)}s ago`}
+                        </p>
+                      </div>
+                      <div className="h-2 w-2 rounded-full bg-[hsl(var(--success))] animate-pulse" />
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Organizations */}
@@ -267,7 +446,9 @@ export default function WorkspacePage() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-foreground">{STATIC_ORG.name}</h2>
-              <p className="text-sm text-muted-foreground">{STATIC_ORG.members.length} members • Offline workspace</p>
+              <p className="text-sm text-muted-foreground">
+                {STATIC_ORG.members.length} members • {lanConnected ? 'LAN Connected' : 'Local workspace'}
+              </p>
             </div>
           </div>
 
@@ -369,6 +550,7 @@ export default function WorkspacePage() {
         <div className="glass-card rounded-xl p-6">
           <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4 flex items-center gap-2">
             <Share2 className="h-4 w-4" /> Share Dashboard
+            {lanConnected && <Badge variant="outline" className="text-[10px] gap-1"><Wifi className="h-3 w-3" /> LAN</Badge>}
           </h3>
           {dashboards.length === 0 ? (
             <p className="text-sm text-muted-foreground">No dashboards available to share.</p>

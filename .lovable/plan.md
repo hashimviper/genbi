@@ -1,107 +1,61 @@
-## Plan: Rebuild and Correct VisoryBI
-
-This plan addresses all requirements: navigation changes, dashboard builder chart library slider, collaboration page fixes, double-click Q&A structural fix, Data Editor overflow fix, notification bell, layout stability, and online/offline member status.
-
----
-
-### 1. Remove Admin from Sidebar, Integrate into Builder
-
-**AppSidebar.tsx**: Remove the `{ icon: Shield, label: 'Admin Panel', href: '/admin' }` entry from `navItems` array.
-
-**DashboardBuilderPage.tsx**: Add a collapsible side slider panel containing the chart library (Bar, Line, Pie, KPI, Table + all existing chart types). This panel will:
-
-- Use a button to toggle open/close with animation
-- Slide in from the left side of the builder canvas
-- Not overlap the dashboard grid (use flex layout, not absolute positioning)
-- Allow clicking a chart type to add it to the current dashboard (reusing the existing `addWidget` logic from AdminPanelPage)
-- Include the admin config fields (dataset selector, field mapping) inline
-- Include the 3D chart toggle from AdminPanelPage
-
-The Admin page route remains but is no longer in the nav.
-
-### 2. Home Page: Fix Landing Navbar + Add Notification Bell
-
-**Index.tsx**: The landing navbar already exists and is only on the Home page (Index uses its own layout, not MainLayout). This is correct. Add:
-
-- A notification bell icon with numeric badge in the top-right nav area
-- Dropdown panel showing notifications from localStorage
-- Store notifications via a simple zustand store with persist
-
-**Create `src/stores/notificationStore.ts**`: Simple store with `notifications[]`, `addNotification()`, `markRead()`, `unreadCount`.
-
-### 3. Collaboration Page: Online/Offline Status + Team Creation
-
-**WorkspacePage.tsx**:
-
-- Change member status: Only **Naveen** shows as "Online" (green dot + "Active now"). All others (Viper, Thaslee, Abd) show as "Offline" (gray dot + "Offline").
-- Add "Create Team" section: form to create a new team name, assign from static members, store in localStorage via workspaceStore
-- Add "Share Dashboard" simulation: button that marks a dashboard as "Shared" (badge), triggers a notification, shows static "Active Now" indicator
-
-**WorkspaceStore.ts**: Add `teams[]` array with `createTeam()`, `shareDashboard()` methods.
-
-### 4. Double-Click Q&A Structural Fix
-
-**DashboardBuilderPage.tsx** and **DashboardOutputPage.tsx**:
-
-- Move `onDoubleClick` from the chart card inner content to an outer wrapper `<div>` around each widget
-- Ensure `pointer-events` are enabled on the wrapper
-- Ensure drag handle does not consume the double-click event (already uses `stopPropagation` appropriately)
-
-**InsightModal.tsx**:
-
-- Already uses `position: fixed` and `z-[100]` -- verify this is correct and modal is not clipped by any `overflow: hidden` parent
-
-### 5. Configuration Panel Data Editor Flex Fix (Critical)
-
-**WidgetEditDialog.tsx**: The Data Editor tab currently renders a table inside a ScrollArea. The fix:
-
-- Ensure the Dialog content uses `flex flex-col` with proper `overflow-y: auto` on the tab content
-- Data Editor's `ScrollArea` must have a fixed max-height and scroll internally
-- Input fields inside table cells: use `w-full` and remove any fixed widths
-- Add `min-w-0` to flex children to prevent overflow
-- The dialog must not cause horizontal page scroll
-
-### 6. Chart & Label Color System in Configuration
-
-**WidgetEditDialog.tsx**: Add a "Colors" section in the Config tab:
-
-- Color picker for primary chart color (bar fill, line stroke, pie slice)
-- Label text color picker
-- Label background color toggle
-- Toggle labels ON/OFF
-- Store color settings in widget config
-
-### 7. Cross-Filtering Stability
-
-Already implemented in DashboardBuilderPage. Verify:
-
-- No layout shift on filter
-- Works with 100+ rows (already filters in-memory)
-- No duplication
-
-### 8. Drill-Down: Replace Data, No Stack
-
-Already implemented. The current drill-down replaces chart data via `aggregateForDrillLevel`. The chart container uses fixed `h-80` class. Verify no stacking occurs. And should avoid Data Redudency by summarizing them
-
-### 9. Layout Stability
-
-- All grid containers already use `grid` and `gap` classes
-- Add `min-w-0` to grid children where missing to prevent overflow
-- Ensure slider panel uses flex-shrink-0 and doesn't push content
-
----
-
-### Technical Summary
 
 
-| File                                            | Change                                                                                 |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `src/components/layout/AppSidebar.tsx`          | Remove Admin nav item                                                                  |
-| `src/pages/DashboardBuilderPage.tsx`            | Add collapsible chart library slider panel with admin config; fix double-click wrapper |
-| `src/stores/notificationStore.ts`               | New store for notifications                                                            |
-| `src/pages/Index.tsx`                           | Add notification bell with badge and dropdown                                          |
-| `src/pages/WorkspacePage.tsx`                   | Online/offline per member; team creation UI; share simulation                          |
-| `src/stores/workspaceStore.ts`                  | Add teams array and share methods                                                      |
-| `src/components/dashboard/WidgetEditDialog.tsx` | Fix Data Editor flex layout; add color configuration                                   |
-| `src/components/dashboard/InsightModal.tsx`     | Ensure fixed positioning not clipped                                                   |
-| `src/pages/DashboardOutputPage.tsx`             | Fix double-click wrapper structure                                                     |
+## Plan: LAN Collaboration, Admin DB Viewer, and College Templates
+
+### 1. LAN-Based Collaboration Page
+
+Since this is a static frontend app (no backend server), true LAN peer discovery requires a creative approach. The plan uses **BroadcastChannel API** for real cross-tab communication on the same machine, combined with a **manual peer connection** flow where users on the same network can share a room code to sync presence and data via localStorage polling.
+
+**Changes to `src/pages/WorkspacePage.tsx`:**
+- Replace "UI simulation" label with "LAN Network Collaboration"
+- Add a "Network Room" section where users can create/join a room code
+- Use `BroadcastChannel` to sync presence, teams, and org data across browser tabs in real-time
+- Show connected peers with live status indicators
+- Add network status banner showing connection mode (Local / LAN)
+
+**New file: `src/lib/lanSync.ts`:**
+- BroadcastChannel wrapper for cross-tab real-time sync
+- Room code generation and management
+- Message types: presence heartbeat, org updates, team updates, dashboard share events
+- Auto-cleanup on disconnect
+
+### 2. Admin Panel: Replace IndexedDB Viewer with User Database Viewer
+
+**Changes to `src/pages/AdminPanelPage.tsx`:**
+- Rename "Data Storage" tab to "User Database"
+- Replace `<IndexedDBViewer />` with `<DatabasePanel />` (already exists at `src/components/admin/DatabasePanel.tsx`)
+- The DatabasePanel already shows Users, Collaboration Requests, Activity Log, and Online Presence — all read-only views of the localDB
+- Make the Users tab strictly read-only (remove the delete button for non-owner users)
+
+### 3. College Performance Templates (with dedicated datasets)
+
+**Add to `src/data/templates.ts`** — 4 new fully-furnished templates:
+
+**a) Student Performance Analytics**
+- Dataset: student name, department, semester, GPA, attendance%, credits, backlogs
+- Widgets: KPIs (avg GPA, total students, avg attendance), bar chart (GPA by dept), line chart (semester trends), donut (department distribution), gauge (attendance rate), table
+
+**b) Staff Performance Dashboard**
+- Dataset: staff name, department, designation, experience_years, publications, courses_taught, rating
+- Widgets: KPIs (total staff, avg rating, avg experience), horizontal bar (publications by dept), radar (rating distribution), pie (designation split), table
+
+**c) College Exam Results**
+- Dataset: subject, pass_count, fail_count, avg_marks, highest_marks, department
+- Widgets: KPIs (pass rate, avg marks), stacked bar (pass vs fail by subject), waterfall (marks distribution), funnel (grade distribution), table
+
+**d) College Attendance Tracker**
+- Dataset: department, total_students, present_avg, absent_avg, late_avg, month
+- Widgets: KPIs (overall attendance%), area chart (monthly trends), donut (present/absent/late split), bar (by department), gauge (target vs actual), table
+
+Each template includes 8-12 sample data rows and 8-11 widgets with ranking controls and summary metrics enabled.
+
+### Technical Details
+
+**Files to create:**
+- `src/lib/lanSync.ts` — BroadcastChannel-based sync utility
+
+**Files to modify:**
+- `src/pages/WorkspacePage.tsx` — LAN collaboration UI with room codes and real-time sync
+- `src/pages/AdminPanelPage.tsx` — Swap IndexedDB viewer for DatabasePanel (user entries, read-only)
+- `src/data/templates.ts` — Add 4 college templates with full sample datasets and widgets
+

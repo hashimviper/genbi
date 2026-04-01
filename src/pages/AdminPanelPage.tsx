@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAdminStore } from '@/stores/adminStore';
-import { IndexedDBViewer } from '@/components/admin/IndexedDBViewer';
+import { DatabasePanel } from '@/components/admin/DatabasePanel';
 import {
   BarChart3,
   LineChart,
@@ -230,14 +230,14 @@ export default function AdminPanelPage() {
               }`}
             >
               <Hash className="h-4 w-4" />
-              Data Storage
+              User Database
             </button>
           </div>
         </div>
 
         {adminTab === 'database' ? (
           <div className="flex-1 glass-card rounded-xl overflow-hidden">
-            <IndexedDBViewer />
+            <DatabasePanel />
           </div>
         ) : (
         <div className="grid flex-1 gap-6 lg:grid-cols-3">

@@ -230,7 +230,7 @@ export default function AdminPanelPage() {
               }`}
             >
               <Hash className="h-4 w-4" />
-              Data Storage
+              User Database
             </button>
           </div>
         </div>

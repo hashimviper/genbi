@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAdminStore } from '@/stores/adminStore';
-import { IndexedDBViewer } from '@/components/admin/IndexedDBViewer';
+import { DatabasePanel } from '@/components/admin/DatabasePanel';
 import {
   BarChart3,
   LineChart,

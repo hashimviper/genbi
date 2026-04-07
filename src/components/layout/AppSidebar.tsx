@@ -14,7 +14,6 @@ import {
   LogOut,
   ShieldCheck,
   BookOpen,
-  Code2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -39,7 +38,6 @@ const navItems: NavItem[] = [
   { icon: FileText, label: 'Templates', href: '/templates', color: 'text-[hsl(38,95%,55%)]' },
   { icon: FolderOpen, label: 'My Dashboards', href: '/dashboards', color: 'text-[hsl(155,75%,45%)]' },
   { icon: Database, label: 'Data Sources', href: '/data', color: 'text-[hsl(330,85%,60%)]', editorOnly: true },
-  { icon: Code2, label: 'Source Code', href: '/source-code', color: 'text-[hsl(260,80%,65%)]' },
   { icon: ShieldCheck, label: 'Admin Panel', href: '/admin', color: 'text-[hsl(45,100%,50%)]', ownerOnly: true },
 ];
 

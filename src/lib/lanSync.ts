@@ -1,7 +1,7 @@
 /**
  * LAN Sync Utility
  * Uses BroadcastChannel API for cross-tab real-time communication
- * and localStorage polling for cross-browser sync on the same network.
+ * and localStorage + storage events for cross-tab sync.
  */
 
 export interface LANPeer {
@@ -31,8 +31,9 @@ export interface LANMessage {
 const CHANNEL_NAME = 'visorybi-lan-sync';
 const ROOM_KEY = 'visorybi-lan-room';
 const PEERS_KEY = 'visorybi-lan-peers';
-const HEARTBEAT_MS = 3000;
-const PEER_TIMEOUT_MS = 10000;
+const MESSAGES_KEY = 'visorybi-lan-messages';
+const HEARTBEAT_MS = 2000;
+const PEER_TIMEOUT_MS = 8000;
 
 type MessageHandler = (msg: LANMessage) => void;
 
@@ -44,17 +45,20 @@ export class LANSyncManager {
   private userId = '';
   private username = '';
   private roomCode = '';
+  private lastProcessedTimestamp = 0;
+  private storageHandler: ((e: StorageEvent) => void) | null = null;
 
   connect(userId: string, username: string, roomCode: string) {
     this.disconnect();
     this.userId = userId;
     this.username = username;
     this.roomCode = roomCode;
+    this.lastProcessedTimestamp = Date.now();
 
     // Save room info
     localStorage.setItem(ROOM_KEY, JSON.stringify({ userId, username, roomCode }));
 
-    // Setup BroadcastChannel
+    // Setup BroadcastChannel for same-browser cross-tab
     try {
       this.channel = new BroadcastChannel(CHANNEL_NAME);
       this.channel.onmessage = (event: MessageEvent<LANMessage>) => {
@@ -63,8 +67,26 @@ export class LANSyncManager {
         }
       };
     } catch {
-      // BroadcastChannel not supported, fallback to polling only
+      // BroadcastChannel not supported
     }
+
+    // Listen for storage events (cross-tab sync fallback)
+    this.storageHandler = (e: StorageEvent) => {
+      if (e.key === MESSAGES_KEY && e.newValue) {
+        this.processNewMessages();
+      }
+      if (e.key === PEERS_KEY) {
+        // Peer list changed in another tab
+        this.handlers.forEach(h => h({
+          type: 'presence',
+          senderId: '__storage__',
+          senderName: '',
+          roomCode: this.roomCode,
+          timestamp: Date.now(),
+        }));
+      }
+    };
+    window.addEventListener('storage', this.storageHandler);
 
     // Send initial presence
     this.sendPresence();
@@ -72,23 +94,31 @@ export class LANSyncManager {
     // Start heartbeat
     this.heartbeatInterval = setInterval(() => this.sendPresence(), HEARTBEAT_MS);
 
-    // Poll localStorage for peers from other browsers
-    this.pollInterval = setInterval(() => this.pollPeers(), HEARTBEAT_MS);
+    // Poll for stale peers cleanup
+    this.pollInterval = setInterval(() => this.pollPeers(), HEARTBEAT_MS * 2);
   }
 
   disconnect() {
     if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
     if (this.pollInterval) clearInterval(this.pollInterval);
 
+    // Remove storage listener
+    if (this.storageHandler) {
+      window.removeEventListener('storage', this.storageHandler);
+      this.storageHandler = null;
+    }
+
     // Send leave message
-    if (this.channel && this.roomCode) {
-      this.broadcast({
+    if (this.roomCode) {
+      const leaveMsg: LANMessage = {
         type: 'presence-leave',
         senderId: this.userId,
         senderName: this.username,
         roomCode: this.roomCode,
         timestamp: Date.now(),
-      });
+      };
+      this.broadcast(leaveMsg);
+      this.storePeerMessage(leaveMsg);
     }
 
     // Remove self from peers
@@ -118,7 +148,6 @@ export class LANSyncManager {
       timestamp: Date.now(),
     };
     this.broadcast(msg);
-    // Also update localStorage for cross-browser polling
     this.storePeerMessage(msg);
   }
 
@@ -190,6 +219,8 @@ export class LANSyncManager {
     };
     this.broadcast(msg);
     this.updatePeer(this.userId, this.username, this.roomCode);
+    // Also store as message for cross-tab detection via storage events
+    this.storePeerMessage(msg);
   }
 
   private updatePeer(userId: string, username: string, roomCode: string) {
@@ -225,21 +256,35 @@ export class LANSyncManager {
   }
 
   private storePeerMessage(msg: LANMessage) {
-    // Store messages in localStorage for cross-browser polling
     try {
-      const key = 'visorybi-lan-messages';
-      const msgs: LANMessage[] = JSON.parse(localStorage.getItem(key) || '[]');
+      const msgs: LANMessage[] = JSON.parse(localStorage.getItem(MESSAGES_KEY) || '[]');
       msgs.push(msg);
       // Keep last 50
       if (msgs.length > 50) msgs.splice(0, msgs.length - 50);
-      localStorage.setItem(key, JSON.stringify(msgs));
+      localStorage.setItem(MESSAGES_KEY, JSON.stringify(msgs));
+    } catch {
+      // ignore
+    }
+  }
+
+  private processNewMessages() {
+    try {
+      const msgs: LANMessage[] = JSON.parse(localStorage.getItem(MESSAGES_KEY) || '[]');
+      const newMsgs = msgs.filter(
+        m => m.timestamp > this.lastProcessedTimestamp &&
+             m.roomCode === this.roomCode &&
+             m.senderId !== this.userId
+      );
+      if (newMsgs.length > 0) {
+        this.lastProcessedTimestamp = Math.max(...newMsgs.map(m => m.timestamp));
+        newMsgs.forEach(m => this.handleMessage(m));
+      }
     } catch {
       // ignore
     }
   }
 
   private pollPeers() {
-    // Clean up stale peers
     try {
       const peers: LANPeer[] = JSON.parse(localStorage.getItem(PEERS_KEY) || '[]');
       const cutoff = Date.now() - PEER_TIMEOUT_MS;

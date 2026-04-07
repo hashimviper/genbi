@@ -16,6 +16,7 @@ import AdminPanelPage from "./pages/AdminPanelPage";
 import TemplatesPage from "./pages/TemplatesPage";
 import AuthPage from "./pages/AuthPage";
 import WorkspacePage from "./pages/WorkspacePage";
+import SourceCodePage from "./pages/SourceCodePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,6 +50,7 @@ const App = () => {
             <Route path="/admin" element={<ProtectedRoute><AdminPanelPage /></ProtectedRoute>} />
             <Route path="/templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
             <Route path="/workspace" element={<ProtectedRoute><WorkspacePage /></ProtectedRoute>} />
+            <Route path="/source-code" element={<ProtectedRoute><SourceCodePage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

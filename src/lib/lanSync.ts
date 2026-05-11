@@ -193,7 +193,13 @@ export class LANSyncManager {
 
   private handleMessage(msg: LANMessage) {
     if (msg.type === 'presence') {
+      // Detect if this is a peer we haven't seen yet — echo our presence back so they see us instantly
+      const known = this.getActivePeers().some((p) => p.userId === msg.senderId);
       this.updatePeer(msg.senderId, msg.senderName, msg.roomCode);
+      if (!known && msg.senderId !== this.userId) {
+        // Reply with our own presence so the new peer learns about us immediately
+        setTimeout(() => this.sendPresence(), 50);
+      }
     } else if (msg.type === 'presence-leave') {
       this.removePeer(msg.senderId);
     }

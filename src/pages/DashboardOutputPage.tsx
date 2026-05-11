@@ -520,6 +520,30 @@ export default function DashboardOutputPage() {
           onClose={() => setInsightWidget(null)}
         />
       )}
+
+      {/* Analytics Chatbot (parity with builder) */}
+      {getCurrentDataset() && (
+        <AnalyticsChatbot
+          columns={getCurrentDataset()?.columns || []}
+          data={getRawDatasetData(getCurrentDataset()?.id || '')}
+          datasetId={getCurrentDataset()?.id || ''}
+          onAddWidget={(widget) => {
+            if (currentDashboard) {
+              addWidget(currentDashboard.id, widget);
+              toast({ title: 'Widget added from Analytics Advisor' });
+            }
+          }}
+        />
+      )}
+
+      {/* Presentation Mode (parity with builder) */}
+      {presentationMode && currentDashboard && (
+        <PresentationMode
+          widgets={currentDashboard.widgets}
+          renderWidget={renderWidget}
+          onClose={() => setPresentationMode(false)}
+        />
+      )}
     </div>
   );
 }

@@ -44,7 +44,8 @@ import { AnalyticsChatbot } from '@/components/dashboard/AnalyticsChatbot';
 export default function DashboardOutputPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const { dashboards, datasets, currentDashboard, setCurrentDashboard } = useDashboardStore();
+  const { dashboards, datasets, currentDashboard, setCurrentDashboard, addWidget } = useDashboardStore();
+  const [presentationMode, setPresentationMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [filters, setFilters] = useState<FilterConfig[]>([]);
   const [sharedState, setSharedState] = useState<DashboardShareState | null>(null);

@@ -334,6 +334,16 @@ export default function DashboardOutputPage() {
           </>
         )}
 
+        {/* Trend Analysis (parity with builder) */}
+        {!isFullscreen && getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (
+          <div className="mb-6">
+            <TrendAnalysisPanel
+              columns={getCurrentDataset()?.columns || []}
+              data={getDatasetData(getCurrentDataset()?.id || '')}
+            />
+          </div>
+        )}
+
         {/* Summary Metrics Panel */}
         {getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (() => {
           const ds = getCurrentDataset()!;

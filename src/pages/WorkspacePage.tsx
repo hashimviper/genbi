@@ -112,13 +112,34 @@ export default function WorkspacePage() {
       } else if (msg.type === 'presence-leave') {
         setLanPeers(lanSync.getActivePeers());
       } else if (msg.type === 'chat') {
-        toast({ title: `${msg.senderName}`, description: String(msg.payload || '') });
+        setChatMessages((prev) => [
+          ...prev,
+          { id: `${msg.senderId}-${msg.timestamp}`, senderId: msg.senderId, senderName: msg.senderName, text: String(msg.payload || ''), ts: msg.timestamp },
+        ]);
       } else if (msg.type === 'dashboard-share') {
         addNotification('Dashboard Shared via LAN', `${msg.senderName} shared a dashboard.`);
       }
     });
     return unsub;
   }, [lanConnected, addNotification]);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [chatMessages.length]);
+
+  const handleSendChat = useCallback(() => {
+    const text = chatInput.trim();
+    if (!text || !currentUser || !lanConnected) return;
+    lanSync.send('chat', text);
+    setChatMessages((prev) => [
+      ...prev,
+      { id: `${currentUser.id}-${Date.now()}`, senderId: currentUser.id, senderName: currentUser.username, text, ts: Date.now() },
+    ]);
+    setChatInput('');
+  }, [chatInput, currentUser, lanConnected]);
 
   // Cleanup on unmount
   useEffect(() => {

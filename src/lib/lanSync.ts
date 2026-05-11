@@ -58,6 +58,16 @@ export class LANSyncManager {
     // Save room info
     localStorage.setItem(ROOM_KEY, JSON.stringify({ userId, username, roomCode }));
 
+    // Clean stale peers from other rooms / expired sessions
+    try {
+      const all: LANPeer[] = JSON.parse(localStorage.getItem(PEERS_KEY) || '[]');
+      const cutoff = Date.now() - PEER_TIMEOUT_MS;
+      localStorage.setItem(
+        PEERS_KEY,
+        JSON.stringify(all.filter((p) => p.roomCode === roomCode && p.lastSeen > cutoff))
+      );
+    } catch { /* ignore */ }
+
     // Setup BroadcastChannel for same-browser cross-tab
     try {
       this.channel = new BroadcastChannel(CHANNEL_NAME);

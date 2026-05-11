@@ -425,6 +425,14 @@ export default function DashboardOutputPage() {
               </div>
             )}
 
+            {/* Data Analytics Panel (Insight Report, Ranking, Data Table) - parity with builder */}
+            {getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (
+              <DataAnalyticsPanel
+                columns={getCurrentDataset()?.columns || []}
+                data={getDatasetData(getCurrentDataset()?.id || '')}
+              />
+            )}
+
             {/* ── Insight Summary Section (pinned above data table) ── */}
             {insightSummary && insightSummary.insights.length > 0 && (
               <div className="rounded-xl border border-border bg-card p-5">

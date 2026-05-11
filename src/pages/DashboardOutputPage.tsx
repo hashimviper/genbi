@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Download, Maximize2, Minimize2, X, Lightbulb, TrendingUp, BarChart3, Target } from 'lucide-react';
+import { ArrowLeft, Download, Maximize2, Minimize2, X, Lightbulb, TrendingUp, BarChart3, Target, Play } from 'lucide-react';
 import { useDashboardStore } from '@/stores/dashboardStore';
 import { InsightModal } from '@/components/dashboard/InsightModal';
 import { ChartCard } from '@/components/charts/ChartCard';
@@ -35,11 +35,17 @@ import { autoAggregate } from '@/lib/dataModel';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { VisoryBILogo } from '@/components/VisoryBILogo';
 import { analyzeDataset, type AnalysisInstance } from '@/lib/analyticsAdvisor';
+import { TrendAnalysisPanel } from '@/components/dashboard/TrendAnalysisPanel';
+import { DataAnalyticsPanel } from '@/components/dashboard/DataAnalyticsPanel';
+import { PresentationMode } from '@/components/dashboard/PresentationMode';
+import { AnalyticsChatbot } from '@/components/dashboard/AnalyticsChatbot';
+
 
 export default function DashboardOutputPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const { dashboards, datasets, currentDashboard, setCurrentDashboard } = useDashboardStore();
+  const { dashboards, datasets, currentDashboard, setCurrentDashboard, addWidget } = useDashboardStore();
+  const [presentationMode, setPresentationMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [filters, setFilters] = useState<FilterConfig[]>([]);
   const [sharedState, setSharedState] = useState<DashboardShareState | null>(null);
@@ -291,6 +297,9 @@ export default function DashboardOutputPage() {
           <div className="flex items-center gap-2">
             <ShareMenu elementId="dashboard-output-canvas" dashboardName={currentDashboard.name} dashboardId={currentDashboard.id} />
             <ExportMenu elementId="dashboard-output-canvas" dashboardName={currentDashboard.name} dashboardData={currentDashboard} widgetTitles={currentDashboard.widgets.map(w => w.config.title)} />
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setPresentationMode(true)} disabled={currentDashboard.widgets.length === 0}>
+              <Play className="h-4 w-4" /> Present
+            </Button>
             <Button variant="outline" size="sm" className="gap-2" onClick={toggleFullscreen}>
               {isFullscreen ? <><Minimize2 className="h-4 w-4" /> Exit Fullscreen</> : <><Maximize2 className="h-4 w-4" /> Fullscreen</>}
             </Button>
@@ -323,6 +332,16 @@ export default function DashboardOutputPage() {
               </div>
             )}
           </>
+        )}
+
+        {/* Trend Analysis (parity with builder) */}
+        {!isFullscreen && getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (
+          <div className="mb-6">
+            <TrendAnalysisPanel
+              columns={getCurrentDataset()?.columns || []}
+              data={getDatasetData(getCurrentDataset()?.id || '')}
+            />
+          </div>
         )}
 
         {/* Summary Metrics Panel */}
@@ -404,6 +423,14 @@ export default function DashboardOutputPage() {
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Data Analytics Panel (Insight Report, Ranking, Data Table) - parity with builder */}
+            {getCurrentDataset() && getDatasetData(getCurrentDataset()?.id || '').length > 0 && (
+              <DataAnalyticsPanel
+                columns={getCurrentDataset()?.columns || []}
+                data={getDatasetData(getCurrentDataset()?.id || '')}
+              />
             )}
 
             {/* ── Insight Summary Section (pinned above data table) ── */}
@@ -491,6 +518,30 @@ export default function DashboardOutputPage() {
           data={getDatasetData(insightWidget.config.datasetId)}
           position={insightPos}
           onClose={() => setInsightWidget(null)}
+        />
+      )}
+
+      {/* Analytics Chatbot (parity with builder) */}
+      {getCurrentDataset() && (
+        <AnalyticsChatbot
+          columns={getCurrentDataset()?.columns || []}
+          data={getRawDatasetData(getCurrentDataset()?.id || '')}
+          datasetId={getCurrentDataset()?.id || ''}
+          onAddWidget={(widget) => {
+            if (currentDashboard) {
+              addWidget(currentDashboard.id, widget);
+              toast({ title: 'Widget added from Analytics Advisor' });
+            }
+          }}
+        />
+      )}
+
+      {/* Presentation Mode (parity with builder) */}
+      {presentationMode && currentDashboard && (
+        <PresentationMode
+          widgets={currentDashboard.widgets}
+          renderWidget={renderWidget}
+          onClose={() => setPresentationMode(false)}
         />
       )}
     </div>

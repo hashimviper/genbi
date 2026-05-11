@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Users, Building2, Shield, Edit3, Crown, Plus, Share2, UserPlus, X, Building, Trash2, Wifi, WifiOff, Copy, Radio } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Users, Building2, Shield, Edit3, Crown, Plus, Share2, UserPlus, X, Building, Trash2, Wifi, WifiOff, Copy, Radio, Send, MessageSquare } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -80,6 +80,9 @@ export default function WorkspacePage() {
   const [roomCode, setRoomCode] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [lanPeers, setLanPeers] = useState<LANPeer[]>([]);
+  const [chatMessages, setChatMessages] = useState<{ id: string; senderId: string; senderName: string; text: string; ts: number }[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // Update presence for the logged-in user
   useEffect(() => {
@@ -109,13 +112,34 @@ export default function WorkspacePage() {
       } else if (msg.type === 'presence-leave') {
         setLanPeers(lanSync.getActivePeers());
       } else if (msg.type === 'chat') {
-        toast({ title: `${msg.senderName}`, description: String(msg.payload || '') });
+        setChatMessages((prev) => [
+          ...prev,
+          { id: `${msg.senderId}-${msg.timestamp}`, senderId: msg.senderId, senderName: msg.senderName, text: String(msg.payload || ''), ts: msg.timestamp },
+        ]);
       } else if (msg.type === 'dashboard-share') {
         addNotification('Dashboard Shared via LAN', `${msg.senderName} shared a dashboard.`);
       }
     });
     return unsub;
   }, [lanConnected, addNotification]);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [chatMessages.length]);
+
+  const handleSendChat = useCallback(() => {
+    const text = chatInput.trim();
+    if (!text || !currentUser || !lanConnected) return;
+    lanSync.send('chat', text);
+    setChatMessages((prev) => [
+      ...prev,
+      { id: `${currentUser.id}-${Date.now()}`, senderId: currentUser.id, senderName: currentUser.username, text, ts: Date.now() },
+    ]);
+    setChatInput('');
+  }, [chatInput, currentUser, lanConnected]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -371,6 +395,49 @@ export default function WorkspacePage() {
                     </div>
                   ))
                 )}
+              </div>
+
+              {/* Real-time Chat */}
+              <div className="space-y-2 pt-2 border-t border-border/50">
+                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                  <MessageSquare className="h-3.5 w-3.5" /> Room Chat
+                </h4>
+                <div
+                  ref={chatScrollRef}
+                  className="h-56 overflow-y-auto rounded-lg bg-muted/30 border border-border/40 p-3 space-y-2"
+                >
+                  {chatMessages.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-8">
+                      No messages yet. Say hi to your peers!
+                    </p>
+                  ) : (
+                    chatMessages.map((m) => {
+                      const mine = m.senderId === currentUser?.id;
+                      return (
+                        <div key={m.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
+                          <span className="text-[10px] text-muted-foreground mb-0.5 px-1">
+                            {mine ? 'You' : m.senderName} • {new Date(m.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <div className={`max-w-[80%] rounded-lg px-3 py-1.5 text-sm break-words ${mine ? 'bg-primary text-primary-foreground' : 'bg-card border border-border/60 text-foreground'}`}>
+                            {m.text}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSendChat(); } }}
+                    placeholder="Type a message..."
+                    className="flex-1"
+                  />
+                  <Button onClick={handleSendChat} disabled={!chatInput.trim()} size="icon">
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           )}

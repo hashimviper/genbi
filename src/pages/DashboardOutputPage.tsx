@@ -35,6 +35,11 @@ import { autoAggregate } from '@/lib/dataModel';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { VisoryBILogo } from '@/components/VisoryBILogo';
 import { analyzeDataset, type AnalysisInstance } from '@/lib/analyticsAdvisor';
+import { TrendAnalysisPanel } from '@/components/dashboard/TrendAnalysisPanel';
+import { DataAnalyticsPanel } from '@/components/dashboard/DataAnalyticsPanel';
+import { PresentationMode } from '@/components/dashboard/PresentationMode';
+import { AnalyticsChatbot } from '@/components/dashboard/AnalyticsChatbot';
+import { addWidget as addWidgetAction } from '@/stores/dashboardStore';
 
 export default function DashboardOutputPage() {
   const { id } = useParams<{ id: string }>();

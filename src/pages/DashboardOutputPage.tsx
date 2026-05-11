@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Download, Maximize2, Minimize2, X, Lightbulb, TrendingUp, BarChart3, Target } from 'lucide-react';
+import { ArrowLeft, Download, Maximize2, Minimize2, X, Lightbulb, TrendingUp, BarChart3, Target, Play } from 'lucide-react';
 import { useDashboardStore } from '@/stores/dashboardStore';
 import { InsightModal } from '@/components/dashboard/InsightModal';
 import { ChartCard } from '@/components/charts/ChartCard';

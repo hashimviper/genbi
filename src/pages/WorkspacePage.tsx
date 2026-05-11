@@ -80,6 +80,9 @@ export default function WorkspacePage() {
   const [roomCode, setRoomCode] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [lanPeers, setLanPeers] = useState<LANPeer[]>([]);
+  const [chatMessages, setChatMessages] = useState<{ id: string; senderId: string; senderName: string; text: string; ts: number }[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // Update presence for the logged-in user
   useEffect(() => {
